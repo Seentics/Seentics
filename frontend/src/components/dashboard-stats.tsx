@@ -191,15 +191,15 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
     return (
     <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
         {stats.map((stat, index) => (
-          <div key={stat.title} className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-8">
-            <div className="flex items-center justify-between pb-2.5">
-              <div className="text-sm font-semibold text-foreground/90 truncate pr-2">{stat.title}</div>
-              <stat.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
+          <div key={stat.title} className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between pb-2 sm:pb-2.5">
+              <div className="text-xs sm:text-sm font-semibold text-foreground/90 truncate pr-1 sm:pr-2">{stat.title}</div>
+              <stat.icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors flex-shrink-0" />
             </div>
-            <div className="space-y-1.5">
-              <div className="text-2xl font-bold leading-tight text-foreground group-hover:text-foreground/90 transition-colors">
+            <div className="space-y-1 sm:space-y-1.5">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight text-foreground group-hover:text-foreground/90 transition-colors">
                 {stat.value}
               </div>
               {stat.change && (

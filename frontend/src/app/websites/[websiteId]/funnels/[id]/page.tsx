@@ -378,13 +378,13 @@ export default function FunnelDetailPage() {
       {/* Header Section */}
       <div className="space-y-4">
         {/* Title and Status */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <Target className="h-6 w-6 text-blue-600" />
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+              <Target className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div>
-              <h1 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-headline text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
                 {funnel.name}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -393,7 +393,7 @@ export default function FunnelDetailPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Badge variant={funnel.is_active ? "default" : "secondary"}>
               {funnel.is_active ? 'Active' : 'Paused'}
             </Badge>
@@ -421,7 +421,7 @@ export default function FunnelDetailPage() {
         </div>
 
         {/* Controls and Actions */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           {/* Date Range Filter */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Time period:</span>
@@ -439,7 +439,7 @@ export default function FunnelDetailPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button 
               onClick={() => handleCreateWorkflow('general')}
               size="sm"
@@ -502,18 +502,18 @@ export default function FunnelDetailPage() {
 
       {/* Key Numbers */}
       {funnelAnalytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <Users className="w-6 h-6 text-blue-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     People who entered your funnel
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {funnelAnalyticsResponse?.analytics?.[0]?.total_starts?.toLocaleString() || '0'}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -525,17 +525,17 @@ export default function FunnelDetailPage() {
           </Card>
 
           <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <Percent className="w-6 h-6 text-green-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Percent className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     People who completed all steps
                   </p>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold">
+                    <p className="text-xl sm:text-2xl font-bold">
                       {funnelAnalytics?.overallConversionRate?.toFixed(1) || '0'}%
                     </p>
                     {(funnelAnalytics?.overallConversionRate || 0) > 5 ? (
@@ -553,16 +553,16 @@ export default function FunnelDetailPage() {
           </Card>
 
           <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                  <Clock className="w-6 h-6 text-purple-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Average time to complete
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {funnelAnalytics?.steps?.[0]?.avgTimeOnStep ? formatTime(funnelAnalytics.steps[0].avgTimeOnStep) : '0:00.00'}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -574,16 +574,16 @@ export default function FunnelDetailPage() {
           </Card>
 
           <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                  <TrendingDown className="w-6 h-6 text-red-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                  <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Biggest problem area
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl sm:text-2xl font-bold">
                     {funnelAnalytics?.biggestDropOff?.dropOffRate?.toFixed(1) || '0'}%
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -608,12 +608,12 @@ export default function FunnelDetailPage() {
 
       {/* Simple Performance Overview */}
       {funnelAnalytics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Daily Performance */}
           <Card className="border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">How your funnel performed daily</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base sm:text-lg">How your funnel performed daily</CardTitle>
+              <CardDescription className="text-sm">
                 Shows conversion rates for each day in the selected period
               </CardDescription>
             </CardHeader>
@@ -621,19 +621,19 @@ export default function FunnelDetailPage() {
               {/* Real daily performance chart */}
               {detailedAnalyticsResponse?.data?.daily_performance && detailedAnalyticsResponse.data.daily_performance.length > 0 ? (
                 <>
-                  <div className="h-48 bg-muted/20 rounded-lg p-4 flex items-end justify-between">
+                  <div className="h-40 sm:h-48 bg-muted/20 rounded-lg p-2 sm:p-4 flex items-end justify-between overflow-x-auto">
                     {detailedAnalyticsResponse.data.daily_performance.slice(0, dateRange > 7 ? 15 : 7).map((day: any, i: number) => {
                       const maxRate = Math.max(...detailedAnalyticsResponse.data.daily_performance.map((d: any) => d.conversion_rate));
                       const height = (day.conversion_rate / maxRate) * 100;
                       return (
-                        <div key={i} className="flex flex-col items-center gap-2">
+                        <div key={i} className="flex flex-col items-center gap-1 sm:gap-2 min-w-0 flex-shrink-0">
                           <div className="text-xs font-medium text-blue-600">{day.conversion_rate.toFixed(1)}%</div>
                           <div 
-                            className="w-6 bg-blue-500 rounded-t-sm hover:bg-blue-600 transition-colors cursor-pointer"
+                            className="w-4 sm:w-6 bg-blue-500 rounded-t-sm hover:bg-blue-600 transition-colors cursor-pointer"
                             style={{ height: `${Math.max(height, 5)}%` }}
                             title={`${day.date}: ${day.conversion_rate.toFixed(1)}% conversion (${day.conversions}/${day.total_starts})`}
                           />
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground text-center">
                             {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </div>
                         </div>
@@ -642,20 +642,20 @@ export default function FunnelDetailPage() {
                   </div>
 
                   {/* Real summary */}
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-4 border-t">
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Best day</p>
-                      <p className="text-lg font-bold text-green-600">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Best day</p>
+                      <p className="text-base sm:text-lg font-bold text-green-600">
                         {Math.max(...detailedAnalyticsResponse.data.daily_performance.map((d: any) => d.conversion_rate)).toFixed(1)}%
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Your average</p>
-                      <p className="text-lg font-bold">{funnelAnalytics?.overallConversionRate?.toFixed(1) || '0'}%</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Your average</p>
+                      <p className="text-base sm:text-lg font-bold">{funnelAnalytics?.overallConversionRate?.toFixed(1) || '0'}%</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Worst day</p>
-                      <p className="text-lg font-bold text-red-600">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Worst day</p>
+                      <p className="text-base sm:text-lg font-bold text-red-600">
                         {Math.min(...detailedAnalyticsResponse.data.daily_performance.map((d: any) => d.conversion_rate)).toFixed(1)}%
                       </p>
                     </div>
@@ -675,9 +675,9 @@ export default function FunnelDetailPage() {
 
           {/* Step by Step Breakdown */}
           <Card className="border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">How many people complete each step</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base sm:text-lg">How many people complete each step</CardTitle>
+              <CardDescription className="text-sm">
                 See where people are getting stuck in your funnel
               </CardDescription>
             </CardHeader>
@@ -689,14 +689,14 @@ export default function FunnelDetailPage() {
                   
                   return (
                     <div key={step.stepId} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center font-bold">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                             {index + 1}
                           </div>
-                          <span className="font-medium">{step.name}</span>
+                          <span className="font-medium truncate">{step.name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                           <span className="text-muted-foreground">{step.count?.toLocaleString() || '0'} people</span>
                           <span className="font-semibold">
                             {isFinite(step.conversionRate) ? step.conversionRate.toFixed(1) : '0'}%
@@ -711,7 +711,7 @@ export default function FunnelDetailPage() {
                       </div>
                       {index > 0 && isFinite(step.dropOffRate) && step.dropOffRate > 0 && (
                         <div className="text-xs text-red-600 flex items-center gap-1">
-                          <span>⚠️ {step.dropOffRate.toFixed(1)}% of people left here</span>
+                          <span>⚠️ {step.dropOffRate.toFixed(1)}% left here</span>
                         </div>
                       )}
                     </div>

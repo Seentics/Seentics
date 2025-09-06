@@ -94,17 +94,17 @@ const SummaryCard = ({
   return (
     <Card className="group cursor-pointer hover:shadow-md transition-all duration-200 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-foreground/90">{title}</CardTitle>
+        <CardTitle className="text-xs sm:text-sm font-medium text-foreground/90 truncate pr-2">{title}</CardTitle>
         <div className="flex items-center gap-1">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-          <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+          <ChevronRight className="h-2 w-2 sm:h-3 sm:w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold mb-1 text-foreground">{formatValue(value)}</div>
+      <CardContent className="space-y-1">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{formatValue(value)}</div>
         <GrowthIndicator change={change} />
         {format === 'duration' && (
-          <div className="text-xs text-muted-foreground mt-1">Raw: {value}s</div>
+          <div className="text-xs text-muted-foreground">Raw: {value}s</div>
         )}
       </CardContent>
     </Card>
@@ -113,7 +113,7 @@ const SummaryCard = ({
 
 export function SummaryCards({ dashboardData, className = '' }: SummaryCardsProps) {
   return (
-    <div className={`grid gap-6 md:grid-cols-2 lg:grid-cols-4 ${className}`}>
+    <div className={`grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-4 ${className}`}>
       <SummaryCard
         title="Total Visitors"
         value={dashboardData?.total_visitors || 0}

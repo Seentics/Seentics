@@ -469,15 +469,13 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Analytics</h1>
-            <p className="text-sm text-muted-foreground">Website performance insights</p>
-          </div>
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div className="space-y-1">
+          <h1 className="font-headline text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Analytics</h1>
+          <p className="text-sm text-muted-foreground">Website performance insights</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           
           {/* Date Range Filter */}
           <Select  value={isCustomRange ? 'custom' : dateRange.toString()} onValueChange={handleDateRangeChange}>
@@ -579,7 +577,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       />
 
       {/* 2 Cards in 2x2 Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                  {/* Card 2: Top Pages & Sources */}
          <ContentPerformance 
            topPages={transformedTopPages}
@@ -608,19 +606,19 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       {/* UTM & Marketing - Full Width */}
       <div className="space-y-4">
         <Card className="bg-card border-0 shadow-sm">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="space-y-1">
                 <CardTitle className="text-base sm:text-lg font-medium text-foreground">UTM & Marketing</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Track marketing campaign performance and traffic sources with UTM parameters</p>
+                <p className="text-xs text-muted-foreground">Track marketing campaign performance and traffic sources with UTM parameters</p>
               </div>
               <Tabs value={utmTab} onValueChange={(v) => setUtmTab(v as any)} className="w-full sm:w-auto">
-                <TabsList className="grid w-full grid-cols-5 h-9 sm:h-8">
-                  <TabsTrigger value="sources" className="text-xs px-2">Sources</TabsTrigger>
-                  <TabsTrigger value="mediums" className="text-xs px-2">Mediums</TabsTrigger>
-                  <TabsTrigger value="campaigns" className="text-xs px-2">Campaigns</TabsTrigger>
-                  <TabsTrigger value="terms" className="text-xs px-2">Terms</TabsTrigger>
-                  <TabsTrigger value="content" className="text-xs px-2">Content</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-5 h-8 sm:h-8">
+                  <TabsTrigger value="sources" className="text-xs px-1 sm:px-2">Sources</TabsTrigger>
+                  <TabsTrigger value="mediums" className="text-xs px-1 sm:px-2">Mediums</TabsTrigger>
+                  <TabsTrigger value="campaigns" className="text-xs px-1 sm:px-2">Campaigns</TabsTrigger>
+                  <TabsTrigger value="terms" className="text-xs px-1 sm:px-2">Terms</TabsTrigger>
+                  <TabsTrigger value="content" className="text-xs px-1 sm:px-2">Content</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -639,12 +637,10 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       {/* Events - Full Width */}
       <div className="space-y-4">
         <Card className="bg-card border-0 shadow-sm">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle className="text-base sm:text-lg font-medium text-foreground">Events</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Monitor user interactions, engagement patterns, and custom event tracking</p>
-              </div>
+          <CardHeader className="pb-4">
+            <div className="space-y-1">
+              <CardTitle className="text-base sm:text-lg font-medium text-foreground">Events</CardTitle>
+              <p className="text-xs text-muted-foreground">Monitor user interactions, engagement patterns, and custom event tracking</p>
             </div>
           </CardHeader>
           <CardContent>
