@@ -1,0 +1,51 @@
+{
+  "name": "Cart Abandonment Recovery",
+  "description": "Shows a recovery modal when users abandon their cart",
+  "nodes": [
+    {
+      "id": "funnel-trigger-1",
+      "type": "custom",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "title": "Funnel",
+        "type": "Trigger",
+        "iconName": "BarChart3",
+        "color": "hsl(var(--chart-1))",
+        "settings": {
+          "funnelId": "cart-checkout-funnel",
+          "eventType": "dropoff",
+          "stepIndex": 2,
+          "timeThreshold": 0,
+          "userSegment": "",
+          "minValue": 0,
+          "maxValue": null
+        }
+      }
+    },
+    {
+      "id": "show-modal-1",
+      "type": "custom",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "title": "Show Modal",
+        "type": "Action",
+        "iconName": "MessageSquare",
+        "color": "hsl(var(--chart-4))",
+        "settings": {
+          "displayMode": "simple",
+          "modalTitle": "Don't leave yet! 🛒",
+          "modalContent": "Complete your purchase and get 10% off your order! Use code: SAVE10",
+          "bannerCtaText": "Continue Shopping",
+          "bannerCtaUrl": "/cart"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "funnel-trigger-1",
+      "target": "show-modal-1"
+    }
+  ]
+}

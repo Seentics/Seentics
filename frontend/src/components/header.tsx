@@ -1,0 +1,238 @@
+'use client'
+
+import React, { useEffect, useState, Suspense } from 'react'
+import Link from 'next/link'
+import { useRouter, usePathname, useSearchParams, useParams } from 'next/navigation'
+import { 
+  Menu, 
+  User, 
+  ChevronLeft,
+  ChevronRight,
+  Moon,
+  Sun,
+  LogOut,
+  Settings,
+  HelpCircle
+} from 'lucide-react'
+import { useLayoutStore } from '@/stores/useLayoutStore'
+import { SiteSelector } from './site-selector'
+import { useAuth } from '@/stores/useAuthStore'
+import { useToast } from '@/hooks/use-toast'
+import { ThemeToggle } from '@/components/theme-toggle'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+
+function HeaderContent() {
+  const { 
+    isSidebarOpen,
+    toggleSidebar,
+    toggleMobileMenu
+  } = useLayoutStore()
+
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const params = useParams()
+  const { user, logout } = useAuth()
+  const { toast } = useToast()
+
+  // Debug: Log user object structure to see what's available
+  if (user) {
+    console.log('User object in header:', {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      hasAvatar: !!user.avatar,
+      avatarType: typeof user.avatar
+    })
+  }
+  
+  // Get siteId from either URL params or search params
+  const urlSiteId = params?.websiteId as string
+  const searchSiteId = searchParams.get('siteId')
+  const siteId = urlSiteId || searchSiteId
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        // On mobile, always close sidebar
+      } else {
+        // On desktop, ensure sidebar is open by default
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const handleSiteChange = (newSiteId: string) => {
+    // If we're in a website-specific route, navigate to the same route with new siteId
+    if (urlSiteId && pathname.includes('/websites/')) {
+      const newPath = pathname.replace(`/websites/${urlSiteId}`, `/websites/${newSiteId}`)
+      router.push(newPath)
+    } else {
+      // For other routes, use search params
+      const newSearchParams = new URLSearchParams(searchParams.toString())
+      newSearchParams.set('siteId', newSiteId)
+      router.push(`${pathname}?${newSearchParams.toString()}`)
+    }
+  }
+
+  const handleLogout = () => {
+    // Clear auth state
+    logout();
+    // Redirect to login
+    router.push('/login');
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+  };
+
+  return (
+    <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+      <div className="flex justify-between items-center h-16 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          
+          {/* Desktop Sidebar Toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {isSidebarOpen ? (
+              <>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Collapse</span>
+              </>
+            ) : (
+              <>
+                <ChevronRight className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Expand</span>
+              </>
+            )}
+          </button>
+
+          {/* Site Selector */}
+          <div className="hidden md:block">
+            <SiteSelector 
+              selectedSiteId={siteId} 
+              onSiteChange={handleSiteChange} 
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* User Profile Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                className="flex items-center space-x-3 h-auto px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 shadow-sm"
+              >
+                <Avatar className="h-8 w-8 ring-2 ring-gray-100 dark:ring-gray-700">
+                  <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-medium">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block text-left min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {user?.name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    {user?.email || 'user@example.com'}
+                  </p>
+                </div>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-0" align="end">
+              <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-gray-700">
+                    <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {user?.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      {user?.email || 'user@example.com'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div className="p-1">
+                {/* Support Link */}
+                <Link href={`/websites/${siteId}/support`}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-10 px-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
+                    <HelpCircle className="h-4 w-4 mr-3 text-gray-600 dark:text-gray-400" />
+                    Support
+                  </Button>
+                </Link>
+                <Separator />
+                
+                {/* Admin Link - Only show for admin users */}
+                {(user?.email === 'admin@seentics.com' || user?.email === 'shohag@seentics.com') && (
+                  <>
+                    <Link href="/admin">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-10 px-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        <Settings className="h-4 w-4 mr-3 text-gray-600 dark:text-gray-400" />
+                        Admin Dashboard
+                      </Button>
+                    </Link>
+                    <Separator />
+                  </>
+                )}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start h-10 px-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-3 text-gray-600 dark:text-gray-400" />
+                  Sign out
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export default function Header() {
+  return (
+    <Suspense fallback={<div className="h-16 bg-gray-100 dark:bg-gray-800 animate-pulse" />}>
+      <HeaderContent />
+    </Suspense>
+  )
+}

@@ -1,0 +1,65 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-error.log
+.env
+.env.local
+.env.*.local
+dist/
+build/
+coverage/
+
+# Environment files (never commit these)
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+# Go binaries
+analytics-app
+analytics-service
+gateway
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+*.pid
+
+# Mongo & Postgres (TimescaleDB) dump files
+*.dump
+*.sql
+
+# Redis dump
+dump.rdb
+
+# Frontend (if using Next.js)
+.next/
+out/
+.cache/
+
+# Misc
+*.bak
+*.tmp

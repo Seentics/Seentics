@@ -1,0 +1,149 @@
+/* 
+  Seentics Tracker Stylesheet
+  ---
+  This file provides default styling for client-side workflow actions
+  like modals and banners. It is dynamically loaded by the tracker.
+*/
+
+/* --- Modal Styles --- */
+.seentics-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+  
+  .seentics-modal {
+    background-color: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: calc(100% - 32px);
+    position: relative;
+    animation: seentics-modal-fadein 0.3s ease-out;
+  }
+
+  /* Note: default modal should retain its chrome. Custom HTML uses an iframe and doesn't rely on this class */
+  
+  @keyframes seentics-modal-fadein {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  
+  .seentics-modal h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      color: #111827;
+  }
+  
+  .seentics-modal p {
+      font-size: 1rem;
+      color: #4b5563;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+  }
+  
+  .seentics-modal .seentics-close-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  
+  
+  /* --- Banner Styles --- */
+  .seentics-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 9998;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background-color: #2563eb; /* Default: blue-600 */
+    color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    animation: seentics-banner-slidein 0.4s ease-out;
+    animation-fill-mode: forwards; /* Keep final position after animation */
+  }
+  
+  .seentics-banner-top {
+    top: 0;
+    transform: translateY(-100%);
+    animation-fill-mode: forwards;
+  }
+  @keyframes seentics-banner-slidein {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+  }
+  
+  .seentics-banner-bottom {
+    bottom: 0;
+    transform: translateY(100%);
+    animation-name: seentics-banner-slidein-bottom;
+    animation-fill-mode: forwards;
+  }
+  @keyframes seentics-banner-slidein-bottom {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  
+  .seentics-banner p {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 500;
+  }
+  
+  .seentics-banner-content {
+      flex-grow: 1;
+      text-align: center;
+  }
+  
+  .seentics-banner .seentics-banner-cta {
+      display: inline-block;
+      padding: 4px 12px;
+      margin-left: 12px;
+      border-radius: 6px;
+      background-color: white;
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.85rem;
+      transition: background-color 0.2s;
+  }
+  
+  .seentics-banner .seentics-banner-cta:hover {
+      background-color: rgba(255,255,255,0.9);
+  }
+  
+  .seentics-banner .seentics-close-button {
+      flex-shrink: 0;
+  }
+  
+  
+  /* --- Common Styles --- */
+  .seentics-close-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    line-height: 1;
+    font-size: 1.5rem;
+  }
+  
+  .seentics-close-button:hover {
+    opacity: 1;
+  }
+  

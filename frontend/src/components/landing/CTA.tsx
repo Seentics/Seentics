@@ -1,0 +1,125 @@
+import React from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, CheckCircle, Zap, TrendingUp, Users } from 'lucide-react';
+
+export default function CTA() {
+  return (
+    <section className="py-16 md:py-20 lg:py-24  dark:bg-slate-950">
+      <div className="container mx-auto px-4">
+        <Card className="text-center max-w-5xl md:max-w-6xl mx-auto bg-white dark:bg-slate-800 shadow-2xl relative overflow-hidden border-0">
+          {/* Simple CTA Background Illustration */}
+          <div className="absolute top-0 right-0 w-1/3 h-full opacity-5">
+            <svg viewBox="0 0 200 200" className="w-full h-full">
+              <defs>
+                <linearGradient id="ctaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor="#1E40AF" stopOpacity="0.1"/>
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="60" fill="url(#ctaGradient)"/>
+              <path d="M50 100 Q75 50 100 100 Q125 150 150 100" stroke="#3B82F6" strokeWidth="2" fill="none" opacity="0.3"/>
+              <circle cx="50" cy="100" r="3" fill="#3B82F6" opacity="0.5"/>
+              <circle cx="100" cy="100" r="3" fill="#3B82F6" opacity="0.5"/>
+              <circle cx="150" cy="100" r="3" fill="#3B82F6" opacity="0.5"/>
+            </svg>
+          </div>
+          
+          <CardHeader className="pb-6 md:pb-8 pt-8 md:pt-12">
+            <CardTitle className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 dark:text-white mb-4 md:mb-6">
+              Ready to Transform Your Business?
+            </CardTitle>
+            <CardDescription className="text-lg md:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 px-4 max-w-4xl mx-auto leading-relaxed">
+              Join thousands of businesses using Seentics to automatically convert visitors into customers. 
+              <span className="text-blue-600 dark:text-blue-400 font-semibold"> Start seeing results in 30 days.</span>
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-8 md:space-y-10 pb-8 md:pb-12">
+            {/* Benefits Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto mb-8 md:mb-10">
+              <div className="flex items-center gap-3 text-center md:text-left">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-6 w-6 md:h-7 md:w-7 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white text-sm md:text-base">23% Conversion Boost</div>
+                  <div className="text-xs md:text-sm text-slate-600 dark:text-slate-400">Average increase</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-center md:text-left">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-6 w-6 md:h-7 md:w-7 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white text-sm md:text-base">2-Minute Setup</div>
+                  <div className="text-xs md:text-sm text-slate-600 dark:text-slate-400">No coding required</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-center md:text-left">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Users className="h-6 w-6 md:h-7 md:w-7 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white text-sm md:text-base">500+ Businesses</div>
+                  <div className="text-xs md:text-sm text-slate-600 dark:text-slate-400">Already trust us</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Clean CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
+              <Link href="/signup" className="w-full sm:w-auto group">
+                <Button size="lg" className="gap-3 text-lg md:text-xl px-10 md:px-12 py-6 md:py-7 bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 w-full sm:w-auto shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+                  Start Free Trial
+                  <ArrowRight className="h-5 w-5 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link href="/demo" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="gap-3 text-lg md:text-xl px-10 md:px-12 py-6 md:py-7 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold transition-all duration-300 w-full sm:w-auto shadow-lg hover:shadow-xl">
+                  <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />
+                  Watch Demo
+                </Button>
+              </Link>
+            </div>
+            
+            {/* Clean Trust Signals */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 md:gap-8 text-sm md:text-base text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                <span className="font-medium">No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                <span className="font-medium">Setup in 2 minutes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                <span className="font-medium">Cancel anytime</span>
+              </div>
+            </div>
+            
+            {/* Final CTA */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-2xl p-6 md:p-8 border border-slate-200 dark:border-slate-600">
+              <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-3 md:mb-4">
+                Still Have Questions?
+              </h3>
+              <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-4 md:mb-6">
+                Our team is here to help you get started and see results fast.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
+                <button className="px-6 md:px-8 py-3 md:py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:bg-slate-800 dark:hover:bg-gray-100 transition-colors shadow-lg">
+                  Schedule a Call
+                </button>
+                <button className="px-6 md:px-8 py-3 md:py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  View Documentation
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}

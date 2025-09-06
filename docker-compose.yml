@@ -1,0 +1,174 @@
+services:
+  api-gateway:
+    build: ./services/gateway
+    container_name: api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:3001}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:3002}
+      - WORKFLOW_SERVICE_URL=${WORKFLOW_SERVICE_URL:-http://workflows-service:8083}
+      - REDIS_URL=redis://redis:6379
+      - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}
+    depends_on:
+      - user-service
+      - analytics-service
+      - workflows-service
+      - redis
+    networks:
+      - seentics-net
+
+  user-service:
+    build: ./services/users
+    container_name: user-service
+    ports:
+      - "3003:3001"
+    env_file: .env
+    environment:
+      - PORT=3001
+      - MONGODB_URI=${USER_MONGODB_URI:-mongodb://mongodb:27017/seentics_users}
+      - USER_JWT_SECRET=${USER_JWT_SECRET:-change_me}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
+      - LEMON_SQUEEZY_WEBHOOK_SECRET=${LEMON_SQUEEZY_WEBHOOK_SECRET}
+      - LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}
+    depends_on:
+      - mongodb
+    networks:
+      - seentics-net
+
+  analytics-service:
+    build: ./services/analytics
+    container_name: analytics-service
+    ports:
+      - "3002:3002"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - PORT=3002
+      - ANALYTICS_SERVICE_PORT=3002
+      - DATABASE_URL=postgres://user:pass@timescaledb:5432/analytics?sslmode=disable
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - JWT_SECRET=${ANALYTICS_JWT_SECRET:-analytics-secret-key}
+      - BATCH_SIZE=${BATCH_SIZE:-1000}
+      - BATCH_TIMEOUT=${BATCH_TIMEOUT:-5s}
+      - WORKER_COUNT=${WORKER_COUNT:-10}
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+      - MAX_DB_CONNECTIONS=${MAX_DB_CONNECTIONS:-100}
+      - AGGREGATION_INTERVAL=${AGGREGATION_INTERVAL:-24h}
+      - AGGREGATION_TIME=${AGGREGATION_TIME:-00:00}
+      - REDIS_URL=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - seentics-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  workflows-service:
+    build: ./services/workflows
+    container_name: workflows-service
+    ports:
+      - "3004:8083"
+    env_file: .env
+    environment:
+      - PORT=8083
+      - MONGODB_URI=${WORKFLOW_MONGODB_URI:-mongodb://mongodb:27017/seentics_workflows}
+      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - JWT_SECRET=${WORKFLOW_JWT_SECRET:-change_me}
+      - API_GATEWAY_URL=${API_GATEWAY_URL:-http://api-gateway:8080}
+      - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}
+      - RESEND_API_KEY=${RESENT_API_KEY:-re_NSPrv84s_E9xAtauxLAkTYBCkhG99H73N}
+      - RESEND_FROM=${RESEND_FROM:-onboarding@resend.dev}
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - seentics-net
+
+  # admin-service removed per request
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - seentics-net
+    restart: unless-stopped
+    command: mongod --noauth --wiredTigerCacheSizeGB 1 --maxConns 100
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: analytics
+      # Performance optimizations
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+      POSTGRES_WORK_MEM: 4MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 64MB
+      POSTGRES_MAX_CONNECTIONS: 100
+      POSTGRES_SHARED_PRELOAD_LIBRARIES: timescaledb
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    networks:
+      - seentics-net
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_preload_libraries=timescaledb"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d analytics -h localhost -p 5432"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:8
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    volumes:
+      - redis-data:/data
+    networks:
+      - seentics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  mongo-data:
+  timescaledb-data:
+  redis-data:
+
+networks:
+  seentics-net:
+    driver: bridge

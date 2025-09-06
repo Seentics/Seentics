@@ -1,0 +1,69 @@
+import React from 'react';
+import Link from 'next/link';
+import { Bot } from 'lucide-react';
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-slate-200 dark:border-slate-700 py-12 md:py-16 bg-white dark:bg-slate-950">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
+          <div className="sm:col-span-2 md:col-span-1">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Bot className="h-4 w-4 md:h-6 md:w-6 text-white" />
+              </div>
+              <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Seentics</span>
+            </div>
+            <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 leading-relaxed mb-4 md:mb-0">
+              Transform your website into a conversion machine with intelligent analytics and automated workflows.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold mb-4 md:mb-6 text-slate-900 dark:text-white text-sm md:text-base">Product</h3>
+            <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-slate-600 dark:text-slate-300">
+              <li><Link href="#features" className="hover:text-blue-600 transition-colors">Features</Link></li>
+              <li><Link href="#how-it-works" className="hover:text-blue-600 transition-colors">How It Works</Link></li>
+              <li><Link href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</Link></li>
+              <li><Link href="/docs" className="hover:text-blue-600 transition-colors">Documentation</Link></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold mb-4 md:mb-6 text-slate-900 dark:text-white text-sm md:text-base">Company</h3>
+            <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-slate-600 dark:text-slate-300">
+              <li><Link href="/about" className="hover:text-blue-600 transition-colors">About</Link></li>
+              <li><Link href="/blog" className="hover:text-blue-600 transition-colors">Blog</Link></li>
+              <li><Link href="/careers" className="hover:text-blue-600 transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold mb-4 md:mb-6 text-slate-900 dark:text-white text-sm md:text-base">Support</h3>
+            <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-slate-600 dark:text-slate-300">
+              <li><Link href="/help" className="hover:text-blue-600 transition-colors">Help Center</Link></li>
+              <li><Link href="/status" className="hover:text-blue-600 transition-colors">Status</Link></li>
+              <li><Link href="/privacy" className="hover:text-blue-600 transition-colors">Privacy</Link></li>
+              <li><Link href="/terms" className="hover:text-blue-600 transition-colors">Terms</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-4 md:mb-6 text-slate-900 dark:text-white text-sm md:text-base">Compliance</h3>
+            <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-slate-600 dark:text-slate-300">
+              <li><Link href="/privacy" className="hover:text-blue-600 transition-colors">GDPR/CCPA</Link></li>
+              <li><Link href="/security" className="hover:text-blue-600 transition-colors">Security</Link></li>
+              <li><Link href="/compliance" className="hover:text-blue-600 transition-colors">Compliance</Link></li>
+              <li><Link href="/trust" className="hover:text-blue-600 transition-colors">Trust Center</Link></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="border-t border-slate-200 dark:border-slate-700 mt-8 md:mt-12 pt-6 md:pt-8 text-center text-sm md:text-base text-slate-600 dark:text-slate-300">
+          <p>&copy; 2024 Seentics. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
