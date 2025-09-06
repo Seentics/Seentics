@@ -61,6 +61,11 @@ dump.rdb
 out/
 .cache/
 
+# Next.js build cache
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
 # Misc
 *.bak
 *.tmp
