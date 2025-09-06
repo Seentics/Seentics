@@ -156,6 +156,7 @@
                 
                 // Check if current page matches funnel step
                 if (matchesPageCondition(currentPath, stepPath)) {
+                  console.log(`🔍 Seentics Funnel Tracker: Page match found for funnel ${funnelId}, step ${index + 1} (${step.name})`);
                   // Update funnel progress
                   updateFunnelProgress(funnelId, index + 1, step);
                   foundMatch = true;
@@ -264,6 +265,12 @@
         }
         
         funnelState.lastActivity = new Date();
+        
+        // Check if this is the final step - mark as converted
+        if (stepNumber === funnelState.steps.length) {
+          funnelState.converted = true;
+          console.log(`🔍 Seentics Funnel Tracker: Funnel ${funnelId} completed! (Step ${stepNumber}/${funnelState.steps.length})`);
+        }
         
         // Save updated state
         activeFunnels.set(funnelId, funnelState);

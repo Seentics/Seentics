@@ -33,7 +33,6 @@ import { TrafficOverview } from '@/components/analytics/TrafficOverview';
 import { ContentPerformance } from '@/components/analytics/ContentPerformance';
 import { AudienceInsights } from '@/components/analytics/AudienceInsights';
 import { UTMPerformanceChart } from '@/components/analytics/UTMPerformanceChart';
-import { CustomEventsChart } from './components/CustomEventsChart';
 import { EventsDetails } from './components/EventsDetails';
 
 interface AnalyticsPageProps {
@@ -54,7 +53,6 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const [isCustomRange, setIsCustomRange] = useState<boolean>(false);
   const [utmTab, setUtmTab] = useState<'sources' | 'mediums' | 'campaigns' | 'terms' | 'content'>('sources');
-  const [eventsTab, setEventsTab] = useState<'events' | 'custom'>('events');
 
   // Helper function to categorize referrers for better display
   const categorizeReferrer = (referrer: string): string => {
@@ -638,44 +636,22 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
         </Card>
       </div>
 
-      {/* Events & Custom Events - Full Width */}
+      {/* Events - Full Width */}
       <div className="space-y-4">
         <Card className="bg-card border-0 shadow-sm">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <CardTitle className="text-base sm:text-lg font-medium text-foreground">Events & Custom Events</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-medium text-foreground">Events</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">Monitor user interactions, engagement patterns, and custom event tracking</p>
               </div>
-              <Tabs value={eventsTab} onValueChange={(v) => setEventsTab(v as any)} className="w-full sm:w-auto">
-                <TabsList className="grid w-full grid-cols-2 h-9 sm:h-8">
-                  <TabsTrigger value="events" className="text-xs px-2">Events</TabsTrigger>
-                  <TabsTrigger value="custom" className="text-xs px-2">Custom Events</TabsTrigger>
-                </TabsList>
-              </Tabs>
             </div>
           </CardHeader>
           <CardContent>
-            {eventsTab === 'events' ? (
-              // Show only automatically tracked events
-              <EventsDetails 
-                items={(transformedCustomEvents.top_events as any[])
-                  .filter(e => ['conversion_click','form_submit','search_submitted','file_download','video_interaction'].includes(e.event_type))}
-              />
-            ) : (
-              <>
-                <CustomEventsChart 
-                  data={{ timeseries: transformedCustomEvents.timeseries, top_events: transformedCustomEvents.top_events.filter((e: any) => !['pageview','page_view','page_visible','page_hidden','exit_intent','conversion_click','form_submit','search_submitted','file_download','video_interaction'].includes(e.event_type)) }}
-                  isLoading={customEventsLoading}
-                />
-                <div className="mt-4">
-                  <EventsDetails 
-                    items={(transformedCustomEvents.top_events as any[])
-                      .filter(e => !['pageview','page_view','page_visible','page_hidden','exit_intent','conversion_click','form_submit','search_submitted','file_download','video_interaction'].includes(e.event_type))}
-                  />
-                </div>
-              </>
-            )}
+            <EventsDetails 
+              items={(transformedCustomEvents.top_events as any[])
+                .filter(e => !['pageview','page_view','page_visible','page_hidden','exit_intent'].includes(e.event_type))}
+            />
           </CardContent>
         </Card>
       </div>

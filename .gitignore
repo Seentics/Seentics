@@ -27,7 +27,7 @@ coverage/
 # Go binaries
 analytics-app
 analytics-service
-gateway
+
 
 # IDEs and Editors
 .vscode/

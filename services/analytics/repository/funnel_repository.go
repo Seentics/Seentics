@@ -157,9 +157,9 @@ func (r *FunnelRepository) GetFunnelAnalytics(ctx context.Context, funnelID uuid
 	// Calculate analytics on-the-fly from funnel_events table
 	query := `
 		SELECT 
-			COUNT(*) as total_starts,
-			COUNT(*) FILTER (WHERE converted = true) as total_conversions,
-			COUNT(*) FILTER (WHERE converted = true) * 100.0 / NULLIF(COUNT(*), 0) as conversion_rate,
+			COUNT(DISTINCT visitor_id) as total_starts,
+			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) as total_conversions,
+			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) * 100.0 / NULLIF(COUNT(DISTINCT visitor_id), 0) as conversion_rate,
 			AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) as avg_time_to_convert,
 			AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) FILTER (WHERE converted = false) as avg_time_to_abandon
 		FROM funnel_events
@@ -242,14 +242,14 @@ func (r *FunnelRepository) GetDetailedFunnelAnalytics(ctx context.Context, funne
 	for i, step := range funnel.Steps {
 		stepIndex := i + 1
 
-		// Count visitors who reached this step
+		// Count visitors who reached this EXACT step (not beyond)
 		stepQuery := `
 			SELECT 
-				COUNT(*) as visitors_reached,
+				COUNT(DISTINCT visitor_id) as visitors_reached,
 				AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) as avg_time_on_step
 			FROM funnel_events
 			WHERE funnel_id = $1 
-			AND current_step >= $2
+			AND current_step = $2
 			AND created_at >= NOW() - INTERVAL '1 day' * $3`
 
 		var visitorsReached int
@@ -267,8 +267,9 @@ func (r *FunnelRepository) GetDetailedFunnelAnalytics(ctx context.Context, funne
 		// Calculate conversion rate to next step
 		var conversionToNext float64
 		if i < len(funnel.Steps)-1 {
+			// Count visitors who reached the NEXT step (converted from current step)
 			nextStepQuery := `
-				SELECT COUNT(*) as visitors_to_next
+				SELECT COUNT(DISTINCT visitor_id) as visitors_to_next
 				FROM funnel_events
 				WHERE funnel_id = $1 
 				AND current_step >= $2
@@ -282,14 +283,15 @@ func (r *FunnelRepository) GetDetailedFunnelAnalytics(ctx context.Context, funne
 		} else {
 			// Last step - check for conversions
 			conversionQuery := `
-				SELECT COUNT(*) as conversions
+				SELECT COUNT(DISTINCT visitor_id) as conversions
 				FROM funnel_events
 				WHERE funnel_id = $1 
 				AND converted = true
-				AND created_at >= NOW() - INTERVAL '1 day' * $2`
+				AND current_step = $2
+				AND created_at >= NOW() - INTERVAL '1 day' * $3`
 
 			var conversions int
-			err := r.db.QueryRow(ctx, conversionQuery, funnelID, days).Scan(&conversions)
+			err := r.db.QueryRow(ctx, conversionQuery, funnelID, stepIndex, days).Scan(&conversions)
 			if err == nil && visitorsReached > 0 {
 				conversionToNext = (float64(conversions) / float64(visitorsReached)) * 100
 			}
@@ -310,9 +312,9 @@ func (r *FunnelRepository) GetDetailedFunnelAnalytics(ctx context.Context, funne
 	dailyQuery := `
 		SELECT 
 			DATE(created_at) as date,
-			COUNT(*) as total_starts,
-			COUNT(*) FILTER (WHERE converted = true) as conversions,
-			COUNT(*) FILTER (WHERE converted = true) * 100.0 / NULLIF(COUNT(*), 0) as conversion_rate
+			COUNT(DISTINCT visitor_id) as total_starts,
+			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) as conversions,
+			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) * 100.0 / NULLIF(COUNT(DISTINCT visitor_id), 0) as conversion_rate
 		FROM funnel_events
 		WHERE funnel_id = $1 
 		AND created_at >= NOW() - INTERVAL '1 day' * $2

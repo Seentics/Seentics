@@ -18,19 +18,17 @@ func NewCustomEventsAnalytics(db *pgxpool.Pool) *CustomEventsAnalytics {
 
 // GetCustomEventStats returns custom event statistics for a website
 func (ce *CustomEventsAnalytics) GetCustomEventStats(ctx context.Context, websiteID string, days int) ([]models.CustomEventStat, error) {
-	// First, get aggregated event counts by type
+	// Get aggregated event counts from the custom_events_aggregated table
 	query := `
 		SELECT 
 			event_type,
-			COUNT(*) as count
-		FROM events
+			SUM(count) as total_count,
+			sample_properties
+		FROM custom_events_aggregated
 		WHERE website_id = $1 
-		AND timestamp >= NOW() - INTERVAL '1 day' * $2
-		AND event_type != 'pageview'
-		AND event_type != 'session_start'
-		AND event_type != 'session_end'
-		GROUP BY event_type
-		ORDER BY count DESC
+		AND last_seen >= NOW() - INTERVAL '1 day' * $2
+		GROUP BY event_type, sample_properties
+		ORDER BY total_count DESC
 		LIMIT 50`
 
 	rows, err := ce.db.Query(ctx, query, websiteID, days)
@@ -42,59 +40,27 @@ func (ce *CustomEventsAnalytics) GetCustomEventStats(ctx context.Context, websit
 	var events []models.CustomEventStat
 	for rows.Next() {
 		var event models.CustomEventStat
-		err := rows.Scan(&event.EventType, &event.Count)
+		var propertiesJSON []byte
+
+		err := rows.Scan(&event.EventType, &event.Count, &propertiesJSON)
 		if err != nil {
 			continue
 		}
 
-		// Get sample properties for this event type
-		sampleProps, err := ce.getSampleProperties(ctx, websiteID, event.EventType, days)
-		if err != nil {
-			// If we can't get sample properties, continue with empty ones
-			event.CommonProperties = models.Properties{}
-			event.SampleProperties = models.Properties{}
-			event.SampleEvent = models.Properties{}
-		} else {
-			event.SampleProperties = sampleProps
-			event.SampleEvent = sampleProps
-			event.CommonProperties = ce.extractCommonProperties(sampleProps)
+		// Parse sample properties
+		if len(propertiesJSON) > 0 {
+			var properties models.Properties
+			if err := json.Unmarshal(propertiesJSON, &properties); err == nil {
+				event.SampleProperties = properties
+				event.SampleEvent = properties
+				event.CommonProperties = ce.extractCommonProperties(properties)
+			}
 		}
 
 		events = append(events, event)
 	}
 
 	return events, nil
-}
-
-// getSampleProperties gets a sample event with properties for a specific event type
-func (ce *CustomEventsAnalytics) getSampleProperties(ctx context.Context, websiteID, eventType string, days int) (models.Properties, error) {
-	query := `
-		SELECT properties
-		FROM events
-		WHERE website_id = $1 
-		AND event_type = $2
-		AND timestamp >= NOW() - INTERVAL '1 day' * $3
-		AND properties IS NOT NULL
-		AND properties != '{}'
-		ORDER BY timestamp DESC
-		LIMIT 1`
-
-	var propertiesJSON string
-	err := ce.db.QueryRow(ctx, query, websiteID, eventType, days).Scan(&propertiesJSON)
-	if err != nil {
-		return models.Properties{}, err
-	}
-
-	// Parse the JSON properties
-	var properties models.Properties
-	if propertiesJSON != "" && propertiesJSON != "{}" {
-		err = json.Unmarshal([]byte(propertiesJSON), &properties)
-		if err != nil {
-			return models.Properties{}, err
-		}
-	}
-
-	return properties, nil
 }
 
 // extractCommonProperties extracts common property keys from sample properties

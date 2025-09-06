@@ -19,8 +19,9 @@ const (
 )
 
 type EventRepository struct {
-	db     *pgxpool.Pool
-	logger zerolog.Logger
+	db                     *pgxpool.Pool
+	logger                 zerolog.Logger
+	customEventsAggregated *CustomEventsAggregatedRepository
 }
 
 type BatchResult struct {
@@ -31,12 +32,27 @@ type BatchResult struct {
 }
 
 func NewEventRepository(db *pgxpool.Pool, logger zerolog.Logger) *EventRepository {
-	return &EventRepository{db: db, logger: logger}
+	return &EventRepository{
+		db:                     db,
+		logger:                 logger,
+		customEventsAggregated: NewCustomEventsAggregatedRepository(db, logger),
+	}
 }
 
 func (r *EventRepository) Create(ctx context.Context, event *models.Event) error {
 	r.prepareEvent(event)
 
+	// Handle custom events with aggregation
+	if event.EventType != "pageview" && event.EventType != "session_start" && event.EventType != "session_end" {
+		// For custom events, aggregate them instead of storing individually
+		if err := r.customEventsAggregated.UpsertCustomEvent(ctx, event); err != nil {
+			r.logger.Error().Err(err).Str("event_id", event.ID.String()).Msg("Failed to aggregate custom event")
+			return err
+		}
+		return nil
+	}
+
+	// For system events (pageview, session_start, session_end), store normally
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -65,19 +81,43 @@ func (r *EventRepository) CreateBatch(ctx context.Context, events []models.Event
 	result := &BatchResult{Total: len(events)}
 	start := time.Now()
 
-	// Process in chunks
-	for i := 0; i < len(events); i += MaxBatchSize {
-		end := i + MaxBatchSize
-		if end > len(events) {
-			end = len(events)
+	// Separate system events from custom events
+	var systemEvents []models.Event
+	var customEvents []models.Event
+
+	for _, event := range events {
+		if event.EventType == "pageview" || event.EventType == "session_start" || event.EventType == "session_end" {
+			systemEvents = append(systemEvents, event)
+		} else {
+			customEvents = append(customEvents, event)
 		}
+	}
 
-		chunkResult, err := r.processChunk(ctx, events[i:end])
-		result.Processed += chunkResult.Processed
-		result.Failed += chunkResult.Failed
+	// Process system events in chunks (normal storage)
+	if len(systemEvents) > 0 {
+		for i := 0; i < len(systemEvents); i += MaxBatchSize {
+			end := i + MaxBatchSize
+			if end > len(systemEvents) {
+				end = len(systemEvents)
+			}
 
-		if err != nil {
-			result.Errors = append(result.Errors, fmt.Errorf("chunk %d-%d: %w", i, end-1, err))
+			chunkResult, err := r.processChunk(ctx, systemEvents[i:end])
+			result.Processed += chunkResult.Processed
+			result.Failed += chunkResult.Failed
+
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Errorf("system events chunk %d-%d: %w", i, end-1, err))
+			}
+		}
+	}
+
+	// Process custom events with aggregation
+	for _, event := range customEvents {
+		if err := r.customEventsAggregated.UpsertCustomEvent(ctx, &event); err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, fmt.Errorf("custom event aggregation failed: %w", err))
+		} else {
+			result.Processed++
 		}
 	}
 
@@ -85,6 +125,8 @@ func (r *EventRepository) CreateBatch(ctx context.Context, events []models.Event
 		Int("total", result.Total).
 		Int("processed", result.Processed).
 		Int("failed", result.Failed).
+		Int("system_events", len(systemEvents)).
+		Int("custom_events", len(customEvents)).
 		Dur("duration", time.Since(start)).
 		Msg("Batch insert completed")
 

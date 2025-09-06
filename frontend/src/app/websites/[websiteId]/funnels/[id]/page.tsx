@@ -514,7 +514,7 @@ export default function FunnelDetailPage() {
                     People who entered your funnel
                   </p>
                   <p className="text-2xl font-bold">
-                    {funnelAnalytics?.totalVisitors?.toLocaleString() || '0'}
+                    {funnelAnalyticsResponse?.analytics?.[0]?.total_starts?.toLocaleString() || '0'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {getDateRangeLabel()}
@@ -749,7 +749,7 @@ export default function FunnelDetailPage() {
           {/* Step-by-Step Analysis */}
           <StepByStepAnalysis 
             stepAnalytics={detailedAnalyticsResponse.data.step_analytics}
-            totalVisitors={funnelAnalytics?.totalVisitors || 0}
+            totalVisitors={funnelAnalyticsResponse?.analytics?.[0]?.total_starts || 0}
           />
 
           {/* Cohort Analysis */}

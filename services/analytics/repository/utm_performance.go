@@ -45,7 +45,8 @@ func (da *DashboardAnalytics) GetUTMAnalytics(ctx context.Context, websiteID str
 		sources = append(sources, map[string]interface{}{
 			"source":          source,
 			"unique_visitors": uniqueVisitors,
-			"pageviews":       totalPageviews,
+			"visits":          totalPageviews, // Use 'visits' to match frontend expectations
+			"pageviews":       totalPageviews, // Keep both for compatibility
 			"sessions":        sessions,
 		})
 	}
@@ -87,7 +88,8 @@ func (da *DashboardAnalytics) GetUTMAnalytics(ctx context.Context, websiteID str
 		mediums = append(mediums, map[string]interface{}{
 			"medium":          medium,
 			"unique_visitors": uniqueVisitors,
-			"pageviews":       totalPageviews,
+			"visits":          totalPageviews, // Use 'visits' to match frontend expectations
+			"pageviews":       totalPageviews, // Keep both for compatibility
 		})
 	}
 
@@ -124,7 +126,8 @@ func (da *DashboardAnalytics) GetUTMAnalytics(ctx context.Context, websiteID str
 		campaigns = append(campaigns, map[string]interface{}{
 			"campaign":        campaign,
 			"unique_visitors": uniqueVisitors,
-			"pageviews":       totalPageviews,
+			"visits":          totalPageviews, // Use 'visits' to match frontend expectations
+			"pageviews":       totalPageviews, // Keep both for compatibility
 		})
 	}
 
@@ -161,7 +164,8 @@ func (da *DashboardAnalytics) GetUTMAnalytics(ctx context.Context, websiteID str
 		terms = append(terms, map[string]interface{}{
 			"term":            term,
 			"unique_visitors": uniqueVisitors,
-			"pageviews":       totalPageviews,
+			"visits":          totalPageviews, // Use 'visits' to match frontend expectations
+			"pageviews":       totalPageviews, // Keep both for compatibility
 		})
 	}
 
@@ -198,7 +202,8 @@ func (da *DashboardAnalytics) GetUTMAnalytics(ctx context.Context, websiteID str
 		content = append(content, map[string]interface{}{
 			"content":         contentItem,
 			"unique_visitors": uniqueVisitors,
-			"pageviews":       totalPageviews,
+			"visits":          totalPageviews, // Use 'visits' to match frontend expectations
+			"pageviews":       totalPageviews, // Keep both for compatibility
 		})
 	}
 

@@ -100,23 +100,23 @@ export function UTMPerformanceChart({ data, isLoading = false, controlledTab, on
         if (utmType === 'sources') {
           name = item.source || 'Unknown';
           visitors = Number(item.unique_visitors) || 0;
-          events = Number(item.visits) || 0;
+          events = Number(item.visits || item.pageviews) || 0; // Handle both field names
         } else if (utmType === 'mediums') {
           name = item.medium || 'Unknown';
           visitors = Number(item.unique_visitors) || 0;
-          events = Number(item.visits) || 0;
+          events = Number(item.visits || item.pageviews) || 0; // Handle both field names
         } else if (utmType === 'campaigns') {
           name = item.campaign || 'Unknown';
           visitors = Number(item.unique_visitors) || 0;
-          events = Number(item.visits) || 0;
+          events = Number(item.visits || item.pageviews) || 0; // Handle both field names
         } else if (utmType === 'terms') {
           name = item.term || 'Unknown';
           visitors = Number(item.unique_visitors) || 0;
-          events = Number(item.visits) || 0;
+          events = Number(item.visits || item.pageviews) || 0; // Handle both field names
         } else if (utmType === 'content') {
           name = item.content || 'Unknown';
           visitors = Number(item.unique_visitors) || 0;
-          events = Number(item.visits) || 0;
+          events = Number(item.visits || item.pageviews) || 0; // Handle both field names
         }
         
         return {

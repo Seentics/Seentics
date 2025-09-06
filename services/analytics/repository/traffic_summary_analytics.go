@@ -50,8 +50,8 @@ func (ts *TrafficSummaryAnalytics) GetTrafficSummary(ctx context.Context, websit
 			0.0 as growth_rate,
 			0.0 as visitors_growth_rate,
 			0.0 as sessions_growth_rate,
-			COUNT(DISTINCT e.visitor_id) FILTER (WHERE is_new_user = true) as new_visitors,
-			COUNT(DISTINCT e.visitor_id) FILTER (WHERE is_new_user = false OR is_new_user IS NULL) as returning_visitors,
+			0 as new_visitors,
+			0 as returning_visitors,
 			50.0 as engagement_score,
 			25.0 as retention_rate
 		FROM events e
