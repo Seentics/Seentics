@@ -31,11 +31,10 @@
       
       // Start batch timer if not already running
       if (!this._analyticsBatchTimer) {
-        console.log(`[Seentics] Starting batch timer (5 seconds)`);
+        const delay = (window.SEENTICS_CONFIG && window.SEENTICS_CONFIG.batchDelay) ? Number(window.SEENTICS_CONFIG.batchDelay) : 5000;
         this._analyticsBatchTimer = setTimeout(() => {
-          console.log(`[Seentics] Batch timer expired, flushing ${this._analyticsBatch.length} events`);
           this._flushAnalyticsBatch();
-        }, 5000); // Increased to 5 seconds for better batching
+        }, isFinite(delay) ? delay : 5000);
       }
     },
 
@@ -61,7 +60,7 @@
       }
 
       const batch = [...this._analyticsBatch];
-      console.log(`[Seentics] Flushing analytics batch: ${batch.length} events to /track/batch`);
+      
       this._analyticsBatch = [];
       this._analyticsBatchTimer = null;
 
@@ -89,12 +88,11 @@
         }
         
         clearTimeout(timeoutId);
-        console.log(`[Seentics] Batch sent successfully: ${batch.length} events`);
+        
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error(`[Seentics] Error flushing analytics batch:`, error);
+        
         // Fallback to individual requests if batch fails
-        console.log(`[Seentics] Falling back to individual requests for ${batch.length} events`);
         batch.forEach(event => this._sendIndividualEvent(event));
       }
     },
@@ -1346,24 +1344,7 @@
         });
         
         window.addEventListener('scroll', scrollHandler, { passive: true });
-        this._log(`Scroll event listener added for workflow: ${workflow.name}`);
         
-        // Test the scroll event listener immediately
-        setTimeout(() => {
-            this._log(`Testing scroll event listener for ${workflow.name}...`);
-            window.dispatchEvent(new Event('scroll'));
-        }, 100);
-        
-        // Add a simple test scroll listener to verify events are working
-        const testScrollListener = () => {
-            this._log(`TEST: Scroll event detected! scrollY: ${window.scrollY}`);
-        };
-        window.addEventListener('scroll', testScrollListener, { passive: true });
-        
-        // Store test listener for cleanup
-        this._eventListeners.set(`test_scroll_${workflow.id}`, () => {
-            window.removeEventListener('scroll', testScrollListener);
-        });
     },
 
     _setupExitIntentTrigger(workflow, triggerNode) {

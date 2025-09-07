@@ -24,6 +24,7 @@
           (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
           `https://${window.location.hostname}`);
       const API_ENDPOINT = `${apiHost}/api/v1/analytics/event/batch`;
+      const DEBUG = !!(window.SEENTICS_CONFIG && window.SEENTICS_CONFIG.debugMode);
       
       // Feature flags
       const trackVisibility = (scriptTag.getAttribute('data-track-visibility') || '').toLowerCase() === 'true';
@@ -31,21 +32,68 @@
       
       const VISITOR_ID_KEY = 'seentics_visitor_id';
       const SESSION_ID_KEY = 'seentics_session_id';
+      const SESSION_LAST_SEEN_KEY = 'seentics_session_last_seen';
 
       // State
       let visitorId = getOrCreateId(VISITOR_ID_KEY, 30 * 24 * 60 * 60 * 1000); // 30 days
       let sessionId = getOrCreateId(SESSION_ID_KEY, 30 * 60 * 1000); // 30 minutes
       let pageStartTime = Date.now();
       let pageviewSent = false;
+      // Suppress duplicate click after form submission
+      let lastFormSubmitAt = 0;
 
       // --- Core Functions ---
       function getOrCreateId(key, expiryMs) {
-        let id = localStorage.getItem(key);
-        if (!id) {
-          id = generateUniqueId();
-          localStorage.setItem(key, id);
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              const obj = JSON.parse(raw);
+              if (obj && obj.value) {
+                if (!obj.expiresAt || Date.now() < obj.expiresAt) {
+                  return obj.value;
+                }
+              }
+            } catch {
+              // legacy plain string
+              return raw;
+            }
+          }
+          const value = generateUniqueId();
+          const expiresAt = Date.now() + (expiryMs || 0);
+          localStorage.setItem(key, JSON.stringify({ value, expiresAt }));
+          if (key === SESSION_ID_KEY) {
+            localStorage.setItem(SESSION_LAST_SEEN_KEY, String(Date.now()));
+          }
+          return value;
+        } catch {
+          // Fallback if storage unavailable
+          return generateUniqueId();
         }
-        return id;
+      }
+
+      function refreshSessionIfNeeded() {
+        try {
+          const raw = localStorage.getItem(SESSION_ID_KEY);
+          const lastSeenRaw = localStorage.getItem(SESSION_LAST_SEEN_KEY);
+          const now = Date.now();
+          const lastSeen = lastSeenRaw ? parseInt(lastSeenRaw, 10) : 0;
+          const expiryMs = 30 * 60 * 1000;
+          if (!raw) {
+            sessionId = getOrCreateId(SESSION_ID_KEY, expiryMs);
+            return;
+          }
+          let parsed;
+          try { parsed = JSON.parse(raw); } catch {}
+          if (!parsed || !parsed.value || (parsed.expiresAt && now >= parsed.expiresAt) || (lastSeen && now - lastSeen > expiryMs)) {
+            sessionId = getOrCreateId(SESSION_ID_KEY, expiryMs);
+          } else {
+            // extend expiry and update last seen
+            parsed.expiresAt = now + expiryMs;
+            localStorage.setItem(SESSION_ID_KEY, JSON.stringify(parsed));
+          }
+          localStorage.setItem(SESSION_LAST_SEEN_KEY, String(now));
+        } catch {}
       }
 
       function generateUniqueId() {
@@ -65,13 +113,11 @@
       // Send custom event to analytics API
       async function sendCustomEvent(event) {
         try {
-          console.log('🔍 Seentics Tracker: Sending custom event:', event.event_type, event.properties);
-          
+          if (DEBUG) {}
           // Use sendBeacon for best performance
             if (navigator.sendBeacon) {
               const blob = new Blob([JSON.stringify(event)], { type: 'application/json' });
             const success = navigator.sendBeacon(`${apiHost}/api/v1/analytics/event`, blob);
-            console.log('🔍 Seentics Tracker: Custom event sent via sendBeacon:', success);
             } else {
             // Fallback to fetch with keepalive
             const response = await fetch(`${apiHost}/api/v1/analytics/event`, {
@@ -80,10 +126,9 @@
                 body: JSON.stringify(event),
                 keepalive: true
               });
-            console.log('🔍 Seentics Tracker: Custom event sent via fetch:', response.status);
           }
         } catch (error) {
-          console.warn('🔍 Seentics Tracker: Failed to send custom event:', error);
+          if (DEBUG) {}
         }
       }
       
@@ -99,6 +144,7 @@
           return;
         }
         
+        refreshSessionIfNeeded();
         const event = {
           website_id: siteId,
           visitor_id: visitorId,
@@ -115,13 +161,7 @@
         sendCustomEvent(event);
         
         // Emit custom event for funnel tracker
-        try {
-          document.dispatchEvent(new CustomEvent('seentics:custom-event', {
-            detail: { eventName, data: properties }
-          }));
-        } catch (error) {
-          console.warn('🔍 Seentics Tracker: Failed to emit custom event for funnel tracker:', error);
-        }
+        try { document.dispatchEvent(new CustomEvent('seentics:custom-event', { detail: { eventName, data: properties } })); } catch {}
       }
 
       // --- Pageview Tracking ---
@@ -145,6 +185,7 @@
         const timeOnPage = Math.round((Date.now() - pageStartTime) / 1000);
         const utmParams = extractUTMParameters();
         
+        refreshSessionIfNeeded();
         const event = {
           website_id: siteId,
           visitor_id: visitorId,
@@ -170,13 +211,11 @@
         };
 
         pageviewSent = true;
-        console.log('🔍 Seentics Tracker: Sending pageview event');
 
         // Use sendBeacon for best performance
         if (navigator.sendBeacon) {
           const blob = new Blob([JSON.stringify(batchData)], { type: 'application/json' });
           const success = navigator.sendBeacon(API_ENDPOINT, blob);
-          console.log('🔍 Seentics Tracker: sendBeacon result:', success);
         } else {
           // Fallback to fetch with keepalive
           try {
@@ -186,11 +225,8 @@
               body: JSON.stringify(batchData),
               keepalive: true
             });
-            console.log('🔍 Seentics Tracker: Fetch response status:', response.status);
-            const data = await response.json();
-            console.log('🔍 Seentics Tracker: Fetch response data:', data);
           } catch (err) {
-            console.warn('🔍 Seentics Tracker: Failed to send pageview:', err);
+            if (DEBUG) {}
           }
         }
       }
@@ -199,6 +235,9 @@
       
       // Track important user interactions automatically
       function setupAutomaticEventTracking() {
+        // Precompiled regexes
+        const UI_RE = /tab|dropdown|menu|toggle|switch|accordion|modal|dialog|popover|tooltip|trigger|radix|shadcn|ui-|btn-|button-/i;
+        const CONVERSION_RE = /buy|purchase|order|checkout|signup|register|subscribe|download|get started|start trial|free trial|learn more|contact|demo|trial|submit|send|save|create|add|join|login|sign in/i;
         // Track only meaningful button clicks (not UI elements)
         document.addEventListener('click', (e) => {
           const element = e.target;
@@ -208,11 +247,12 @@
             const buttonText = element.textContent?.trim() || element.value || 'Button';
             const buttonId = element.id || 'no-id';
             const buttonClass = element.className || 'no-class';
+            const parentForm = element.closest && element.closest('form');
+            const now = Date.now();
             
             // Skip UI elements and generic buttons
-            const isUIElement = /tab|dropdown|menu|toggle|switch|accordion|modal|dialog|popover|tooltip|trigger/i.test(buttonClass) ||
-                               /tab|dropdown|menu|toggle|switch|accordion|modal|dialog|popover|tooltip|trigger/i.test(buttonId) ||
-                               /radix|shadcn|ui-|btn-|button-/i.test(buttonClass) ||
+            const isUIElement = UI_RE.test(buttonClass) ||
+                               UI_RE.test(buttonId) ||
                                buttonText.length < 3 || // Skip very short button text
                                /^[0-9]+$/.test(buttonText); // Skip numbered buttons
             
@@ -220,8 +260,22 @@
               return; // Skip tracking UI elements
             }
             
+            // If inside a meaningful POST form or just submitted a form, don't send conversion_click
+            if (parentForm) {
+              const method = (parentForm.method || 'get').toLowerCase();
+              const fieldCount = parentForm.querySelectorAll('input, textarea, select').length;
+              const isSearchForm = parentForm.querySelector('input[type="search"], input[name*="search"], input[name*="query"]');
+              const isMeaningfulForm = method === 'post' && fieldCount > 1 && !isSearchForm;
+              if (isMeaningfulForm) {
+                return; // prefer form_submit event
+              }
+            }
+            if (now - lastFormSubmitAt < 800) {
+              return; // suppress click right after submit
+            }
+            
             // Check if this is a high-value conversion button
-            const isConversionButton = /buy|purchase|order|checkout|signup|register|subscribe|download|get started|start trial|free trial|learn more|contact|demo|trial|submit|send|save|create|add|join|login|sign in/i.test(buttonText);
+            const isConversionButton = CONVERSION_RE.test(buttonText);
             
             if (isConversionButton) {
               trackCustomEvent('conversion_click', {
@@ -256,32 +310,40 @@
           }
         });
         
-        // Track meaningful form submissions (only POST forms with actual data)
+        // Combined submit listener for search and form_submit
         document.addEventListener('submit', (e) => {
           const form = e.target;
-          const formAction = form.action || 'no-action';
           const formMethod = (form.method || 'get').toLowerCase();
-          const formId = form.id || 'no-id';
-          const formClass = form.className || 'no-class';
           const fieldCount = form.querySelectorAll('input, textarea, select').length;
-          
-          // Only track POST forms with meaningful data (not search forms or GET forms)
-          const isSearchForm = form.querySelector('input[type="search"], input[name*="search"], input[name*="query"]');
-          const isMeaningfulForm = formMethod === 'post' && fieldCount > 1 && !isSearchForm;
-          
+          const searchInputs = form.querySelectorAll('input[type="search"], input[name*="search"], input[name*="query"]');
+          const isSearchForm = searchInputs.length > 0;
+          if (isSearchForm) {
+            const searchTerm = searchInputs[0].value?.trim();
+            if (searchTerm && searchTerm.length > 2) {
+              trackCustomEvent('search_submitted', {
+                search_term: searchTerm,
+                form_id: form.id || 'no-id',
+                page: window.location.pathname,
+                page_url: window.location.pathname
+              });
+            }
+            return;
+          }
+          const isMeaningfulForm = formMethod === 'post' && fieldCount > 1;
           if (isMeaningfulForm) {
+            lastFormSubmitAt = Date.now();
             trackCustomEvent('form_submit', {
-              form_action: formAction,
+              form_action: form.action || 'no-action',
               form_method: formMethod,
-              form_id: formId,
-              form_class: formClass,
+              form_id: form.id || 'no-id',
+              form_class: form.className || 'no-class',
               field_count: fieldCount,
               page: window.location.pathname,
               page_url: window.location.href
             });
           }
         });
-        
+
         // Track file downloads (links with download attribute or common file extensions)
         document.addEventListener('click', (e) => {
           const element = e.target;
@@ -303,25 +365,8 @@
           }
         });
         
-        // Track search form submissions (only meaningful searches)
-        document.addEventListener('submit', (e) => {
-          const form = e.target;
-          const searchInputs = form.querySelectorAll('input[type="search"], input[name*="search"], input[name*="query"]');
-          
-          if (searchInputs.length > 0) {
-            const searchTerm = searchInputs[0].value?.trim();
-            // Only track searches with actual terms (not empty or very short)
-            if (searchTerm && searchTerm.length > 2) {
-              trackCustomEvent('search_submitted', {
-                search_term: searchTerm,
-                form_id: form.id || 'no-id',
-                page: window.location.pathname,
-                page_url: window.location.pathname
-              });
-            }
-          }
-        });
-        
+        // removed duplicate search submit listener (merged above)
+
         // Track video interactions
         document.addEventListener('play', (e) => {
           if (e.target.tagName === 'VIDEO') {
@@ -377,7 +422,6 @@
           scrollTimeout = setTimeout(trackScrollMilestone, 100);
         });
         
-        console.log('🔍 Seentics Tracker: Automatic event tracking enabled');
       }
 
       // --- Event Listeners ---
@@ -387,6 +431,8 @@
         if (document.hidden && !pageviewSent) {
           sendPageview();
         }
+        // refresh session on visibility changes
+        refreshSessionIfNeeded();
       });
 
       // Before unload
@@ -394,6 +440,11 @@
         if (!pageviewSent) {
           sendPageview();
         }
+      });
+
+      // Light activity ping to keep session alive
+      ['click','keydown','scroll','mousemove','touchstart'].forEach(evt => {
+        document.addEventListener(evt, () => refreshSessionIfNeeded(), { passive: true });
       });
 
       // SPA navigation detection via History API
@@ -423,7 +474,6 @@
         try {
           // Check if styles are already loaded
           if (document.querySelector('link[href="/tracker-styles.css"]')) {
-            console.log('🔍 Seentics Tracker: Tracker styles already loaded');
             return;
           }
           
@@ -434,14 +484,11 @@
           styleLink.type = 'text/css';
           
           // Add error handling
-          styleLink.onerror = function() {
-            console.warn('🔍 Seentics Tracker: Failed to load tracker styles');
-          };
+          styleLink.onerror = function() {};
           
           document.head.appendChild(styleLink);
-          console.log('🔍 Seentics Tracker: Tracker styles loaded');
         } catch (error) {
-          console.warn('🔍 Seentics Tracker: Error loading tracker styles:', error);
+          if (DEBUG) {}
         }
       }
 
@@ -450,13 +497,11 @@
         try {
           // Check if workflow tracker is already loaded
           if (window.seentics && window.seentics.workflowTracker) {
-            console.log('🔍 Seentics Tracker: Workflow tracker already loaded');
             return;
           }
           
           // Also check if the script tag is already present
           if (document.querySelector('script[src="/workflow-tracker.js"]')) {
-            console.log('🔍 Seentics Tracker: Workflow tracker script already present');
             return;
           }
           
@@ -467,22 +512,18 @@
           workflowScript.async = true;
           
           // Add error handling
-          workflowScript.onerror = function() {
-            console.warn('🔍 Seentics Tracker: Failed to load workflow tracker');
-          };
+          workflowScript.onerror = function() {};
           
           // Initialize workflow tracker after it loads
           workflowScript.onload = async function() {
             if (window.seentics && window.seentics.workflowTracker) {
               await window.seentics.workflowTracker.init(siteId);
-              console.log('🔍 Seentics Tracker: Workflow tracker initialized');
             }
           };
           
           document.head.appendChild(workflowScript);
-          console.log('🔍 Seentics Tracker: Workflow tracker script loaded');
         } catch (error) {
-          console.warn('🔍 Seentics Tracker: Error loading workflow tracker:', error);
+          if (DEBUG) {}
         }
       }
 
@@ -491,13 +532,11 @@
         try {
           // Check if funnel tracker is already loaded
           if (window.seentics && window.seentics.funnelTracker) {
-            console.log('🔍 Seentics Tracker: Funnel tracker already loaded');
             return;
           }
           
           // Also check if the script tag is already present
           if (document.querySelector('script[src="/funnel-tracker.js"]')) {
-            console.log('🔍 Seentics Tracker: Funnel tracker script already present');
             return;
           }
           
@@ -508,33 +547,26 @@
           funnelScript.async = true;
           
           // Add error handling
-          funnelScript.onerror = function() {
-            console.warn('🔍 Seentics Tracker: Failed to load funnel tracker');
-          };
+          funnelScript.onerror = function() {};
           
           // Initialize funnel tracker after it loads
           funnelScript.onload = function() {
             if (window.seentics && window.seentics.funnelTracker) {
               // Funnel tracker initializes automatically
-              console.log('🔍 Seentics Tracker: Funnel tracker initialized');
             }
           };
           
           document.head.appendChild(funnelScript);
-          console.log('🔍 Seentics Tracker: Funnel tracker script loaded');
         } catch (error) {
-          console.warn('🔍 Seentics Tracker: Error loading funnel tracker:', error);
+          if (DEBUG) {}
         }
       }
 
       // --- Initialization ---
       function init() {
         if (!siteId) {
-          console.warn('🔍 Seentics Tracker: siteId not provided');
           return;
         }
-        
-        console.log(`🔍 Seentics Tracker v${SCRIPT_VERSION} initialized for site: ${siteId}`);
         
         // Send initial pageview
         setTimeout(sendPageview, 100);
@@ -557,15 +589,6 @@
           track: trackCustomEvent,
           // Debug functions
           sendPageview: sendPageview,
-          // Test functions for debugging
-          testEvents: () => {
-            console.log('🧪 Testing custom events...');
-            trackCustomEvent('test_click', { element_type: 'button', element_text: 'Test Button', page: window.location.pathname });
-            trackCustomEvent('test_form_submit', { form_id: 'test-form', page: window.location.pathname });
-            trackCustomEvent('test_conversion_click', { element_type: 'button', element_text: 'Buy Now', page: window.location.pathname });
-            trackCustomEvent('test_file_download', { file_name: 'test.pdf', page: window.location.pathname });
-            trackCustomEvent('test_search_submitted', { search_term: 'test search', page: window.location.pathname });
-          }
         };
       }
 

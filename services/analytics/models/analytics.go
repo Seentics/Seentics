@@ -13,12 +13,12 @@ type DashboardMetrics struct {
 }
 
 type ComparisonMetrics struct {
-	TotalVisitorChange float64 `json:"total_visitor_change" db:"total_visitor_change"`
-	VisitorChange      float64 `json:"visitor_change" db:"visitor_change"`
-	PageviewChange     float64 `json:"pageview_change" db:"pageview_change"`
-	SessionChange      float64 `json:"session_change" db:"session_change"`
-	BounceChange       float64 `json:"bounce_change" db:"bounce_change"`
-	DurationChange     float64 `json:"duration_change" db:"duration_change"`
+	TotalVisitorChange *float64 `json:"total_visitor_change,omitempty" db:"total_visitor_change"`
+	VisitorChange      *float64 `json:"visitor_change,omitempty" db:"visitor_change"`
+	PageviewChange     *float64 `json:"pageview_change,omitempty" db:"pageview_change"`
+	SessionChange      *float64 `json:"session_change,omitempty" db:"session_change"`
+	BounceChange       *float64 `json:"bounce_change,omitempty" db:"bounce_change"`
+	DurationChange     *float64 `json:"duration_change,omitempty" db:"duration_change"`
 }
 
 type DashboardData struct {

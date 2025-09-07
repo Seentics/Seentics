@@ -162,7 +162,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   const trafficChartLoading = dailyLoading;
   const trafficChartError = dailyError;
   const { data: customEvents, isLoading: customEventsLoading } = useCustomEvents(websiteId, dateRange);
-  const { data: hourlyStats, isLoading: hourlyLoading } = useHourlyStats(websiteId, 1); // Always 24 hours
+  const { data: hourlyStats, isLoading: hourlyLoading } = useHourlyStats(websiteId, dateRange);
 
   // Fetch activity trends data
   const { data: activityTrends, isLoading: trendsLoading, error: trendsError } = useActivityTrends(websiteId);
@@ -247,8 +247,6 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     // Fallback data when API is not available
     top_os: []
   };
-
-
 
   // Transform custom events data for the component
   const transformedCustomEvents = customEvents ? {

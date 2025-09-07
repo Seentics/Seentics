@@ -160,7 +160,7 @@ func (r *FunnelRepository) GetFunnelAnalytics(ctx context.Context, funnelID uuid
 			COUNT(DISTINCT visitor_id) as total_starts,
 			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) as total_conversions,
 			COUNT(DISTINCT visitor_id) FILTER (WHERE converted = true) * 100.0 / NULLIF(COUNT(DISTINCT visitor_id), 0) as conversion_rate,
-			AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) as avg_time_to_convert,
+			AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) FILTER (WHERE converted = true) as avg_time_to_convert,
 			AVG(EXTRACT(EPOCH FROM (last_activity - started_at))) FILTER (WHERE converted = false) as avg_time_to_abandon
 		FROM funnel_events
 		WHERE funnel_id = $1 
@@ -272,7 +272,7 @@ func (r *FunnelRepository) GetDetailedFunnelAnalytics(ctx context.Context, funne
 				SELECT COUNT(DISTINCT visitor_id) as visitors_to_next
 				FROM funnel_events
 				WHERE funnel_id = $1 
-				AND current_step >= $2
+				AND current_step = $2
 				AND created_at >= NOW() - INTERVAL '1 day' * $3`
 
 			var visitorsToNext int

@@ -3,7 +3,6 @@ package repository
 import (
 	"analytics-app/models"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -53,7 +52,7 @@ func (ts *TimeSeriesAnalytics) GetDailyStats(ctx context.Context, websiteID stri
 	return stats, nil
 }
 
-// GetHourlyStats returns hourly statistics for a website (last 24 hours only)
+// GetHourlyStats returns hourly statistics for a website
 func (ts *TimeSeriesAnalytics) GetHourlyStats(ctx context.Context, websiteID string, days int, timezone string) ([]models.HourlyStat, error) {
 	query := `
 		SELECT 
@@ -63,13 +62,13 @@ func (ts *TimeSeriesAnalytics) GetHourlyStats(ctx context.Context, websiteID str
 			COUNT(DISTINCT visitor_id) as unique_visitors
 		FROM events
 		WHERE website_id = $1 
-		AND timestamp >= NOW() - INTERVAL '24 hours'
+		AND timestamp >= NOW() - INTERVAL '1 day' * $2
 		AND event_type = 'pageview'
 		GROUP BY DATE_TRUNC('hour', timestamp), EXTRACT(HOUR FROM timestamp)
 		ORDER BY timestamp ASC
-		LIMIT 24` // Only last 24 hours
+		LIMIT LEAST($2 * 24, 24*30)`
 
-	rows, err := ts.db.Query(ctx, query, websiteID)
+	rows, err := ts.db.Query(ctx, query, websiteID, days)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +80,6 @@ func (ts *TimeSeriesAnalytics) GetHourlyStats(ctx context.Context, websiteID str
 		// Fallback to UTC if timezone is invalid
 		loc = time.UTC
 	}
-
-	// Debug logging
-	fmt.Printf("DEBUG: timezone=%s, loc=%v\n", timezone, loc)
 
 	var stats []models.HourlyStat
 	for rows.Next() {
@@ -99,7 +95,7 @@ func (ts *TimeSeriesAnalytics) GetHourlyStats(ctx context.Context, websiteID str
 		localTime := timestamp.In(loc)
 		stat.Timestamp = localTime
 		stat.Unique = uniqueVisitors
-		stat.Hour = localTime.Hour() // Update hour to local timezone
+		stat.Hour = localTime.Hour()
 		stat.HourLabel = localTime.Format("15:04")
 		stats = append(stats, stat)
 	}

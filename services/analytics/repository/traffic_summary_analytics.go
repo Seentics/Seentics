@@ -36,7 +36,7 @@ func (ts *TrafficSummaryAnalytics) GetTrafficSummary(ctx context.Context, websit
 		)
 		SELECT 
 			COUNT(*) as total_page_views,
-			COUNT(*) as total_visitors,
+			COUNT(DISTINCT e.session_id) as total_visitors,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COUNT(DISTINCT e.session_id) as total_sessions,
 			COALESCE(

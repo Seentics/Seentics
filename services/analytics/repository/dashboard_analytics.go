@@ -3,7 +3,6 @@ package repository
 import (
 	"analytics-app/models"
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,7 +17,7 @@ func NewDashboardAnalytics(db *pgxpool.Pool) *DashboardAnalytics {
 
 // GetDashboardMetrics returns the main dashboard metrics for a website
 func (da *DashboardAnalytics) GetDashboardMetrics(ctx context.Context, websiteID string, days int) (*models.DashboardMetrics, error) {
-	query := fmt.Sprintf(`
+	query := `
 		WITH session_stats AS (
 			SELECT 
 				session_id,
@@ -34,7 +33,7 @@ func (da *DashboardAnalytics) GetDashboardMetrics(ctx context.Context, websiteID
 				END as session_duration
 			FROM events
 			WHERE website_id = $1 
-			AND timestamp >= NOW() - INTERVAL '%d days'
+			AND timestamp >= NOW() - INTERVAL '1 day' * $2
 			AND event_type = 'pageview'
 			GROUP BY session_id
 		)
@@ -59,11 +58,11 @@ func (da *DashboardAnalytics) GetDashboardMetrics(ctx context.Context, websiteID
 		FROM events e
 		INNER JOIN session_stats s ON e.session_id = s.session_id
 		WHERE e.website_id = $1 
-		AND e.timestamp >= NOW() - INTERVAL '%d days'
-		AND e.event_type = 'pageview'`, days, days)
+		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
+		AND e.event_type = 'pageview'`
 
 	var metrics models.DashboardMetrics
-	err := da.db.QueryRow(ctx, query, websiteID).Scan(
+	err := da.db.QueryRow(ctx, query, websiteID, days).Scan(
 		&metrics.PageViews, &metrics.TotalVisitors, &metrics.UniqueVisitors, &metrics.Sessions,
 		&metrics.BounceRate, &metrics.AvgSessionTime, &metrics.PagesPerSession,
 	)
@@ -71,8 +70,6 @@ func (da *DashboardAnalytics) GetDashboardMetrics(ctx context.Context, websiteID
 	if err != nil {
 		return nil, err
 	}
-
-	// AvgSessionTime is now already a float64, no conversion needed
 
 	// Ensure bounce rate is reasonable (0-100%)
 	if metrics.BounceRate > 100.0 {
@@ -88,7 +85,7 @@ func (da *DashboardAnalytics) GetDashboardMetrics(ctx context.Context, websiteID
 // GetComparisonMetrics returns comparison metrics between current and previous periods
 func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteID string, days int) (*models.ComparisonMetrics, error) {
 	// Get current period metrics
-	currentQuery := fmt.Sprintf(`
+	currentQuery := `
 		WITH current_session_stats AS (
 			SELECT 
 				session_id,
@@ -103,7 +100,7 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 				END as session_duration
 			FROM events
 			WHERE website_id = $1 
-			AND timestamp >= NOW() - INTERVAL '%d days'
+			AND timestamp >= NOW() - INTERVAL '1 day' * $2
 			AND event_type = 'pageview'
 			GROUP BY session_id
 		)
@@ -120,11 +117,11 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 		FROM events e
 		INNER JOIN current_session_stats s ON e.session_id = s.session_id
 		WHERE e.website_id = $1 
-		AND e.timestamp >= NOW() - INTERVAL '%d days'
-		AND e.event_type = 'pageview'`, days, days)
+		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
+		AND e.event_type = 'pageview'`
 
 	// Get previous period metrics
-	previousQuery := fmt.Sprintf(`
+	previousQuery := `
 		WITH previous_session_stats AS (
 			SELECT 
 				session_id,
@@ -139,8 +136,8 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 				END as session_duration
 			FROM events
 			WHERE website_id = $1 
-			AND timestamp >= NOW() - INTERVAL '%d days'
-			AND timestamp < NOW() - INTERVAL '%d days'
+			AND timestamp >= NOW() - INTERVAL '1 day' * $2
+			AND timestamp < NOW() - INTERVAL '1 day' * $3
 			AND event_type = 'pageview'
 			GROUP BY session_id
 		)
@@ -157,9 +154,9 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 		FROM events e
 		INNER JOIN previous_session_stats s ON e.session_id = s.session_id
 		WHERE e.website_id = $1 
-		AND e.timestamp >= NOW() - INTERVAL '%d days'
-		AND e.timestamp < NOW() - INTERVAL '%d days'
-		AND event_type = 'pageview'`, days*2, days, days*2, days)
+		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
+		AND e.timestamp < NOW() - INTERVAL '1 day' * $3
+		AND event_type = 'pageview'`
 
 	// Execute current period query
 	var current struct {
@@ -171,7 +168,7 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 		AvgSessionTime float64 `db:"avg_session_time"`
 	}
 
-	err := da.db.QueryRow(ctx, currentQuery, websiteID).Scan(
+	err := da.db.QueryRow(ctx, currentQuery, websiteID, days).Scan(
 		&current.PageViews, &current.TotalVisitors, &current.UniqueVisitors, &current.Sessions,
 		&current.BounceRate, &current.AvgSessionTime,
 	)
@@ -189,7 +186,7 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 		AvgSessionTime float64 `db:"avg_session_time"`
 	}
 
-	err = da.db.QueryRow(ctx, previousQuery, websiteID).Scan(
+	err = da.db.QueryRow(ctx, previousQuery, websiteID, days*2, days).Scan(
 		&previous.PageViews, &previous.TotalVisitors, &previous.UniqueVisitors, &previous.Sessions,
 		&previous.BounceRate, &previous.AvgSessionTime,
 	)
@@ -205,33 +202,41 @@ func (da *DashboardAnalytics) GetComparisonMetrics(ctx context.Context, websiteI
 		}{}
 	}
 
-	// Calculate percentage changes
-	calculateChange := func(current, previous int) float64 {
-		if previous == 0 {
-			if current > 0 {
-				return 100.0 // 100% increase from 0
-			}
-			return 0.0
+	// Calculate percentage changes with clamping and N/A handling
+	minPrevCount := 10
+	clamp := func(v float64) float64 {
+		if v > 500 {
+			return 500
 		}
-		return ((float64(current) - float64(previous)) / float64(previous)) * 100.0
+		if v < -500 {
+			return -500
+		}
+		return v
 	}
 
-	calculateFloatChange := func(current, previous float64) float64 {
-		if previous == 0.0 {
-			if current > 0 {
-				return 100.0
-			}
-			return 0.0
+	calcInt := func(curr, prev int) *float64 {
+		if prev < minPrevCount || prev == 0 {
+			return nil
 		}
-		return ((current - previous) / previous) * 100.0
+		val := ((float64(curr) - float64(prev)) / float64(prev)) * 100.0
+		c := clamp(val)
+		return &c
+	}
+	calcFloat := func(curr, prev float64, prevCount int) *float64 {
+		if prevCount < minPrevCount || prev == 0.0 {
+			return nil
+		}
+		val := ((curr - prev) / prev) * 100.0
+		c := clamp(val)
+		return &c
 	}
 
 	return &models.ComparisonMetrics{
-		TotalVisitorChange: calculateChange(current.TotalVisitors, previous.TotalVisitors),
-		VisitorChange:      calculateChange(current.UniqueVisitors, previous.UniqueVisitors),
-		PageviewChange:     calculateChange(current.PageViews, previous.PageViews),
-		SessionChange:      calculateChange(current.Sessions, previous.Sessions),
-		BounceChange:       calculateFloatChange(current.BounceRate, previous.BounceRate),
-		DurationChange:     calculateFloatChange(current.AvgSessionTime, previous.AvgSessionTime),
+		TotalVisitorChange: calcInt(current.TotalVisitors, previous.TotalVisitors),
+		VisitorChange:      calcInt(current.UniqueVisitors, previous.UniqueVisitors),
+		PageviewChange:     calcInt(current.PageViews, previous.PageViews),
+		SessionChange:      calcInt(current.Sessions, previous.Sessions),
+		BounceChange:       calcFloat(current.BounceRate, previous.BounceRate, previous.Sessions),
+		DurationChange:     calcFloat(current.AvgSessionTime, previous.AvgSessionTime, previous.Sessions),
 	}, nil
 }

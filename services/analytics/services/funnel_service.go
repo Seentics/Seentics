@@ -112,9 +112,17 @@ func (s *FunnelService) TrackFunnelEvent(ctx context.Context, event *models.Funn
 		Int("current_step", event.CurrentStep).
 		Msg("Tracking funnel event")
 
-	// Store the event in the database
-	err := s.repo.CreateFunnelEvent(ctx, event)
+	// Validate funnel exists and belongs to website to avoid FK violations
+	funnel, err := s.repo.GetByID(ctx, event.FunnelID)
 	if err != nil {
+		return fmt.Errorf("invalid funnel: %w", err)
+	}
+	if funnel.WebsiteID != event.WebsiteID {
+		return fmt.Errorf("invalid funnel: funnel does not belong to website")
+	}
+
+	// Store the event in the database
+	if err := s.repo.CreateFunnelEvent(ctx, event); err != nil {
 		return err
 	}
 

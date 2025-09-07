@@ -18,42 +18,72 @@ interface TopSourcesChartProps {
 }
 
 export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSourcesChartProps) {
-  // Use real data if available, otherwise show empty state
-  const sourceData = data?.top_referrers?.map((item, index) => {
-    const colors = ['#4285F4', '#34A853', '#EA4335', '#FBBC05', '#8B5CF6', '#06B6D4'];
-    
-    const totalVisitors = data.top_referrers.reduce((sum, s) => sum + s.visitors, 0);
-    const percentage = totalVisitors > 0 ? Math.round((item.visitors / totalVisitors) * 100) : 0;
-    
-    // Get appropriate image based on referrer type
-    const getImageForReferrer = (referrer: string) => {
-      const lowerReferrer = referrer.toLowerCase();
-      if (lowerReferrer.includes('google') || lowerReferrer.includes('bing') || lowerReferrer.includes('yahoo')) return '/images/search.png';
-      if (lowerReferrer.includes('facebook')) return '/images/facebook.png';
-      if (lowerReferrer.includes('twitter')) return '/images/twitter.png';
-      if (lowerReferrer.includes('linkedin')) return '/images/linkedin.png';
-      if (lowerReferrer.includes('instagram')) return '/images/instagram.png';
-      if (lowerReferrer.includes('youtube')) return '/images/search.png';
-      if (lowerReferrer.includes('tiktok')) return '/images/tiktok.png';
-      if (lowerReferrer.includes('pinterest')) return '/images/pinterest.png';
-      if (lowerReferrer.includes('whatsapp')) return '/images/whatsapp.png';
-      if (lowerReferrer.includes('telegram')) return '/images/telegram.png';
-      if (lowerReferrer.includes('github') || lowerReferrer.includes('stackoverflow')) return '/images/search.png';
-      if (lowerReferrer.includes('medium') || lowerReferrer.includes('dev.to')) return '/images/planet-earth.png';
-      if (lowerReferrer.includes('email') || lowerReferrer.includes('mail')) return '/images/search.png';
-      if (lowerReferrer.includes('direct')) return '/images/link.png';
-      return '/images/link.png'; // Default image
-    };
-    
-    return {
-      source: item.referrer,
-      visitors: item.visitors,
-      percentage: percentage,
-      color: colors[index % colors.length],
-      image: getImageForReferrer(item.referrer),
-      type: item.referrer // Use actual referrer name instead of hardcoded types
-    };
-  }) || [];
+  // Helpers to classify categories
+  const isOrganic = (r: string) => {
+    const s = (r || '').toLowerCase();
+    return s.includes('google') || s.includes('bing') || s.includes('yahoo') || s.includes('duckduckgo');
+  };
+  const isDirect = (r: string) => (r || '').toLowerCase().includes('direct');
+  const isSocial = (r: string) => {
+    const s = (r || '').toLowerCase();
+    return s.includes('facebook') || s.includes('twitter') || s.includes('linkedin') || s.includes('instagram') || s.includes('reddit') || s.includes('tiktok') || s.includes('pinterest') || s.includes('youtube');
+  };
+  const isEmail = (r: string) => {
+    const s = (r || '').toLowerCase();
+    return s.includes('email') || s.includes('mail');
+  };
+  const isInternal = (r: string) => {
+    const s = (r || '').toLowerCase();
+    return s.includes('localhost') || s.includes('127.0.0.1') || s.includes('internal');
+  };
+
+  // Aggregate into categories
+  const totals = {
+    'Direct': 0,
+    'Organic Search': 0,
+    'Social': 0,
+    'Email': 0,
+    'Internal Navigation': 0,
+    'Other Referral': 0,
+  } as Record<string, number>;
+
+  const items = data?.top_referrers || [];
+  for (const item of items) {
+    const ref = item.referrer || '';
+    if (isDirect(ref)) totals['Direct'] += item.visitors || 0;
+    else if (isOrganic(ref)) totals['Organic Search'] += item.visitors || 0;
+    else if (isSocial(ref)) totals['Social'] += item.visitors || 0;
+    else if (isEmail(ref)) totals['Email'] += item.visitors || 0;
+    else if (isInternal(ref)) totals['Internal Navigation'] += item.visitors || 0;
+    else totals['Other Referral'] += item.visitors || 0;
+  }
+
+  const palette = ['#4285F4', '#34A853', '#EA4335', '#FBBC05', '#8B5CF6', '#06B6D4'];
+  const colorFor = (name: string) => {
+    const idx = Object.keys(totals).indexOf(name);
+    return palette[idx % palette.length];
+  };
+  const imageFor = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('organic')) return '/images/search.png';
+    if (n.includes('social')) return '/images/facebook.png';
+    if (n.includes('email')) return '/images/search.png';
+    if (n.includes('direct')) return '/images/link.png';
+    if (n.includes('internal')) return '/images/link.png';
+    return '/images/planet-earth.png';
+  };
+
+  const totalVisitors = Object.values(totals).reduce((a, b) => a + b, 0);
+  const sourceData = Object.entries(totals)
+    .filter(([, v]) => v > 0)
+    .map(([name, v]) => ({
+      source: name,
+      visitors: v,
+      percentage: totalVisitors > 0 ? Math.round((v / totalVisitors) * 100) : 0,
+      color: colorFor(name),
+      image: imageFor(name),
+      type: name,
+    }));
 
   if (isLoading) {
     return (
@@ -82,7 +112,7 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
     );
   }
 
-  if (!data?.top_referrers || data.top_referrers.length === 0) {
+  if (!data?.top_referrers || data.top_referrers.length === 0 || sourceData.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <div className="text-sm">No source data available</div>
@@ -93,9 +123,9 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
   return (
     <div className="space-y-4">
       <div className="space-y-4">
-        {/* Top Sources List */}
+        {/* Top Sources (categories) */}
         <div className="space-y-3">
-          {sourceData.slice(0, 5).map((item, index) => {
+          {sourceData.slice(0, 5).map((item) => {
             return (
               <div key={item.source} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center gap-3">
@@ -108,22 +138,17 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
                         height={16}
                         className="object-contain"
                         onError={(e) => {
-                          // Fallback to colored icon if image fails to load
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                           target.nextElementSibling?.classList.remove('hidden');
                         }}
                       />
                       <div className="hidden">
-                        {item.source.toLowerCase().includes('google') || item.source.toLowerCase().includes('bing') || item.source.toLowerCase().includes('yahoo') ? (
+                        {item.source.toLowerCase().includes('organic') ? (
                           <Search className="h-4 w-4" style={{ color: item.color }} />
-                        ) : item.source.toLowerCase().includes('facebook') || item.source.toLowerCase().includes('twitter') || item.source.toLowerCase().includes('linkedin') ? (
+                        ) : item.source.toLowerCase().includes('social') ? (
                           <Share2 className="h-4 w-4" style={{ color: item.color }} />
-                        ) : item.source.toLowerCase().includes('github') || item.source.toLowerCase().includes('stackoverflow') ? (
-                          <Users className="h-4 w-4" style={{ color: item.color }} />
-                        ) : item.source.toLowerCase().includes('medium') || item.source.toLowerCase().includes('dev.to') ? (
-                          <Globe className="h-4 w-4" style={{ color: item.color }} />
-                        ) : item.source.toLowerCase().includes('email') || item.source.toLowerCase().includes('mail') ? (
+                        ) : item.source.toLowerCase().includes('email') ? (
                           <Mail className="h-4 w-4" style={{ color: item.color }} />
                         ) : item.source.toLowerCase().includes('direct') ? (
                           <ExternalLink className="h-4 w-4" style={{ color: item.color }} />
@@ -156,67 +181,6 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
               </div>
             );
           })}
-        </div>
-
-        {/* Chart
-        <div className="mt-6 h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sourceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="source" 
-                tick={{ fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip 
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                        <p className="font-semibold">{data.source}</p>
-                        <p className="text-blue-600">
-                          {(data.visitors || 0).toLocaleString()} visitors ({data.percentage}%)
-                        </p>
-                        <p className="text-sm text-muted-foreground">{data.type}</p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="visitors" radius={[4, 4, 0, 0]}>
-                {sourceData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div> */}
-
-        {/* Source Type Summary */}
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              {sourceData.filter(s => s.type === 'Organic').reduce((sum, s) => sum + s.percentage, 0).toFixed(1)}%
-            </div>
-            <div className="text-xs text-muted-foreground">Organic Traffic</div>
-          </div>
-          <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-            <div className="text-lg font-bold text-green-600 dark:text-green-400">
-              {sourceData.filter(s => s.type !== 'Organic').reduce((sum, s) => sum + s.percentage, 0).toFixed(1)}%
-            </div>
-            <div className="text-xs text-muted-foreground">Paid/Referral</div>
-          </div>
         </div>
       </div>
     </div>

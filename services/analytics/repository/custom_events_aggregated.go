@@ -95,17 +95,31 @@ func (r *CustomEventsAggregatedRepository) UpsertCustomEvent(ctx context.Context
 // GetCustomEventStats returns aggregated custom event statistics
 func (r *CustomEventsAggregatedRepository) GetCustomEventStats(ctx context.Context, websiteID string, days int) ([]models.CustomEventStat, error) {
 	query := `
+		WITH event_totals AS (
+			SELECT 
+				event_type,
+				SUM(count) AS total_count
+			FROM custom_events_aggregated
+			WHERE website_id = $1
+			AND last_seen >= NOW() - INTERVAL '1 day' * $2
+			GROUP BY event_type
+		), recent_samples AS (
+			SELECT DISTINCT ON (event_type)
+				event_type,
+				sample_properties
+			FROM custom_events_aggregated
+			WHERE website_id = $1
+			AND last_seen >= NOW() - INTERVAL '1 day' * $2
+			ORDER BY event_type, last_seen DESC
+		)
 		SELECT 
-			event_type,
-			SUM(count) as total_count,
-			sample_properties
-		FROM custom_events_aggregated
-		WHERE website_id = $1 
-		AND last_seen >= NOW() - INTERVAL '1 day' * $2
-		GROUP BY event_type, sample_properties
-		ORDER BY total_count DESC
-		LIMIT 50
-	`
+			et.event_type,
+			et.total_count,
+			rs.sample_properties
+		FROM event_totals et
+		LEFT JOIN recent_samples rs USING (event_type)
+		ORDER BY et.total_count DESC
+		LIMIT 50`
 
 	rows, err := r.db.Query(ctx, query, websiteID, days)
 	if err != nil {
@@ -142,13 +156,25 @@ func (r *CustomEventsAggregatedRepository) GetCustomEventStats(ctx context.Conte
 
 // createEventSignature creates a unique signature for an event based on its type and properties
 func (r *CustomEventsAggregatedRepository) createEventSignature(eventType string, properties models.Properties) string {
+	// Keys to ignore to reduce cardinality noise
+	ignoreKeys := map[string]bool{
+		"element_class": true,
+		"class":         true,
+		"style":         true,
+		"xpath":         true,
+		"data-testid":   true,
+	}
+
 	// Create a deterministic signature from event type and key properties
-	signatureData := []string{eventType}
+	signatureData := []string{strings.ToLower(eventType)}
 
 	if properties != nil {
 		// Sort keys for consistent hashing
 		var keys []string
 		for key := range properties {
+			if ignoreKeys[strings.ToLower(key)] {
+				continue
+			}
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
@@ -156,9 +182,15 @@ func (r *CustomEventsAggregatedRepository) createEventSignature(eventType string
 		// Add key-value pairs to signature
 		for _, key := range keys {
 			value := properties[key]
-			if value != nil {
-				signatureData = append(signatureData, fmt.Sprintf("%s:%v", key, value))
+			if value == nil {
+				continue
 			}
+			valStr := fmt.Sprintf("%v", value)
+			valStr = strings.TrimSpace(valStr)
+			if len(valStr) > 64 {
+				valStr = valStr[:64]
+			}
+			signatureData = append(signatureData, fmt.Sprintf("%s:%s", strings.ToLower(key), valStr))
 		}
 	}
 

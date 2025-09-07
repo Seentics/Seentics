@@ -16,6 +16,7 @@
           (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
           `https://${window.location.hostname}`);
       const FUNNEL_API_ENDPOINT = `${apiHost}/api/v1/funnels/track`;
+      const DEBUG = !!(window.SEENTICS_CONFIG && window.SEENTICS_CONFIG.debugMode);
       
       // Feature flags
       const trackFunnels = (scriptTag.getAttribute('data-track-funnels') || '').toLowerCase() !== 'false'; // Default ON
@@ -32,6 +33,7 @@
       let activeFunnels = new Map(); // funnelId -> funnelState
       let funnelEventQueue = []; // Queue for batching funnel events
       let funnelEventTimer = null;
+      let funnelsValidated = false; // true after successful API fetch
 
       // --- Core Functions ---
       function getOrCreateId(key, expiryMs) {
@@ -83,6 +85,7 @@
                 }
               });
               // Loaded funnels from cache
+              funnelsValidated = false; // cache is tentative until API confirms
             } catch (error) {
               console.warn('🔍 Seentics Funnel Tracker: Error loading cached funnels:', error);
             }
@@ -119,6 +122,11 @@
 
             // Cache the funnel definitions
             localStorage.setItem(`${FUNNEL_STATE_KEY}_${siteId}`, JSON.stringify(funnels));
+            funnelsValidated = true;
+            // If there are queued events from cache period, try sending now
+            if (funnelEventQueue.length > 0) {
+              sendFunnelEvents();
+            }
             
             // Loaded funnels from API
           } else {
@@ -206,8 +214,7 @@
               funnelState.steps.forEach((step, index) => {
                 if (step.type === 'event' && step.condition && step.condition.event) {
                   const eventSelector = step.condition.event;
-                  
-                  // Check if clicked element matches funnel step condition
+                  // Check if clicked element matches funnel step condition using closest for nested elements
                   if (matchesEventCondition(element, eventSelector)) {
                     // Update funnel progress
                     updateFunnelProgress(funnelId, index + 1, step);
@@ -315,6 +322,8 @@
       
       // Send after 1 second of inactivity
       async function sendFunnelEvents() {
+        // Do not send events until funnels are validated from API to avoid FK errors
+        if (!funnelsValidated) return;
         if (funnelEventQueue.length === 0) return;
         
         const eventsToSend = [...funnelEventQueue];
@@ -452,7 +461,7 @@
       // Check if element matches event condition
       function matchesEventCondition(element, selector) {
         try {
-          return element.matches(selector);
+          return !!(element.matches?.(selector) || element.closest?.(selector));
         } catch (error) {
           return false;
         }
