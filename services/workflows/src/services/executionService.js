@@ -118,15 +118,15 @@ export class ExecutionService {
       });
       
       // Track the action execution
-      await analyticsService.trackWorkflowEvent({
-        siteId,
-        workflowId,
-        visitorId,
-        event: 'Action Executed',
-        nodeId: node.id,
-        nodeTitle: node.data.title,
-        detail: 'Server action executed'
-      });
+      // await analyticsService.trackWorkflowEvent({
+      //   siteId,
+      //   workflowId,
+      //   visitorId,
+      //   event: 'Action Executed',
+      //   nodeId: node.id,
+      //   nodeTitle: node.data.title,
+      //   detail: 'Server action executed'
+      // });
       
       // Increment completions counter
       await workflowService.incrementCompletions(workflowId);

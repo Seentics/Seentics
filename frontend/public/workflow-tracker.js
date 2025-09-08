@@ -1,1682 +1,2141 @@
+(function() {
+  'use strict';
 
-(function () {
-  // --- Seentics Workflow Tracker Module ---
-  const workflowTracker = {
-    _generateRunId() {
-      return `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // --- Constants ---
+  const CONSTANTS = Object.freeze({
+    DEFAULT_BATCH_DELAY: 5000,
+    DEFAULT_REQUEST_TIMEOUT: 10000,
+    DEFAULT_COOLDOWN_HOURS: 24,
+    DEFAULT_TAG_CACHE_TTL: 300000, // 5 minutes
+    THROTTLE_DELAYS: {
+      SCROLL: 100,
+      MOUSE_MOVE: 50,
+      CLICK: 100,
+      INACTIVITY_RESET: 16 // ~60fps for smooth experience
+    },
+    STORAGE_KEYS: {
+      VISITOR_ID: 'seentics_visitor_id',
+      RETURNING_VISITOR: 'seentics_returning_visitor',
+      SESSION_COUNT: 'seentics_session_count',
+      USER_TAGS: 'seentics_user_tags'
+    },
+    TRIGGER_TYPES: Object.freeze({
+      PAGE_VIEW: 'Page View',
+      TIME_SPENT: 'Time Spent',
+      SCROLL_DEPTH: 'Scroll Depth',
+      EXIT_INTENT: 'Exit Intent',
+      ELEMENT_CLICK: 'Element Click',
+      INACTIVITY: 'Inactivity',
+      CUSTOM_EVENT: 'Custom Event',
+      FUNNEL: 'Funnel'
+    }),
+    ACTION_TYPES: Object.freeze({
+      SHOW_MODAL: 'Show Modal',
+      SHOW_BANNER: 'Show Banner',
+      INSERT_SECTION: 'Insert Section',
+      REDIRECT_URL: 'Redirect URL',
+      TRACK_EVENT: 'Track Event',
+      WAIT: 'Wait'
+    }),
+    CONDITION_TYPES: Object.freeze({
+      URL_PATH: 'URL Path',
+      DEVICE_TYPE: 'Device Type',
+      BROWSER: 'Browser',
+      TRAFFIC_SOURCE: 'Traffic Source',
+      NEW_VS_RETURNING: 'New vs Returning',
+      AB_SPLIT: 'A/B Split',
+      BRANCH_SPLIT: 'Branch Split',
+      TIME_WINDOW: 'Time Window',
+      QUERY_PARAM: 'Query Param',
+      TAG: 'Tag',
+      JOIN: 'Join',
+      FREQUENCY_CAP: 'Frequency Cap'
+    })
+  });
+
+  // --- Utility Functions ---
+  const Utils = {
+    // Safe localStorage operations with error handling
+    storage: {
+      get(key, defaultValue = null) {
+        try {
+          const value = localStorage.getItem(key);
+          return value !== null ? value : defaultValue;
+        } catch (e) {
+          console.warn(`[Seentics] localStorage read error for key '${key}':`, e);
+          return defaultValue;
+        }
+      },
+      
+      set(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (e) {
+          console.warn(`[Seentics] localStorage write error for key '${key}':`, e);
+          return false;
+        }
+      },
+      
+      getJSON(key, defaultValue = null) {
+        try {
+          const value = this.get(key);
+          return value ? JSON.parse(value) : defaultValue;
+        } catch (e) {
+          console.warn(`[Seentics] JSON parse error for key '${key}':`, e);
+          return defaultValue;
+        }
+      },
+      
+      setJSON(key, value) {
+        try {
+          return this.set(key, JSON.stringify(value));
+        } catch (e) {
+          console.warn(`[Seentics] JSON stringify error for key '${key}':`, e);
+          return false;
+        }
+      }
     },
 
-    _getApiHost() {
-      return window.SEENTICS_CONFIG?.apiHost || 
-    (window.location.hostname === 'localhost' ? 
-      (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
-      `https://${window.location.hostname}`);
+    // Session storage operations
+    sessionStorage: {
+      get(key, defaultValue = null) {
+        try {
+          const value = sessionStorage.getItem(key);
+          return value !== null ? value : defaultValue;
+        } catch (e) {
+          console.warn(`[Seentics] sessionStorage read error for key '${key}':`, e);
+          return defaultValue;
+        }
+      },
+      
+      set(key, value) {
+        try {
+          sessionStorage.setItem(key, value);
+          return true;
+        } catch (e) {
+          console.warn(`[Seentics] sessionStorage write error for key '${key}':`, e);
+          return false;
+        }
+      }
     },
 
-    _addToAnalyticsBatch(payload) {
-      // Check for duplicate events to prevent duplicates in batch
-      const isDuplicate = this._analyticsBatch.some(event => 
+    // Throttling utility
+    createThrottledFunction(fn, delay) {
+      let lastCall = 0;
+      return function(...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+          lastCall = now;
+          return fn.apply(this, args);
+        }
+      };
+    },
+
+    // Debouncing utility
+    createDebouncedFunction(fn, delay) {
+      let timeoutId;
+      return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        return timeoutId;
+      };
+    },
+
+    // Safe DOM operations
+    dom: {
+      createElement(tag, attributes = {}) {
+        const element = document.createElement(tag);
+        Object.entries(attributes).forEach(([key, value]) => {
+          if (key === 'className') {
+            element.className = value;
+          } else if (key === 'textContent') {
+            element.textContent = value;
+          } else if (key === 'innerHTML') {
+            element.innerHTML = value;
+          } else {
+            element.setAttribute(key, value);
+          }
+        });
+        return element;
+      },
+
+      safeQuery(selector) {
+        try {
+          return document.querySelector(selector);
+        } catch (e) {
+          console.warn(`[Seentics] Invalid selector '${selector}':`, e);
+          return null;
+        }
+      },
+
+      safeQueryAll(selector) {
+        try {
+          return document.querySelectorAll(selector);
+        } catch (e) {
+          console.warn(`[Seentics] Invalid selector '${selector}':`, e);
+          return [];
+        }
+      }
+    },
+
+    // Browser detection
+    getBrowser() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Chrome') && !ua.includes('Edg')) return 'chrome';
+      if (ua.includes('Firefox')) return 'firefox';
+      if (ua.includes('Safari') && !ua.includes('Chrome')) return 'safari';
+      if (ua.includes('Edg')) return 'edge';
+      return 'other';
+    },
+
+    isMobile() {
+      return /Mobi|Android/i.test(navigator.userAgent);
+    },
+
+    // Generate unique IDs
+    generateId(prefix = 'id') {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    },
+
+    // Extract body content from HTML
+    extractBodyContent(html) {
+      if (!html || typeof html !== 'string') return '';
+      
+      try {
+        const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+        if (bodyMatch && bodyMatch[1]) {
+          return bodyMatch[1];
+        }
+        
+        return html
+          .replace(/<!DOCTYPE[\s\S]*?>/gi, '')
+          .replace(/<\/?html[^>]*>/gi, '')
+          .replace(/<head[\s\S]*?<\/head>/gi, '');
+      } catch (e) {
+        console.warn('[Seentics] Error extracting body content:', e);
+        return html;
+      }
+    },
+
+    // Safe async operations with timeout
+    async withTimeout(promise, timeoutMs = CONSTANTS.DEFAULT_REQUEST_TIMEOUT) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      try {
+        const result = await Promise.race([
+          promise,
+          new Promise((_, reject) => {
+            controller.signal.addEventListener('abort', () => {
+              reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+            });
+          })
+        ]);
+        clearTimeout(timeoutId);
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    }
+  };
+
+  // --- Analytics Manager ---
+  class AnalyticsManager {
+    constructor(tracker) {
+      this.tracker = tracker;
+      this.batch = [];
+      this.batchTimer = null;
+      this.batchDelay = this._getBatchDelay();
+    }
+
+    _getBatchDelay() {
+      const configDelay = window.SEENTICS_CONFIG?.batchDelay;
+      return configDelay && Number.isFinite(configDelay) && configDelay > 0 
+        ? configDelay 
+        : CONSTANTS.DEFAULT_BATCH_DELAY;
+    }
+
+    addEvent(payload) {
+      if (!payload || !payload.type) {
+        console.warn('[Seentics] Invalid analytics payload:', payload);
+        return;
+      }
+
+      // Prevent duplicate events
+      const isDuplicate = this.batch.some(event => 
         event.type === payload.type && 
         event.runId === payload.runId && 
         event.nodeId === payload.nodeId
       );
       
       if (isDuplicate) {
-        console.log(`[Seentics] Skipping duplicate event:`, payload.type, `for node:`, payload.nodeId);
+        console.log(`[Seentics] Skipping duplicate event: ${payload.type} for node: ${payload.nodeId}`);
         return;
       }
       
-      console.log(`[Seentics] Adding to batch:`, payload.type, `(batch size: ${this._analyticsBatch.length + 1})`);
-      this._analyticsBatch.push(payload);
+      console.log(`[Seentics] Adding to batch: ${payload.type} (batch size: ${this.batch.length + 1})`);
+      this.batch.push(payload);
       
-      // Start batch timer if not already running
-      if (!this._analyticsBatchTimer) {
-        const delay = (window.SEENTICS_CONFIG && window.SEENTICS_CONFIG.batchDelay) ? Number(window.SEENTICS_CONFIG.batchDelay) : 5000;
-        this._analyticsBatchTimer = setTimeout(() => {
-          this._flushAnalyticsBatch();
-        }, isFinite(delay) ? delay : 5000);
-      }
-    },
+      this._scheduleBatchFlush();
+    }
 
-    // New method to flush batch immediately when workflow completes
-    _flushWorkflowBatch() {
-      if (this._analyticsBatch.length > 0) {
-        console.log(`[Seentics] Flushing workflow batch immediately: ${this._analyticsBatch.length} events`);
-        // Clear the timer since we're flushing immediately
-        if (this._analyticsBatchTimer) {
-          clearTimeout(this._analyticsBatchTimer);
-          this._analyticsBatchTimer = null;
-        }
-        this._flushAnalyticsBatch();
-      } else {
-        console.log(`[Seentics] No events in batch to flush`);
-      }
-    },
+    _scheduleBatchFlush() {
+      if (this.batchTimer) return;
+      
+      this.batchTimer = setTimeout(() => {
+        this.flushBatch();
+      }, this.batchDelay);
+    }
 
-    async _flushAnalyticsBatch() {
-      if (this._analyticsBatch.length === 0) {
-        this._analyticsBatchTimer = null;
+    async flushBatch() {
+      if (this.batch.length === 0) {
+        this._clearBatchTimer();
         return;
       }
 
-      const batch = [...this._analyticsBatch];
-      
-      this._analyticsBatch = [];
-      this._analyticsBatchTimer = null;
-
-      // Add request timeout and better error handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const batch = [...this.batch];
+      this.batch = [];
+      this._clearBatchTimer();
 
       try {
-        const apiHost = this._getApiHost();
-        const response = await fetch(`${apiHost}/api/v1/workflows/analytics/track/batch`, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            siteId: this.siteId,
-            events: batch 
-          }),
-          keepalive: true,
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Analytics batch failed: ${response.status}`);
-        }
-        
-        clearTimeout(timeoutId);
-        
+        await this._sendBatch(batch);
       } catch (error) {
-        clearTimeout(timeoutId);
-        
-        // Fallback to individual requests if batch fails
+        console.error('[Seentics] Batch send failed, falling back to individual events:', error);
+        // Fallback to individual requests
         batch.forEach(event => this._sendIndividualEvent(event));
       }
-    },
+    }
 
-    async _sendIndividualEvent(payload) {
-      try {
-        const apiHost = this._getApiHost();
-        await fetch(`${apiHost}/api/v1/workflows/analytics/track`, {
+    async _sendBatch(batch) {
+      const apiHost = this.tracker._getApiHost();
+      const payload = {
+        siteId: this.tracker.siteId,
+        events: batch
+      };
+
+      const response = await Utils.withTimeout(
+        fetch(`${apiHost}/api/v1/workflows/analytics/track/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
-          keepalive: true,
-        });
-      } catch (error) {
-        this._log('Error sending individual event:', error);
-      }
-    },
-    _extractBodyHtml(html) {
-      try {
-        const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
-        if (bodyMatch && bodyMatch[1]) return bodyMatch[1];
-        return html.replace(/<!DOCTYPE[\s\S]*?>/gi, '')
-                   .replace(/<\/?html[^>]*>/gi, '')
-                   .replace(/<head[\s\S]*?<\/head>/gi, '');
-      } catch { return html; }
-    },
-    _trackWorkflowEvent(workflow, node, type, opts = {}) {
-      try {
-        const apiHost = this._getApiHost();
-        const payload = {
-          siteId: this.siteId,
-          workflowId: workflow.id || workflow._id || 'unknown',
-          visitorId: this.visitorId,
-          type,
-          nodeId: node?.id,
-          nodeTitle: node?.data?.title,
-          nodeType: node?.data?.type,
-          branchSourceNodeId: opts.sourceNodeId,
-          detail: opts.detail,
-          runId: opts.runId,
-          stepOrder: opts.stepOrder,
-          executionTime: opts.executionTime,
-          success: opts.success,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Add to batch queue instead of immediate fetch
-        this._addToAnalyticsBatch(payload);
-      } catch (e) {
-        this._log('Error tracking workflow event:', e);
-      }
-    },
+          keepalive: true
+        })
+      );
 
-    // Helper to get step order in workflow
-    _getStepOrder(node, workflow) {
-      if (!node || !workflow.nodes) return 0;
-      
-      // Find the node's position in the workflow execution order
-      const visited = new Set();
-      const queue = [];
-      
-      // Start with trigger nodes
-      const triggerNodes = workflow.nodes.filter(n => n.data.type === 'Trigger');
-      triggerNodes.forEach(trigger => queue.push({ node: trigger, order: 1 }));
-      
-      while (queue.length > 0) {
-        const { node: currentNode, order } = queue.shift();
-        if (visited.has(currentNode.id)) continue;
-        
-        visited.add(currentNode.id);
-        
-        if (currentNode.id === node.id) {
-          return order;
-        }
-        
-        // Add next nodes to queue
-        const nextEdges = workflow.edges.filter(e => e.source === currentNode.id);
-        nextEdges.forEach(edge => {
-          const nextNode = workflow.nodes.find(n => n.id === edge.target);
-          if (nextNode && !visited.has(nextNode.id)) {
-            queue.push({ node: nextNode, order: order + 1 });
-          }
-        });
+      if (!response.ok) {
+        throw new Error(`Analytics batch failed: ${response.status}`);
       }
-      
-      return 0;
-    },
-    _joinState: {},
-    _analyticsBatch: [],
-    _analyticsBatchTimer: null,
-    _eventListeners: new Map(),
-    _activeTimers: new Set(),
-    siteId: null,
-    activeWorkflows: [],
-    visitorId: null,
-    isReturningVisitor: false,
-    sessionTag: `seentics_session_count`,
-    returningVisitorKey: 'seentics_returning_visitor',
-    identifiedUser: null,
-    
-    // --- Initialization ---
-    init(siteId) {
+    }
+
+    async _sendIndividualEvent(payload) {
       try {
-        // Prevent multiple initializations
-        if (this.siteId) {
-          console.log(`[Seentics] Workflow tracker already initialized for site: ${this.siteId}`);
-          return;
+        const apiHost = this.tracker._getApiHost();
+        await Utils.withTimeout(
+          fetch(`${apiHost}/api/v1/workflows/analytics/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+          })
+        );
+      } catch (error) {
+        console.warn('[Seentics] Failed to send individual event:', error);
+      }
+    }
+
+    _clearBatchTimer() {
+      if (this.batchTimer) {
+        clearTimeout(this.batchTimer);
+        this.batchTimer = null;
+      }
+    }
+
+    destroy() {
+      this.flushBatch();
+      this._clearBatchTimer();
+    }
+  }
+
+  // --- Resource Manager ---
+  class ResourceManager {
+    constructor() {
+      this.timers = new Set();
+      this.eventListeners = new Map();
+      this.abortControllers = new Set();
+    }
+
+    addTimer(timerId) {
+      this.timers.add(timerId);
+      return timerId;
+    }
+
+    clearTimer(timerId) {
+      if (this.timers.has(timerId)) {
+        clearTimeout(timerId);
+        this.timers.delete(timerId);
+      }
+    }
+
+    addEventListener(key, cleanupFunction) {
+      if (this.eventListeners.has(key)) {
+        // Clean up existing listener first
+        this.eventListeners.get(key)();
+      }
+      this.eventListeners.set(key, cleanupFunction);
+    }
+
+    removeEventListener(key) {
+      if (this.eventListeners.has(key)) {
+        this.eventListeners.get(key)();
+        this.eventListeners.delete(key);
+      }
+    }
+
+    addAbortController(controller) {
+      this.abortControllers.add(controller);
+      return controller;
+    }
+
+    destroy() {
+      // Clear all timers
+      this.timers.forEach(timerId => {
+        try {
+          clearTimeout(timerId);
+        } catch (e) {
+          console.warn('[Seentics] Error clearing timer:', e);
         }
-        
+      });
+      this.timers.clear();
+
+      // Clean up all event listeners
+      this.eventListeners.forEach((cleanup, key) => {
+        try {
+          cleanup();
+        } catch (e) {
+          console.warn(`[Seentics] Error cleaning up listener '${key}':`, e);
+        }
+      });
+      this.eventListeners.clear();
+
+      // Abort all pending requests
+      this.abortControllers.forEach(controller => {
+        try {
+          controller.abort();
+        } catch (e) {
+          console.warn('[Seentics] Error aborting request:', e);
+        }
+      });
+      this.abortControllers.clear();
+    }
+  }
+
+  // --- Main Workflow Tracker ---
+  const workflowTracker = {
+    // Core properties
+    siteId: null,
+    visitorId: null,
+    identifiedUser: null,
+    isReturningVisitor: false,
+    activeWorkflows: [],
+    isInitialized: false,
+
+    // Managers
+    analyticsManager: null,
+    resourceManager: null,
+    joinStates: new Map(),
+
+    // Initialization
+    init(siteId) {
+      if (this.isInitialized) {
+        console.warn(`[Seentics] Already initialized for site: ${this.siteId}`);
+        return;
+      }
+
+      if (!siteId || typeof siteId !== 'string') {
+        console.error('[Seentics] Invalid siteId provided');
+        return;
+      }
+
+      try {
         this.siteId = siteId;
-        this.visitorId = this._getVisitorId();
+        this.visitorId = this._getOrCreateVisitorId();
         this.isReturningVisitor = this._checkIfReturning();
         
-        // Set up page unload cleanup
-        window.addEventListener('beforeunload', () => {
-          this.destroy();
-        });
-        
-        if (this.siteId === 'preview') {
-            if (window.SEENTICS_CONFIG?.debugMode) {
-                console.log('Seentics Preview Mode: Loading single workflow.');
-            }
-            if (window.__SEENTICS_PREVIEW_WORKFLOW) {
-                this.activeWorkflows = [window.__SEENTICS_PREVIEW_WORKFLOW];
-                this._setupTriggers();
-            }
+        // Initialize managers
+        this.analyticsManager = new AnalyticsManager(this);
+        this.resourceManager = new ResourceManager();
+
+        // Set up cleanup on page unload
+        window.addEventListener('beforeunload', () => this.destroy());
+
+        if (siteId === 'preview') {
+          this._initPreviewMode();
         } else {
-            this._fetchWorkflows();
+          this._fetchWorkflows();
         }
-        this._log('Initialized');
+
+        this.isInitialized = true;
+        this._log('Successfully initialized');
       } catch (error) {
-        this._log('Error during initialization:', error);
+        console.error('[Seentics] Initialization failed:', error);
       }
     },
 
-    // --- User Identification ---
-    identify(userId, attributes) {
-        this.identifiedUser = { id: userId, attributes: attributes || {} };
-        this._log(`User identified: ${userId}`, attributes);
-    },
-
-    // --- Core Event Processing ---
-    processEvent(event) {
-      // This is called by the main tracker.js for 'pageview' and 'custom' events
-      if (event.type === 'pageview') {
-        this._checkWorkflows('Page View');
-        // Removed Time Spent check - it's handled by _setupTimeSpentTriggers during initialization
-      } else if (event.type === 'custom' && event.eventName) {
-         this._checkWorkflows('Custom Event', { eventName: event.eventName });
-      }
-    },
-    
-    // --- Trigger Setup ---
-    _setupTriggers() {
-        this._log(`Setting up triggers for ${this.activeWorkflows.length} workflows`);
-        this._checkWorkflows('Page View');
-        // Set up Time Spent triggers (but don't trigger them immediately)
-        this._setupTimeSpentTriggers();
-        // Set up Scroll Depth triggers (but don't trigger them immediately)
-        this._setupScrollTriggers();
-        this._checkWorkflows('Exit Intent');
-        this._checkWorkflows('Element Click');
-        this._checkWorkflows('Inactivity');
-        // Set up funnel event listening
-        this._setupFunnelListener();
-        this._log('Trigger setup completed');
-    },
-    
-    // New method to set up Time Spent triggers without triggering them
-    _setupTimeSpentTriggers() {
-        this.activeWorkflows.forEach(workflow => {
-            if (workflow.status !== 'Active') return;
-            
-            const triggerNodes = workflow.nodes.filter(node => 
-                node.data.type === 'Trigger' && node.data.title === 'Time Spent'
-            );
-            
-            triggerNodes.forEach(triggerNode => {
-                this._setupTimeSpentTrigger(workflow, triggerNode);
-            });
-        });
-    },
-    
-    // New method to set up Scroll Depth triggers without triggering them
-    _setupScrollTriggers() {
-        this.activeWorkflows.forEach(workflow => {
-            if (workflow.status !== 'Active') return;
-            
-            const triggerNodes = workflow.nodes.filter(node => 
-                node.data.type === 'Trigger' && node.data.title === 'Scroll Depth'
-            );
-            
-            this._log(`Setting up ${triggerNodes.length} scroll triggers for workflow: ${workflow.name}`);
-            
-            triggerNodes.forEach(triggerNode => {
-                this._log(`Setting up scroll trigger for ${workflow.name} with depth: ${triggerNode.data.settings.scrollDepth}%`);
-                this._setupScrollTrigger(workflow, triggerNode);
-            });
-        });
-    },
-    
-    // --- Funnel Event Handling ---
-    _setupFunnelListener() {
-      // Listen for funnel events from the analytics tracker
-      if (window.seenticsTracker && window.seenticsTracker.onFunnelEvent) {
-        window.seenticsTracker.onFunnelEvent = (funnelEvent) => {
-          this._log(`Funnel event received: ${funnelEvent.event_type} for funnel ${funnelEvent.funnel_id}`);
-          this._checkWorkflows('Funnel', funnelEvent);
-        };
+    _initPreviewMode() {
+      if (window.SEENTICS_CONFIG?.debugMode) {
+        console.log('[Seentics] Preview mode: Loading single workflow');
       }
       
-      // Also listen for custom funnel events
-      document.addEventListener('seentics:funnel-event', (event) => {
-        const funnelEvent = event.detail;
-        this._log(`Custom funnel event received: ${funnelEvent.event_type} for funnel ${funnelEvent.funnel_id}`);
-        this._log(`Active workflows count: ${this.activeWorkflows.length}`);
-        this._log(`Active workflows:`, this.activeWorkflows.map(w => ({ id: w.id, name: w.name, status: w.status })));
-        this._checkWorkflows('Funnel', funnelEvent);
+      if (window.__SEENTICS_PREVIEW_WORKFLOW) {
+        this.activeWorkflows = [window.__SEENTICS_PREVIEW_WORKFLOW];
+        this._setupTriggers();
+      }
+    },
+
+    _getOrCreateVisitorId() {
+      let visitorId = Utils.storage.get(CONSTANTS.STORAGE_KEYS.VISITOR_ID);
+      if (!visitorId) {
+        visitorId = Utils.generateId('visitor');
+        Utils.storage.set(CONSTANTS.STORAGE_KEYS.VISITOR_ID, visitorId);
+      }
+      return visitorId;
+    },
+
+    _checkIfReturning() {
+      const isReturning = Utils.storage.get(CONSTANTS.STORAGE_KEYS.RETURNING_VISITOR);
+      if (isReturning) {
+        return true;
+      }
+      Utils.storage.set(CONSTANTS.STORAGE_KEYS.RETURNING_VISITOR, 'true');
+      return false;
+    },
+
+    _getApiHost() {
+      const config = window.SEENTICS_CONFIG;
+      if (config?.apiHost) return config.apiHost;
+      
+      if (window.location.hostname === 'localhost') {
+        return config?.devApiHost || 'http://localhost:8080';
+      }
+      
+      return `https://${window.location.hostname}`;
+    },
+
+    // User identification
+    identify(userId, attributes = {}) {
+      if (!userId || typeof userId !== 'string') {
+        console.warn('[Seentics] Invalid userId provided to identify()');
+        return;
+      }
+
+      this.identifiedUser = {
+        id: userId,
+        attributes: typeof attributes === 'object' ? attributes : {}
+      };
+      
+      this._log(`User identified: ${userId}`, attributes);
+    },
+
+    // Event processing
+    processEvent(event) {
+      if (!event || !event.type) {
+        console.warn('[Seentics] Invalid event:', event);
+        return;
+      }
+
+      switch (event.type) {
+        case 'pageview':
+          this._checkWorkflows(CONSTANTS.TRIGGER_TYPES.PAGE_VIEW);
+          break;
+        case 'custom':
+          if (event.eventName) {
+            this._checkWorkflows(CONSTANTS.TRIGGER_TYPES.CUSTOM_EVENT, { eventName: event.eventName });
+          }
+          break;
+        default:
+          console.warn(`[Seentics] Unknown event type: ${event.type}`);
+      }
+    },
+
+    // Workflow management
+    async _fetchWorkflows() {
+      try {
+        const apiHost = this._getApiHost();
+        const controller = new AbortController();
+        this.resourceManager.addAbortController(controller);
+
+        const response = await Utils.withTimeout(
+          fetch(`${apiHost}/api/v1/workflows/site/${this.siteId}/active`, {
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data?.workflows) {
+          this.activeWorkflows = data.workflows.filter(wf => wf.status === 'Active');
+          this._log(`Loaded ${this.activeWorkflows.length} active workflows`);
+          this._setupTriggers();
+        }
+      } catch (error) {
+        console.error('[Seentics] Failed to fetch workflows:', error);
+      }
+    },
+
+    _setupTriggers() {
+      if (!Array.isArray(this.activeWorkflows) || this.activeWorkflows.length === 0) {
+        this._log('No active workflows to set up triggers for');
+        return;
+      }
+
+      this._log(`Setting up triggers for ${this.activeWorkflows.length} workflows`);
+      
+      // Immediate triggers
+      this._checkWorkflows(CONSTANTS.TRIGGER_TYPES.PAGE_VIEW);
+      
+      // Deferred triggers (set up listeners but don't fire immediately)
+      this._setupTimeSpentTriggers();
+      this._setupScrollTriggers();
+      this._setupExitIntentTriggers();
+      this._setupClickTriggers();
+      this._setupInactivityTriggers();
+      this._setupFunnelListeners();
+      
+      this._log('Trigger setup completed');
+    },
+
+    _setupTimeSpentTriggers() {
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') return;
+        
+        const triggerNodes = this._getTriggerNodes(workflow, CONSTANTS.TRIGGER_TYPES.TIME_SPENT);
+        triggerNodes.forEach(node => this._setupTimeSpentTrigger(workflow, node));
+      });
+    },
+
+    _setupTimeSpentTrigger(workflow, triggerNode) {
+      const seconds = triggerNode.data?.settings?.seconds || 0;
+      const delayMs = Math.max(0, seconds * 1000);
+      
+      if (delayMs <= 0) {
+        console.warn(`[Seentics] Invalid time spent delay for workflow '${workflow.name}'`);
+        return;
+      }
+
+      const timerId = setTimeout(() => {
+        this._log(`Time spent trigger fired for '${workflow.name}'`);
+        this._executeWorkflowFromTrigger(workflow, triggerNode);
+      }, delayMs);
+
+      this.resourceManager.addTimer(timerId);
+      
+      const cleanupKey = `timeSpent_${workflow.id}_${triggerNode.id}`;
+      this.resourceManager.addEventListener(cleanupKey, () => {
+        this.resourceManager.clearTimer(timerId);
+      });
+    },
+
+    _setupScrollTriggers() {
+      const scrollTriggers = [];
+      
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') return;
+        
+        const triggerNodes = this._getTriggerNodes(workflow, CONSTANTS.TRIGGER_TYPES.SCROLL_DEPTH);
+        triggerNodes.forEach(node => {
+          const depth = node.data?.settings?.scrollDepth || 0;
+          if (depth > 0) {
+            scrollTriggers.push({ workflow, node, depth, triggered: false });
+          }
+        });
       });
 
-      // Fetch workflows with funnel triggers
+      if (scrollTriggers.length === 0) return;
+
+      const throttledScrollHandler = Utils.createThrottledFunction(() => {
+        const scrollPercent = this._calculateScrollPercent();
+        
+        scrollTriggers.forEach(trigger => {
+          if (!trigger.triggered && scrollPercent >= trigger.depth) {
+            trigger.triggered = true;
+            this._log(`Scroll depth trigger fired for '${trigger.workflow.name}' at ${scrollPercent}%`);
+            this._executeWorkflowFromTrigger(trigger.workflow, trigger.node);
+          }
+        });
+
+        // Remove triggered handlers to improve performance
+        if (scrollTriggers.every(t => t.triggered)) {
+          window.removeEventListener('scroll', throttledScrollHandler);
+        }
+      }, CONSTANTS.THROTTLE_DELAYS.SCROLL);
+
+      window.addEventListener('scroll', throttledScrollHandler, { passive: true });
+      
+      this.resourceManager.addEventListener('scrollTriggers', () => {
+        window.removeEventListener('scroll', throttledScrollHandler);
+      });
+    },
+
+    _calculateScrollPercent() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const documentHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const scrollableHeight = Math.max(documentHeight - windowHeight, 1);
+      
+      return Math.min((scrollTop / scrollableHeight) * 100, 100);
+    },
+
+    _setupExitIntentTriggers() {
+      const exitTriggers = [];
+      
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') return;
+        
+        const triggerNodes = this._getTriggerNodes(workflow, CONSTANTS.TRIGGER_TYPES.EXIT_INTENT);
+        triggerNodes.forEach(node => {
+          exitTriggers.push({ workflow, node, triggered: false });
+        });
+      });
+
+      if (exitTriggers.length === 0) return;
+
+      let lastY = null;
+      const throttledMouseMove = Utils.createThrottledFunction((e) => {
+        const y = e.clientY;
+        if (typeof y === 'number') {
+          if (y <= 3 && (lastY === null || lastY > 3)) {
+            this._triggerExitIntent(exitTriggers);
+          }
+          lastY = y;
+        }
+      }, CONSTANTS.THROTTLE_DELAYS.MOUSE_MOVE);
+
+      const handleMouseLeave = (e) => {
+        if (e.clientY <= 0) {
+          this._triggerExitIntent(exitTriggers);
+        }
+      };
+
+      const handleMouseOut = (e) => {
+        const related = e.relatedTarget;
+        if (!related || related.nodeName === 'HTML') {
+          if (e.clientY <= 10) {
+            this._triggerExitIntent(exitTriggers);
+          }
+        }
+      };
+
+      document.addEventListener('mouseleave', handleMouseLeave);
+      document.addEventListener('mouseout', handleMouseOut);
+      document.addEventListener('mousemove', throttledMouseMove, true);
+
+      this.resourceManager.addEventListener('exitIntentTriggers', () => {
+        document.removeEventListener('mouseleave', handleMouseLeave);
+        document.removeEventListener('mouseout', handleMouseOut);
+        document.removeEventListener('mousemove', throttledMouseMove, true);
+      });
+    },
+
+    _triggerExitIntent(exitTriggers) {
+      exitTriggers.forEach(trigger => {
+        if (!trigger.triggered) {
+          trigger.triggered = true;
+          this._log(`Exit intent trigger fired for '${trigger.workflow.name}'`);
+          this._executeWorkflowFromTrigger(trigger.workflow, trigger.node);
+        }
+      });
+    },
+
+    _setupClickTriggers() {
+      const clickTriggers = [];
+      
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') return;
+        
+        const triggerNodes = this._getTriggerNodes(workflow, CONSTANTS.TRIGGER_TYPES.ELEMENT_CLICK);
+        triggerNodes.forEach(node => {
+          const selector = node.data?.settings?.selector;
+          if (selector) {
+            clickTriggers.push({ workflow, node, selector, triggered: false });
+          }
+        });
+      });
+
+      if (clickTriggers.length === 0) return;
+
+      const throttledClickHandler = Utils.createThrottledFunction((e) => {
+        const target = e.target;
+        if (!target) return;
+
+        clickTriggers.forEach(trigger => {
+          if (!trigger.triggered) {
+            try {
+              if (target.matches?.(trigger.selector) || target.closest?.(trigger.selector)) {
+                trigger.triggered = true;
+                this._log(`Element click trigger fired for '${trigger.workflow.name}'`);
+                this._executeWorkflowFromTrigger(trigger.workflow, trigger.node);
+              }
+            } catch (e) {
+              console.warn(`[Seentics] Invalid selector '${trigger.selector}':`, e);
+            }
+          }
+        });
+      }, CONSTANTS.THROTTLE_DELAYS.CLICK);
+
+      document.addEventListener('click', throttledClickHandler, true);
+      
+      this.resourceManager.addEventListener('clickTriggers', () => {
+        document.removeEventListener('click', throttledClickHandler, true);
+      });
+    },
+
+    _setupInactivityTriggers() {
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') return;
+        
+        const triggerNodes = this._getTriggerNodes(workflow, CONSTANTS.TRIGGER_TYPES.INACTIVITY);
+        triggerNodes.forEach(node => this._setupInactivityTrigger(workflow, node));
+      });
+    },
+
+    _setupInactivityTrigger(workflow, triggerNode) {
+      const thresholdMs = (triggerNode.data?.settings?.inactivitySeconds || 30) * 1000;
+      let timeoutId = null;
+      let isFired = false;
+
+      const fire = () => {
+        if (isFired) return;
+        isFired = true;
+        this._log(`Inactivity trigger fired for '${workflow.name}'`);
+        this._executeWorkflowFromTrigger(workflow, triggerNode);
+        cleanup();
+      };
+
+      const resetTimer = Utils.createThrottledFunction(() => {
+        if (isFired) return;
+        
+        if (timeoutId) {
+          this.resourceManager.clearTimer(timeoutId);
+        }
+        
+        timeoutId = setTimeout(fire, thresholdMs);
+        this.resourceManager.addTimer(timeoutId);
+      }, CONSTANTS.THROTTLE_DELAYS.INACTIVITY_RESET);
+
+      const activityEvents = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
+      
+      const cleanup = () => {
+        if (timeoutId) {
+          this.resourceManager.clearTimer(timeoutId);
+        }
+        activityEvents.forEach(evt => {
+          document.removeEventListener(evt, resetTimer, true);
+        });
+      };
+
+      activityEvents.forEach(evt => {
+        document.addEventListener(evt, resetTimer, true);
+      });
+      resetTimer();
+
+      const cleanupKey = `inactivity_${workflow.id}_${triggerNode.id}`;
+      this.resourceManager.addEventListener(cleanupKey, cleanup);
+    },
+
+    _setupFunnelListeners() {
+      // Listen for funnel events
+      document.addEventListener('seentics:funnel-event', (event) => {
+        const funnelEvent = event.detail;
+        if (funnelEvent) {
+          this._log(`Funnel event received: ${funnelEvent.event_type} for funnel ${funnelEvent.funnel_id}`);
+          this._checkWorkflows(CONSTANTS.TRIGGER_TYPES.FUNNEL, funnelEvent);
+        }
+      });
+
+      // Fetch and add funnel workflows
       this._fetchFunnelWorkflows();
     },
 
-    // Fetch workflows that have funnel triggers (now embedded in workflow definitions)
-    async _fetchFunnelWorkflows() {
-      try {
-        const apiHost = this._getApiHost();
+    _getTriggerNodes(workflow, triggerType) {
+      if (!workflow?.nodes || !Array.isArray(workflow.nodes)) return [];
+      
+      return workflow.nodes.filter(node =>
+        node.data?.type === 'Trigger' && node.data?.title === triggerType
+      );
+    },
+
+    _executeWorkflowFromTrigger(workflow, triggerNode) {
+      const runId = Utils.generateId('run');
+      this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
+      this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
+    },
+
+    // Workflow execution
+    _checkWorkflows(triggerType, eventData = {}) {
+      if (!triggerType) {
+        console.warn('[Seentics] Invalid trigger type provided to _checkWorkflows');
+        return;
+      }
+
+      this._log(`Checking workflows for trigger: ${triggerType}`, eventData);
+      
+      this.activeWorkflows.forEach(workflow => {
+        if (workflow.status !== 'Active') {
+          this._log(`Skipping inactive workflow: ${workflow.name}`);
+          return;
+        }
+
+        const triggerNodes = this._getTriggerNodes(workflow, triggerType);
+        this._log(`Workflow '${workflow.name}' has ${triggerNodes.length} '${triggerType}' trigger nodes`);
         
-        // Fetch all active workflows for the site
-        const workflowResponse = await fetch(`${apiHost}/api/v1/workflows/site/${this.siteId}/active`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
+        triggerNodes.forEach(triggerNode => {
+          if (this._shouldTriggerWorkflow(workflow, triggerNode, triggerType, eventData)) {
+            this._executeWorkflowWithCooldown(workflow, triggerNode, triggerType);
           }
         });
-        
-        if (workflowResponse.ok) {
-          const workflows = await workflowResponse.json();
-          
-          // Filter to only include workflows that have funnel trigger nodes
-          const funnelWorkflows = workflows.filter(workflow => 
-            workflow.nodes && workflow.nodes.some(node => 
-              node.data.type === 'Trigger' && node.data.title === 'Funnel'
-            )
-          );
-          
-          // Add to active workflows if not already present
-          for (const workflow of funnelWorkflows) {
-            if (!this.activeWorkflows.find(w => w.id === workflow.id)) {
-              this.activeWorkflows.push(workflow);
-              this._log(`Added funnel workflow: ${workflow.name}`);
-            }
-          }
-        }
-      } catch (error) {
-        this._log('Error fetching funnel workflows:', error);
+      });
+    },
+
+    _shouldTriggerWorkflow(workflow, triggerNode, triggerType, eventData) {
+      const settings = triggerNode.data?.settings || {};
+      
+      switch (triggerType) {
+        case CONSTANTS.TRIGGER_TYPES.PAGE_VIEW:
+          return this._checkUrlCondition(settings);
+        case CONSTANTS.TRIGGER_TYPES.CUSTOM_EVENT:
+          return settings.customEventName === eventData.eventName;
+        case CONSTANTS.TRIGGER_TYPES.FUNNEL:
+          return this._checkFunnelCondition(settings, eventData);
+        default:
+          return true;
       }
     },
 
-    // Check if funnel trigger conditions are met
-    _checkFunnelCondition(settings, eventData) {
-      if (!eventData.funnel_id || !eventData.event_type) {
+    _executeWorkflowWithCooldown(workflow, triggerNode, triggerType) {
+      // Handle funnel triggers with session-based cooldown
+      if (triggerType === CONSTANTS.TRIGGER_TYPES.FUNNEL) {
+        const sessionKey = `seentics_funnel_modal_shown_${workflow.id}`;
+        if (Utils.sessionStorage.get(sessionKey)) {
+          this._log(`Workflow '${workflow.name}' already shown this session - skipping`);
+          return;
+        }
+        Utils.sessionStorage.set(sessionKey, 'true');
+      } else {
+        // Default cooldown for other triggers
+        if (!this._checkCooldown(workflow, triggerType)) {
+          return;
+        }
+      }
+
+      this._log(`Workflow '${workflow.name}' triggered by '${triggerType}'`);
+      this._executeWorkflowFromTrigger(workflow, triggerNode);
+    },
+
+    _checkCooldown(workflow, triggerType) {
+      const cooldownSeconds = this._getCooldownSeconds(workflow, triggerType);
+      if (cooldownSeconds <= 0) return true;
+
+      const key = `seentics_cooldown_${workflow.id}_${triggerType}`;
+      const lastTriggered = parseInt(Utils.storage.get(key, '0'), 10);
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (now - lastTriggered < cooldownSeconds) {
+        this._log(
+          `Workflow '${workflow.name}' blocked by cooldown (${cooldownSeconds}s). ` +
+          `Last triggered: ${new Date(lastTriggered * 1000).toLocaleString()}`
+        );
         return false;
       }
 
-      // Check if funnel ID matches
+      Utils.storage.set(key, String(now));
+      this._log(
+        `Workflow '${workflow.name}' cooldown set for ${cooldownSeconds}s ` +
+        `until ${new Date((now + cooldownSeconds) * 1000).toLocaleString()}`
+      );
+      return true;
+    },
+
+    _getCooldownSeconds(workflow, triggerType) {
+      // Look for frequency cap condition in workflow
+      const frequencyCapNode = workflow.nodes?.find(node =>
+        node.data?.title === CONSTANTS.CONDITION_TYPES.FREQUENCY_CAP
+      );
+      
+      if (frequencyCapNode?.data?.settings?.cooldownSeconds) {
+        return frequencyCapNode.data.settings.cooldownSeconds;
+      }
+      
+      return CONSTANTS.DEFAULT_COOLDOWN_HOURS * 3600; // 24 hours default
+    },
+
+    async _executeWorkflow(workflow, currentNode, runContext) {
+      if (!currentNode) {
+        this._log(`Workflow '${workflow.name}' completed`);
+        this.analyticsManager.flushBatch();
+        return;
+      }
+
+      const stepStartTime = Date.now();
+      const nodeType = currentNode.data?.type;
+      const nodeTitle = currentNode.data?.title;
+
+      // Track step entry
+      this._trackWorkflowEvent(workflow, currentNode, 'Step Entered', {
+        runId: runContext?.runId,
+        stepOrder: this._getStepOrder(currentNode, workflow),
+        stepType: nodeType
+      });
+
+      try {
+        if (nodeType === 'Condition') {
+          const conditionResult = await this._evaluateCondition(currentNode, workflow, runContext);
+          
+          this._trackWorkflowEvent(workflow, currentNode, 'Condition Evaluated', {
+            runId: runContext?.runId,
+            stepOrder: this._getStepOrder(currentNode, workflow),
+            stepType: nodeType,
+            success: conditionResult,
+            executionTime: Date.now() - stepStartTime
+          });
+
+          if (!conditionResult && nodeTitle !== CONSTANTS.CONDITION_TYPES.JOIN) {
+            this._log(`Workflow '${workflow.name}' stopped at condition '${nodeTitle}'`);
+            this.analyticsManager.flushBatch();
+            return;
+          }
+
+          // Handle join condition specially
+          if (nodeTitle === CONSTANTS.CONDITION_TYPES.JOIN) {
+            const shouldContinue = await this._handleJoinCondition(
+              workflow, currentNode, runContext
+            );
+            if (!shouldContinue) return;
+          }
+        }
+
+        if (nodeType === 'Action') {
+          await this._executeAction(currentNode, workflow, runContext);
+          
+          if (nodeTitle !== CONSTANTS.ACTION_TYPES.WAIT && !currentNode.data?.isServerAction) {
+            if (runContext && !runContext.completionSent) {
+              runContext.completionSent = true;
+              this._trackWorkflowEvent(workflow, currentNode, 'Action Executed', {
+                runId: runContext.runId,
+                sourceNodeId: currentNode.id,
+                stepOrder: this._getStepOrder(currentNode, workflow),
+                stepType: nodeType,
+                success: true,
+                executionTime: Date.now() - stepStartTime
+              });
+            }
+          }
+        }
+
+        // Track step completion
+        this._trackWorkflowEvent(workflow, currentNode, 'Step Completed', {
+          runId: runContext?.runId,
+          stepOrder: this._getStepOrder(currentNode, workflow),
+          stepType: nodeType,
+          success: true,
+          executionTime: Date.now() - stepStartTime
+        });
+
+        // Execute next nodes
+        await this._executeNextNodes(workflow, currentNode, runContext);
+
+      } catch (error) {
+        console.error(`[Seentics] Error executing workflow step:`, error);
+        
+        this._trackWorkflowEvent(workflow, currentNode, 'Step Failed', {
+          runId: runContext?.runId,
+          stepOrder: this._getStepOrder(currentNode, workflow),
+          stepType: nodeType,
+          success: false,
+          executionTime: Date.now() - stepStartTime,
+          detail: error.message
+        });
+      }
+    },
+
+    async _executeNextNodes(workflow, currentNode, runContext) {
+      const outgoingEdges = workflow.edges?.filter(edge => edge.source === currentNode.id) || [];
+      const nextNodes = outgoingEdges
+        .map(edge => workflow.nodes?.find(node => node.id === edge.target))
+        .filter(Boolean);
+
+      if (nextNodes.length === 0) return;
+
+      // Handle branch split specially
+      if (currentNode.data?.title === CONSTANTS.CONDITION_TYPES.BRANCH_SPLIT) {
+        const chosenNode = this._selectBranchSplitPath(currentNode, nextNodes, outgoingEdges);
+        if (chosenNode) {
+          await this._executeWorkflow(workflow, chosenNode, runContext);
+        }
+        return;
+      }
+
+      // Add delay for server actions
+      if (currentNode.data?.isServerAction) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      // Execute all next nodes in parallel
+      await Promise.all(
+        nextNodes.map(node => this._executeWorkflow(workflow, node, runContext))
+      );
+    },
+
+    _selectBranchSplitPath(branchNode, nextNodes, outgoingEdges) {
+      const settings = branchNode.data?.settings || {};
+      const variantsCount = parseInt(settings.variantsCount || 2, 10);
+      
+      const weights = [
+        Math.max(0, Math.min(100, parseInt(settings.variantAPercent || 50, 10))),
+        Math.max(0, Math.min(100, parseInt(settings.variantBPercent || 50, 10)))
+      ];
+      
+      if (variantsCount === 3) {
+        weights.push(Math.max(0, Math.min(100, parseInt(settings.variantCPercent || 0, 10))));
+      }
+
+      // Normalize weights and select
+      const total = Math.max(1, weights.reduce((sum, w) => sum + w, 0));
+      let random = Math.random() * total;
+      let selectedIndex = 0;
+
+      for (let i = 0; i < weights.length; i++) {
+        if (random < weights[i]) {
+          selectedIndex = i;
+          break;
+        }
+        random -= weights[i];
+      }
+
+      // Try to find edge with matching label
+      const variantCodes = ['A', 'B', 'C'];
+      const chosenCode = variantCodes[Math.min(selectedIndex, variantCodes.length - 1)];
+      const labeledEdge = outgoingEdges.find(edge => {
+        const edgeLabel = (edge.label || edge.data?.label || '').toString().toLowerCase().trim();
+        return edgeLabel === chosenCode.toLowerCase();
+      });
+
+      if (labeledEdge) {
+        return nextNodes.find(node => node.id === labeledEdge.target);
+      }
+
+      // Fallback to index-based selection
+      return nextNodes[Math.min(selectedIndex, nextNodes.length - 1)];
+    },
+
+    async _handleJoinCondition(workflow, joinNode, runContext) {
+      const runId = runContext?.runId || Utils.generateId('run');
+      const joinKey = `${workflow.id}_${joinNode.id}_${runId}`;
+      
+      if (!this.joinStates.has(joinKey)) {
+        const inboundCount = workflow.edges?.filter(e => e.target === joinNode.id).length || 0;
+        this.joinStates.set(joinKey, {
+          count: 0,
+          inboundCount,
+          timer: null,
+          locked: false
+        });
+      }
+
+      const joinState = this.joinStates.get(joinKey);
+      joinState.count++;
+
+      if (joinState.count < joinState.inboundCount) {
+        // Set up timeout if configured and not already set
+        if (!joinState.timer && !joinState.locked) {
+          joinState.locked = true;
+          const timeoutSeconds = parseInt(joinNode.data?.settings?.joinTimeoutSeconds || 0, 10);
+          
+          if (timeoutSeconds > 0) {
+            const timerId = setTimeout(() => {
+              this._log(`Join timeout reached; continuing without all branches (${joinState.count}/${joinState.inboundCount})`);
+              this.joinStates.delete(joinKey);
+              this._executeWorkflow(workflow, joinNode, runContext);
+            }, timeoutSeconds * 1000);
+            
+            joinState.timer = timerId;
+            this.resourceManager.addTimer(timerId);
+          }
+        }
+        
+        this._log(`Join waiting: ${joinState.count}/${joinState.inboundCount}`);
+        return false; // Don't continue yet
+      }
+
+      // All branches have arrived
+      if (joinState.timer) {
+        this.resourceManager.clearTimer(joinState.timer);
+      }
+      this.joinStates.delete(joinKey);
+      return true; // Continue execution
+    },
+
+    // Condition evaluation
+    async _evaluateCondition(conditionNode, workflow, runContext) {
+      const conditionData = conditionNode.data;
+      const settings = conditionData?.settings || {};
+      const conditionType = conditionData?.title;
+
+      if (!conditionType) {
+        console.warn('[Seentics] Condition node missing title');
+        return false;
+      }
+
+      try {
+        switch (conditionType) {
+          case CONSTANTS.CONDITION_TYPES.URL_PATH:
+            return this._checkUrlCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.DEVICE_TYPE:
+            return this._checkDeviceTypeCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.BROWSER:
+            return this._checkBrowserCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.TRAFFIC_SOURCE:
+            return this._checkTrafficSourceCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.NEW_VS_RETURNING:
+            return this._checkVisitorTypeCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.AB_SPLIT:
+            return this._checkABSplitCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.BRANCH_SPLIT:
+            return true; // Branch split always continues, selection happens in execution
+          
+          case CONSTANTS.CONDITION_TYPES.TIME_WINDOW:
+            return this._checkTimeWindowCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.QUERY_PARAM:
+            return this._checkQueryParamCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.TAG:
+            return await this._checkTagCondition(settings);
+          
+          case CONSTANTS.CONDITION_TYPES.JOIN:
+            return true; // Join handling is done separately
+          
+          default:
+            console.warn(`[Seentics] Unknown condition type: ${conditionType}`);
+            return true;
+        }
+      } catch (error) {
+        console.error(`[Seentics] Error evaluating condition '${conditionType}':`, error);
+        return false;
+      }
+    },
+
+    _checkUrlCondition(settings) {
+      if (!settings?.url) return true;
+
+      let currentUrl = window.location.href;
+      let path = window.location.pathname;
+
+      // Preview mode override
+      if (this.siteId === 'preview' && window.__SEENTICS_PREVIEW_PATH) {
+        try {
+          path = window.__SEENTICS_PREVIEW_PATH;
+          currentUrl = window.location.origin + path;
+        } catch (e) {
+          console.warn('[Seentics] Error applying preview path override:', e);
+        }
+      }
+
+      const targetUrl = settings.url;
+      const matchType = settings.urlMatchType || 'contains';
+
+      switch (matchType) {
+        case 'exact':
+          return currentUrl === targetUrl || path === targetUrl;
+        case 'contains':
+          return currentUrl.includes(targetUrl);
+        case 'startsWith':
+          return path.startsWith(targetUrl);
+        case 'endsWith':
+          return path.endsWith(targetUrl);
+        default:
+          return currentUrl.includes(targetUrl);
+      }
+    },
+
+    _checkDeviceTypeCondition(settings) {
+      if (!settings?.deviceType) return false;
+      
+      const isMobile = Utils.isMobile();
+      return (settings.deviceType === 'Mobile') === isMobile;
+    },
+
+    _checkBrowserCondition(settings) {
+      if (!settings?.browser) return false;
+      
+      return Utils.getBrowser() === settings.browser;
+    },
+
+    _checkTrafficSourceCondition(settings) {
+      const referrer = document.referrer;
+      const referrerUrl = settings?.referrerUrl;
+      
+      if (!referrerUrl) {
+        return !referrer; // Direct traffic
+      }
+      
+      if (!referrer) return false;
+      
+      const matchType = settings.referrerMatchType || 'contains';
+      
+      switch (matchType) {
+        case 'exact':
+          return referrer === referrerUrl;
+        case 'contains':
+          return referrer.includes(referrerUrl);
+        case 'startsWith':
+          return referrer.startsWith(referrerUrl);
+        case 'endsWith':
+          return referrer.endsWith(referrerUrl);
+        default:
+          return referrer.includes(referrerUrl);
+      }
+    },
+
+    _checkVisitorTypeCondition(settings) {
+      if (!settings?.visitorType) return false;
+      
+      const isReturning = this.isReturningVisitor;
+      return settings.visitorType === (isReturning ? 'returning' : 'new');
+    },
+
+    _checkABSplitCondition(settings) {
+      const percentage = Math.max(0, Math.min(100, parseInt(settings?.variantAPercent || 50, 10)));
+      return Math.random() * 100 < percentage;
+    },
+
+    _checkTimeWindowCondition(settings) {
+      const now = new Date();
+      const hour = now.getHours();
+      const dayOfWeek = now.getDay();
+      
+      // Check hour range
+      const startHour = parseInt(settings?.startHour || 0, 10);
+      const endHour = parseInt(settings?.endHour || 23, 10);
+      
+      let hourInRange = false;
+      if (startHour <= endHour) {
+        hourInRange = hour >= startHour && hour <= endHour;
+      } else {
+        // Spans midnight
+        hourInRange = hour >= startHour || hour <= endHour;
+      }
+      
+      // Check days of week
+      const allowedDays = settings?.daysOfWeek;
+      const dayInRange = !Array.isArray(allowedDays) || 
+                        allowedDays.length === 0 || 
+                        allowedDays.includes(dayOfWeek);
+      
+      return hourInRange && dayInRange;
+    },
+
+    _checkQueryParamCondition(settings) {
+      const paramName = settings?.queryParam;
+      if (!paramName) return false;
+      
+      const params = new URLSearchParams(window.location.search);
+      const paramValue = params.get(paramName);
+      const matchType = settings?.queryMatchType || 'exists';
+      const targetValue = settings?.queryValue || '';
+      
+      switch (matchType) {
+        case 'exists':
+          return params.has(paramName);
+        case 'exact':
+          return paramValue === targetValue;
+        case 'contains':
+          return paramValue?.includes(targetValue) || false;
+        case 'startsWith':
+          return paramValue?.startsWith(targetValue) || false;
+        case 'endsWith':
+          return paramValue?.endsWith(targetValue) || false;
+        default:
+          return false;
+      }
+    },
+
+    async _checkTagCondition(settings) {
+      const tagName = settings?.tagName;
+      if (!tagName) return false;
+
+      try {
+        // Check session cache first
+        const cacheKey = `seentics_tag_${this.siteId}_${this.visitorId}_${tagName}`;
+        const cached = Utils.sessionStorage.get(cacheKey);
+        
+        if (cached) {
+          try {
+            const { value, timestamp } = JSON.parse(cached);
+            const now = Date.now();
+            if (now - timestamp < CONSTANTS.DEFAULT_TAG_CACHE_TTL) {
+              return value === 'true';
+            }
+          } catch (e) {
+            // Invalid cache, continue to API call
+          }
+        }
+
+        // Fetch from API
+        const apiHost = this._getApiHost();
+        const url = `${apiHost}/api/v1/visitor/${this.siteId}/${this.visitorId}/has-tag?tag=${encodeURIComponent(tagName)}`;
+        
+        const controller = new AbortController();
+        this.resourceManager.addAbortController(controller);
+
+        const response = await Utils.withTimeout(
+          fetch(url, {
+            credentials: 'include',
+            signal: controller.signal
+          })
+        );
+
+        if (!response.ok) {
+          throw new Error(`Tag check failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const hasTag = !!result?.hasTag;
+
+        // Cache the result
+        try {
+          Utils.sessionStorage.set(cacheKey, JSON.stringify({
+            value: hasTag ? 'true' : 'false',
+            timestamp: Date.now()
+          }));
+        } catch (e) {
+          console.warn('[Seentics] Failed to cache tag result:', e);
+        }
+
+        return hasTag;
+      } catch (error) {
+        console.warn(`[Seentics] Tag condition evaluation failed for '${tagName}':`, error);
+        return false;
+      }
+    },
+
+    _checkFunnelCondition(settings, eventData) {
+      if (!eventData?.funnel_id || !eventData?.event_type) return false;
+
+      // Check funnel ID match
       if (settings.funnelId && settings.funnelId !== eventData.funnel_id) {
         return false;
       }
 
-      // Check if event type matches
+      // Check event type match
       if (settings.eventType && settings.eventType !== eventData.event_type) {
         return false;
       }
 
-      // Check if step index matches
+      // Check step index
       if (settings.stepIndex !== undefined && settings.stepIndex !== null) {
         if (eventData.step_index !== undefined && eventData.step_index !== settings.stepIndex) {
           return false;
         }
       }
 
-      // Check time threshold (if set)
+      // Check time threshold
       if (settings.timeThreshold && settings.timeThreshold > 0) {
         if (eventData.time_spent && eventData.time_spent < settings.timeThreshold * 60) {
           return false;
         }
       }
 
-      // Check user segment (if set)
+      // Check user segment
       if (settings.userSegment && settings.userSegment.trim()) {
         const segments = settings.userSegment.split(',').map(s => s.trim());
         const userTags = this._getUserTags();
-        const hasMatchingSegment = segments.some(segment => 
-          userTags.includes(segment) || 
+        
+        const hasMatchingSegment = segments.some(segment =>
+          userTags.includes(segment) ||
           (segment === 'new-visitors' && !this.isReturningVisitor) ||
           (segment === 'returning-visitors' && this.isReturningVisitor)
         );
-        if (!hasMatchingSegment) {
-          return false;
-        }
+        
+        if (!hasMatchingSegment) return false;
       }
 
-      // Check value range (if set)
+      // Check value range
       if (eventData.value !== undefined) {
-        if (settings.minValue && eventData.value < settings.minValue) {
-          return false;
-        }
-        if (settings.maxValue && eventData.value > settings.maxValue) {
-          return false;
-        }
+        if (settings.minValue && eventData.value < settings.minValue) return false;
+        if (settings.maxValue && eventData.value > settings.maxValue) return false;
       }
 
       return true;
     },
 
-    // Get user tags from localStorage or other sources
     _getUserTags() {
-      try {
-        return JSON.parse(localStorage.getItem('seentics_user_tags') || '[]');
-      } catch {
-        return [];
-      }
+      return Utils.storage.getJSON(CONSTANTS.STORAGE_KEYS.USER_TAGS, []);
     },
 
-    // --- Workflow Evaluation ---
-    _checkWorkflows(triggerType, eventData = {}) {
-      this._log(`Checking workflows for trigger type: ${triggerType}`, eventData);
-      this.activeWorkflows.forEach(workflow => {
-        if(workflow.status !== 'Active') {
-          this._log(`Skipping inactive workflow: ${workflow.name}`);
-          return;
-        }
+    // Action execution
+    async _executeAction(actionNode, workflow, runContext) {
+      const actionData = actionNode.data;
+      const settings = actionData?.settings || {};
+      const actionType = actionData?.title;
 
-        const triggerNodes = workflow.nodes.filter(node => node.data.type === 'Trigger');
-        this._log(`Workflow ${workflow.name} has ${triggerNodes.length} trigger nodes`);
-        triggerNodes.forEach(triggerNode => {
-          this._log(`Checking trigger node: ${triggerNode.data.title} vs ${triggerType}`);
-          if (triggerNode.data.title === triggerType) {
-            let matches = false;
-            switch(triggerType) {
-                case 'Page View':
-                    matches = this._checkUrlCondition(triggerNode.data.settings);
-                    break;
-                case 'Time Spent':
-                    this._setupTimeSpentTrigger(workflow, triggerNode);
-                    return; // setup is separate, not an immediate match
-                case 'Inactivity':
-                    this._setupInactivityTrigger(workflow, triggerNode);
-                    return;
-                case 'Scroll Depth':
-                    // Scroll triggers are now handled by _setupScrollTriggers()
-                    return;
-                case 'Exit Intent':
-                    this._setupExitIntentTrigger(workflow, triggerNode);
-                    return;
-                case 'Element Click':
-                    this._setupClickTrigger(workflow, triggerNode);
-                    return;
-                case 'Custom Event':
-                    matches = triggerNode.data.settings.customEventName === eventData.eventName;
-                    break;
-                case 'Funnel':
-                    // Funnel triggers are now handled client-side
-                    matches = this._checkFunnelCondition(triggerNode.data.settings, eventData);
-                    break;
-                default:
-                    matches = true;
-            }
-            if (matches) {
-              // For funnel triggers, show modal only once per session (until browser is closed)
-              if (triggerType === 'Funnel') {
-                const sessionKey = `seentics_funnel_modal_shown_${workflow.id}`;
-                if (sessionStorage.getItem(sessionKey)) {
-                  this._log(`Workflow '${workflow.name}' modal already shown in this session - skipping`);
-                  return;
-                }
-                sessionStorage.setItem(sessionKey, 'true');
-                this._log(`Workflow '${workflow.name}' modal marked as shown for this session`);
-              } else {
-                // Default cooldown for other trigger types (24 hours) to prevent spam
-                const defaultCooldown = 24 * 60 * 60; // 24 hours
-                
-                // Frequency cap (cooldown) gate: look for a downstream Frequency Cap condition directly next
-                const nextEdge = workflow.edges.find(e => e.source === triggerNode.id);
-                const nextNode = nextEdge ? workflow.nodes.find(n => n.id === nextEdge.target) : null;
-                
-                let cooldownSeconds = defaultCooldown;
-                if (nextNode && nextNode.data?.title === 'Frequency Cap') {
-                  cooldownSeconds = nextNode.data.settings?.cooldownSeconds || defaultCooldown;
-                }
-                
-                if (cooldownSeconds > 0) {
-                  const key = `seentics_cooldown_${workflow.id}_${triggerType}`;
-                  const last = parseInt(localStorage.getItem(key) || '0', 10);
-                  const now = Math.floor(Date.now() / 1000);
-                  if (now - last < cooldownSeconds) {
-                    this._log(`Workflow '${workflow.name}' blocked by cooldown (${cooldownSeconds}s). Last triggered: ${new Date(last * 1000).toLocaleString()}`);
-                    return;
-                  }
-                  localStorage.setItem(key, String(now));
-                  this._log(`Workflow '${workflow.name}' cooldown set for ${cooldownSeconds}s until ${new Date((now + cooldownSeconds) * 1000).toLocaleString()}`);
-                }
-              }
-              this._log(`Workflow '${workflow.name}' triggered by '${triggerType}'`);
-              const runId = this._generateRunId();
-              // Track trigger event with runId
-              this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-              this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-            }
-          }
-        });
-      });
-    },
-
-    async _executeWorkflow(workflow, currentNode, runContext) {
-      if (!currentNode) {
-        this._log(`Workflow '${workflow.name}' completed.`);
-        // Flush all collected analytics events for this workflow in a single API call
-        this._flushWorkflowBatch();
-        return;
-      }
-      
-      const stepStartTime = Date.now();
-      const isCondition = currentNode.data.type === 'Condition';
-      const isAction = currentNode.data.type === 'Action';
-
-      // Track step entry
-      this._trackWorkflowEvent(workflow, currentNode, 'Step Entered', {
-        runId: runContext?.runId,
-        stepOrder: this._getStepOrder(currentNode, workflow),
-        stepType: currentNode.data.type
-      });
-
-      if (isCondition) {
-        const conditionMet = await this._evaluateCondition(currentNode.data);
-        this._log(`Condition '${currentNode.data.title}' evaluated: ${conditionMet}`);
-        
-        // Track condition evaluation result
-        this._trackWorkflowEvent(workflow, currentNode, 'Condition Evaluated', {
-          runId: runContext?.runId,
-          stepOrder: this._getStepOrder(currentNode, workflow),
-          stepType: currentNode.data.type,
-          success: conditionMet,
-          executionTime: Date.now() - stepStartTime
-        });
-        
-        if (!conditionMet) {
-          this._log(`Workflow '${workflow.name}' stopped at condition.`);
-          // Flush batch when workflow stops at condition
-          this._flushWorkflowBatch();
-          return;
-        }
-        // Join: wait for all inbound branches in a run
-        if (currentNode.data.title === 'Join') {
-          const runId = runContext?.runId || this._generateRunId();
-          const key = `${workflow.id}_${currentNode.id}_${runId}`;
-          const inboundCount = workflow.edges.filter(e => e.target === currentNode.id).length;
-          
-          // Initialize join state atomically to prevent race conditions
-          if (!this._joinState[key]) {
-            this._joinState[key] = { 
-              count: 0, 
-              timer: null, 
-              locked: false,
-              inboundCount 
-            };
-          }
-          
-          const joinState = this._joinState[key];
-          
-          // Use atomic increment to prevent race conditions
-          joinState.count += 1;
-          
-          if (joinState.count < joinState.inboundCount) {
-            // Start timeout once on first arrival if configured
-            if (!joinState.timer && !joinState.locked) {
-              joinState.locked = true; // Prevent multiple timer setups
-              const timeoutSec = parseInt(currentNode.data.settings?.joinTimeoutSeconds || 0, 10);
-              if (timeoutSec > 0) {
-                joinState.timer = setTimeout(() => {
-                  this._log(`Join timeout reached; continuing without all branches (${joinState.count}/${joinState.inboundCount}).`);
-                  delete this._joinState[key];
-                  // Continue flow from this join node after timeout
-                  this._executeWorkflow(workflow, currentNode, runContext);
-                }, timeoutSec * 1000);
-              }
-            }
-            this._log(`Join waiting: ${joinState.count}/${joinState.inboundCount}`);
-            return; // Wait for other branches
-          } else {
-            if (joinState.timer) { 
-              try { clearTimeout(joinState.timer); } catch {} 
-            }
-            delete this._joinState[key];
-          }
-        }
-      }
-
-      if (isAction) {
-        this._log(`Executing action: ${currentNode.data.title}`);
-        // Handle Wait action as a timed delay between nodes, not as an immediate UI/server action
-        if (currentNode.data.title === 'Wait') {
-          const delayMs = Math.max(0, (currentNode.data.settings?.waitSeconds || 0) * 1000);
-          if (delayMs > 0) {
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-          }
-          // Do not count Wait as a completion event
-        } else {
-          // Execute action (client or server) with full node context
-          this._executeAction(currentNode, workflow.id);
-          // Track a single completion per run for client-side actions only (server actions are tracked by backend)
-          if (!currentNode.data.isServerAction && runContext && !runContext.completionSent) {
-            runContext.completionSent = true;
-            this._trackWorkflowEvent(workflow, currentNode, 'Action Executed', { 
-              runId: runContext.runId, 
-              sourceNodeId: currentNode.id,
-              stepOrder: this._getStepOrder(currentNode, workflow),
-              stepType: currentNode.data.type,
-              success: true,
-              executionTime: Date.now() - stepStartTime
-            });
-          }
-        }
-      }
-      
-      // Track step completion
-      this._trackWorkflowEvent(workflow, currentNode, 'Step Completed', {
-        runId: runContext?.runId,
-        stepOrder: this._getStepOrder(currentNode, workflow),
-        stepType: currentNode.data.type,
-        success: true,
-        executionTime: Date.now() - stepStartTime
-      });
-      
-      // Find and execute next node(s)
-      // Prefer outgoing edges whose target nodes actually exist
-      const outgoing = workflow.edges.filter(edge => edge.source === currentNode.id);
-      const validTargets = outgoing
-        .map(edge => workflow.nodes.find(node => node.id === edge.target))
-        .filter(Boolean);
-      if (validTargets.length === 0 && outgoing.length > 0) {
-        this._log(`No valid next node found from '${currentNode.data?.title}'. Check edges/targets.`);
-      }
-
-      // Add a small delay for server-side actions to feel more natural and prevent race conditions.
-      if (currentNode.data.isServerAction) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      // Special handling: Branch Split selects exactly one branch by ratios (A/B/C), else default to first
-      if (currentNode.data.title === 'Branch Split' && validTargets.length > 0) {
-        const variantsCount = parseInt(currentNode.data.settings?.variantsCount || 2, 10);
-        const a = Math.max(0, Math.min(100, parseInt(currentNode.data.settings?.variantAPercent ?? 50, 10)));
-        const b = Math.max(0, Math.min(100, parseInt(currentNode.data.settings?.variantBPercent ?? 50, 10)));
-        const c = variantsCount === 3 ? Math.max(0, Math.min(100, parseInt(currentNode.data.settings?.variantCPercent ?? 0, 10))) : 0;
-        const weights = variantsCount === 3 ? [a, b, c] : [a, b];
-        // Normalize and pick
-        const total = Math.max(1, weights.reduce((s, v) => s + v, 0));
-        let r = Math.random() * total;
-        let pickIndex = 0;
-        for (let i = 0; i < weights.length; i++) {
-          if (r < weights[i]) { pickIndex = i; break; }
-          r -= weights[i];
-        }
-        // Label-based routing: try to find an outgoing edge labeled with the chosen variant
-        const variantCodes = ['A', 'B', 'C'];
-        const chosenCode = variantCodes[Math.min(pickIndex, variantCodes.length - 1)];
-        const labelCandidates = [
-          chosenCode,
-          (pickIndex === 0 ? currentNode.data.settings?.variantALabel : pickIndex === 1 ? currentNode.data.settings?.variantBLabel : currentNode.data.settings?.variantCLabel)
-        ].filter(Boolean).map((s) => String(s).toLowerCase().trim());
-
-        const outgoingEdges = workflow.edges.filter(edge => edge.source === currentNode.id);
-        const labeledEdge = outgoingEdges.find(edge => {
-          const edgeLabel = (edge.label || (edge.data && edge.data.label) || '').toString().toLowerCase().trim();
-          const targetExists = workflow.nodes.some(n => n.id === edge.target);
-          return targetExists && edgeLabel && labelCandidates.includes(edgeLabel);
-        });
-
-        let chosen;
-        if (labeledEdge) {
-          chosen = workflow.nodes.find(n => n.id === labeledEdge.target);
-        }
-        // Fallback: Clamp to available targets (map A->0, B->1, C->2)
-        if (!chosen) {
-          chosen = validTargets[Math.min(pickIndex, validTargets.length - 1)];
-        }
-        await this._executeWorkflow(workflow, chosen, runContext);
+      if (!actionType) {
+        console.warn('[Seentics] Action node missing title');
         return;
       }
 
-      // Default behavior: fan-out to all valid targets in parallel
-      await Promise.all(validTargets.map(next => this._executeWorkflow(workflow, next, runContext)));
-    },
-
-    async _evaluateCondition(conditionData) {
-        // Add null checks to prevent TypeError
-        if (!conditionData || !conditionData.settings) {
-            this._log('Warning: Invalid condition data received:', conditionData);
-            return false;
-        }
-
-        switch (conditionData.title) {
-            case 'URL Path':
-                return this._checkUrlCondition(conditionData.settings);
-            case 'Device Type':
-                // Add safety check for deviceType property
-                if (!conditionData.settings.deviceType) {
-                    this._log('Warning: Device Type condition missing deviceType setting');
-                    return false;
-                }
-                return (conditionData.settings.deviceType === 'Mobile') === this._isMobile();
-            case 'Browser':
-                // Add safety check for browser property
-                if (!conditionData.settings.browser) {
-                    this._log('Warning: Browser condition missing browser setting');
-                    return false;
-                }
-                return this._getBrowser() === conditionData.settings.browser;
-            case 'Traffic Source':
-                // Add safety check for referrer property
-                if (!conditionData.settings.referrer) {
-                    this._log('Warning: Traffic Source condition missing referrer setting');
-                    return false;
-                }
-                return this._checkReferrerCondition(conditionData.settings);
-            case 'New vs Returning':
-                // Add safety check for visitorType property
-                if (!conditionData.settings.visitorType) {
-                    this._log('Warning: New vs Returning condition missing visitorType setting');
-                    return false;
-                }
-                return conditionData.settings.visitorType === (this.isReturningVisitor ? 'returning' : 'new');
-            case 'A/B Split': {
-                const pct = Math.max(0, Math.min(100, parseInt(conditionData.settings?.variantAPercent || 50, 10)));
-                const bucket = Math.random() * 100;
-                return bucket < pct; // true => Variant A path; false => Variant B (assume alternate path wired)
-            }
-            case 'Branch Split': {
-                const a = Math.max(0, Math.min(100, parseInt(conditionData.settings?.variantAPercent ?? 50, 10)));
-                const b = Math.max(0, Math.min(100, parseInt(conditionData.settings?.variantBPercent ?? 50, 10)));
-                const cEnabled = (parseInt(conditionData.settings?.variantsCount || 2, 10) === 3);
-                const c = cEnabled ? Math.max(0, Math.min(100, parseInt(conditionData.settings?.variantCPercent ?? 0, 10))) : 0;
-                const total = Math.max(1, a + b + c);
-                const r = Math.random() * total;
-                // Choose branch by range; then runner fan-out will follow all edges, so we return true to allow progression
-                // We annotate chosen label into runContext is not trivial here; downstream branching is by edges.
-                return true;
-            }
-            case 'Time Window': {
-                const now = new Date();
-                const hour = now.getHours();
-                const start = (conditionData.settings?.startHour ?? 0);
-                const end = (conditionData.settings?.endHour ?? 23);
-                let hourOk = false;
-                if (start <= end) hourOk = hour >= start && hour <= end; else hourOk = hour >= start || hour <= end;
-                const days = conditionData.settings?.daysOfWeek;
-                const dayOk = Array.isArray(days) && days.length > 0 ? days.includes(now.getDay()) : true;
-                return hourOk && dayOk;
-            }
-            case 'Query Param': {
-                const name = conditionData.settings?.queryParam;
-                if (!name) return false;
-                const params = new URLSearchParams(window.location.search);
-                const val = params.get(name);
-                const type = conditionData.settings?.queryMatchType || 'exists';
-                const target = conditionData.settings?.queryValue || '';
-                if (type === 'exists') return params.has(name);
-                if (val == null) return false;
-                switch (type) {
-                    case 'exact': return val === target;
-                    case 'contains': return val.includes(target);
-                    case 'startsWith': return val.startsWith(target);
-                    case 'endsWith': return val.endsWith(target);
-                    default: return false;
-                }
-            }
-            
-            case 'Tag': {
-                try {
-                    const tag = conditionData.settings?.tagName;
-                    if (!tag) return false;
-                    
-                    // Session cache with TTL
-                    const cacheKey = `seentics_tag_${this.siteId}_${this.visitorId}_${tag}`;
-                    const cached = sessionStorage.getItem(cacheKey);
-                    if (cached) {
-                        try {
-                            const { value, timestamp } = JSON.parse(cached);
-                            const now = Date.now();
-                            const ttl = 5 * 60 * 1000; // 5 minutes TTL
-                            if (now - timestamp < ttl) {
-                                return value === 'true';
-                            }
-                        } catch (e) {
-                            // Invalid cache, continue to API call
-                        }
-                    }
-                    
-                    const apiHost = this._getApiHost();
-                    const url = `${apiHost}/api/v1/visitor/${this.siteId}/${this.visitorId}/has-tag?tag=${encodeURIComponent(tag)}`;
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-                    
-                    const ok = await fetch(url, { 
-                        credentials: 'include',
-                        signal: controller.signal
-                    })
-                      .then(r => {
-                          clearTimeout(timeoutId);
-                          if (!r.ok) throw new Error(`Tag check failed: ${r.status}`);
-                          return r.json();
-                      })
-                      .then(json => !!json?.hasTag)
-                      .catch((error) => {
-                          clearTimeout(timeoutId);
-                          this._log('Tag check error:', error);
-                          return false;
-                      });
-                    
-                    // Cache the result with timestamp
-                    try { 
-                        sessionStorage.setItem(cacheKey, JSON.stringify({
-                            value: ok ? 'true' : 'false',
-                            timestamp: Date.now()
-                        })); 
-                    } catch (e) {
-                        // Storage quota exceeded or other error
-                        this._log('Failed to cache tag result:', e);
-                    }
-                    
-                    return ok;
-                } catch (error) { 
-                    this._log('Tag condition evaluation error:', error);
-                    return false; 
-                }
-            }
-            // 'Tag' condition previously evaluated server-side; now it calls the visitor API.
-            default:
-                this._log(`Warning: Unknown condition type '${conditionData.title}' - defaulting to true`);
-                return true;
-        }
-    },
-
-    // --- Action Execution ---
-    _executeAction(node, workflowId) {
-      const actionData = node?.data || {};
       if (actionData.isServerAction) {
-          this._executeServerActionNode(node, workflowId);
-          return;
+        this._executeServerAction(actionNode, workflow.id);
+        return;
       }
-      
-      // Ensure settings exist with defaults
-      const settings = actionData.settings || {};
-      
-      // Debug logging for troubleshooting
-      this._log(`Executing action: ${actionData.title}`, { 
-        hasSettings: !!settings, 
-        settingsKeys: Object.keys(settings),
-        nodeData: actionData 
-      });
-      
-      switch (actionData.title) {
-        case 'Show Modal': this._showModal(settings); break;
-        case 'Show Banner': this._showBanner(settings); break;
-        case 'Insert Section': this._insertSection(settings); break;
-        case 'Redirect URL': 
-          this._log(`Executing Redirect URL action to: ${settings.redirectUrl}`);
-          if (settings.redirectUrl) {
-            this._log(`Redirecting to: ${settings.redirectUrl}`);
-            window.location.href = settings.redirectUrl; 
-          } else {
-            this._log('Warning: Redirect URL not specified');
-          }
-          break;
-        case 'Track Event': 
-          if (settings.eventName) {
-            window.seentics.track(settings.eventName); 
-          } else {
-            this._log('Warning: Event name not specified');
-          }
-          break;
+
+      this._log(`Executing action: ${actionType}`, settings);
+
+      try {
+        switch (actionType) {
+          case CONSTANTS.ACTION_TYPES.SHOW_MODAL:
+            this._showModal(settings);
+            break;
+          
+          case CONSTANTS.ACTION_TYPES.SHOW_BANNER:
+            this._showBanner(settings);
+            break;
+          
+          case CONSTANTS.ACTION_TYPES.INSERT_SECTION:
+            this._insertSection(settings);
+            break;
+          
+          case CONSTANTS.ACTION_TYPES.REDIRECT_URL:
+            this._redirectUrl(settings);
+            break;
+          
+          case CONSTANTS.ACTION_TYPES.TRACK_EVENT:
+            this._trackCustomEvent(settings);
+            break;
+          
+          case CONSTANTS.ACTION_TYPES.WAIT:
+            await this._waitAction(settings);
+            break;
+          
+          default:
+            console.warn(`[Seentics] Unknown action type: ${actionType}`);
+        }
+      } catch (error) {
+        console.error(`[Seentics] Error executing action '${actionType}':`, error);
       }
     },
 
-    // Execute server action (redirects to _executeServerActionNode)
-    _executeServerAction(actionData) {
-        // This is a compatibility method that redirects to the actual implementation
-        this._executeServerActionNode(actionData, actionData.workflowId);
-    },
+    _executeServerAction(actionNode, workflowId) {
+      const payload = {
+        workflowId,
+        nodeId: actionNode.id,
+        siteId: this.siteId,
+        domain: window.location.hostname,
+        visitorId: this.visitorId,
+        identifiedUser: this.identifiedUser,
+        localStorageData: this._getLocalStorageData(actionNode.data?.settings)
+      };
 
-    _executeServerActionNode(node, workflowId) {
-        this._log(`Sending server action request for '${node.data?.title}'`);
+      try {
         const apiHost = this._getApiHost();
-        const payload = {
-            workflowId: workflowId,
-            nodeId: node.id,
-            siteId: this.siteId,
-            domain: window.location.hostname,
-            visitorId: this.visitorId,
-            identifiedUser: this.identifiedUser,
-            localStorageData: {}
-        };
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
         
-        if (node.data?.settings?.localStorageData) {
-            node.data.settings.localStorageData.forEach(item => {
-                try {
-                    const value = localStorage.getItem(item.localStorageKey);
-                    if (value !== null) {
-                        payload.localStorageData[item.payloadKey] = value;
-                    }
-                } catch (error) {
-                    this._log('Error reading localStorage:', error);
-                }
-            });
+        const success = navigator.sendBeacon(`${apiHost}/api/v1/workflows/execution/action`, blob);
+        
+        if (!success) {
+          // Fallback to fetch
+          fetch(`${apiHost}/api/v1/workflows/execution/action`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+          }).catch(error => {
+            console.warn('[Seentics] Server action fallback failed:', error);
+          });
         }
-        
-        try {
-            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-            const success = navigator.sendBeacon(`${apiHost}/api/v1/workflows/execution/action`, blob);
-            
-            if (!success) {
-                // Fallback to fetch if sendBeacon fails
-                this._log('sendBeacon failed, falling back to fetch');
-                fetch(`${apiHost}/api/v1/workflows/execution/action`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                    keepalive: true
-                }).catch(error => {
-                    this._log('Fallback fetch also failed:', error);
-                });
+      } catch (error) {
+        console.error('[Seentics] Server action execution failed:', error);
+      }
+    },
+
+    _getLocalStorageData(settings) {
+      const localStorageData = {};
+      
+      if (settings?.localStorageData && Array.isArray(settings.localStorageData)) {
+        settings.localStorageData.forEach(item => {
+          if (item.localStorageKey && item.payloadKey) {
+            const value = Utils.storage.get(item.localStorageKey);
+            if (value !== null) {
+              localStorageData[item.payloadKey] = value;
             }
-        } catch (error) {
-            this._log('Error executing server action:', error);
-        }
-    },
-    
-    // --- UI Actions Implementation ---
-    _injectStyles(css, scopeId) {
-        const styleId = `seentics-style-${scopeId}`;
-        if (document.getElementById(styleId)) return;
-        const style = document.createElement('style');
-        style.id = styleId;
-        // Basic scoping by adding the scopeId as a class to selectors
-        let scopedCss = css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|s*\{)/g, `[data-seentics-id="${scopeId}"] $1 `);
-        // Map body selector to the modal wrapper itself
-        const bodySelector = new RegExp(`\\[data-seentics-id=\"${scopeId}\"\\]\\s*body`, 'g');
-        scopedCss = scopedCss.replace(bodySelector, `[data-seentics-id="${scopeId}"]`);
-        style.innerHTML = scopedCss;
-        document.head.appendChild(style);
+          }
+        });
+      }
+      
+      return localStorageData;
     },
 
-    _injectDefaultModalCSS() {
-        // Check if tracker styles are already loaded
-        if (document.getElementById('seentics-tracker-styles')) return;
-        
-        // Load the existing tracker-styles.css file
-        const link = document.createElement('link');
-        link.id = 'seentics-tracker-styles';
-        link.rel = 'stylesheet';
-        link.type = 'text/css';
-        // Allow override via global config for cross-domain embedding
-        const configuredHref = (window.SEENTICS_CONFIG && window.SEENTICS_CONFIG.trackerStylesUrl) ? window.SEENTICS_CONFIG.trackerStylesUrl : '/tracker-styles.css';
-        link.href = configuredHref;
-        
-        link.onload = () => {
-            console.log('[Seentics] Tracker styles loaded successfully');
-        };
-        
-        link.onerror = (error) => {
-            console.error('[Seentics] Failed to load tracker styles:', error);
-        };
-        
-        document.head.appendChild(link);
-    },
-
-    _executeJs(js, element) {
-        try {
-            const scopedDoc = new Proxy(document, {
-                get(target, prop) {
-                    if (prop === 'getElementById') {
-                        return (id) => element.querySelector(`#${(window.CSS && CSS.escape) ? CSS.escape(id) : id}`);
-                    }
-                    if (prop === 'querySelector') {
-                        return (sel) => element.querySelector(sel);
-                    }
-                    if (prop === 'querySelectorAll') {
-                        return (sel) => element.querySelectorAll(sel);
-                    }
-                    return target[prop];
-                }
-            });
-            new Function('document', 'element', js)(scopedDoc, element);
-        } catch (e) {
-            if (window.SEENTICS_CONFIG?.debugMode) {
-                console.error("Seentics: Error executing custom JS.", e);
-            }
-            this._log('Error executing custom JS:', e);
-        }
-    },
-
+    // UI Actions
     _showModal(settings) {
-        // Ensure settings exists with defaults
-        settings = settings || {};
-        
-        // Set default displayMode if not specified
-        if (!settings.displayMode) {
-            settings.displayMode = 'default';
+      if (!settings.modalTitle && !settings.modalContent && !settings.customHtml) {
+        console.warn('[Seentics] Modal has no content to display');
+        return;
+      }
+
+      const modalId = Utils.generateId('seentics-modal');
+      const overlay = this._createOverlay();
+
+      if (settings.displayMode === 'custom' && settings.customHtml) {
+        this._showCustomModal(overlay, settings, modalId);
+      } else {
+        this._showDefaultModal(overlay, settings, modalId);
+      }
+
+      document.body.appendChild(overlay);
+      this._ensureStylesLoaded();
+    },
+
+    _createOverlay() {
+      const overlay = Utils.dom.createElement('div', { className: 'seentics-overlay' });
+      
+      const cleanup = () => {
+        try {
+          document.body.removeChild(overlay);
+        } catch (e) {
+          console.warn('[Seentics] Error removing overlay:', e);
         }
-        
-        // Validate required settings
-        if (!settings.modalTitle && !settings.modalContent && !settings.customHtml) {
-            this._log('Warning: Modal has no content to display', settings);
-            return;
+      };
+
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          cleanup();
+          window.removeEventListener('keydown', handleEscape);
         }
-        
-        const modalId = `seentics-modal-${Date.now()}`;
-        const overlay = this._createElement('div', { className: 'seentics-overlay' });
+      };
 
-        // Custom mode via iframe for full isolation and correct CSS/JS behavior
-        if (settings.displayMode === 'custom' && settings.customHtml) {
-            // Make overlay transparent so custom background shows through
-            overlay.style.background = 'transparent';
-
-            const iframe = document.createElement('iframe');
-            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-            iframe.style.width = '100vw';
-            iframe.style.height = '100vh';
-            iframe.style.border = '0';
-            iframe.style.background = 'transparent';
-
-            const bodyHtml = this._extractBodyHtml(settings.customHtml);
-            const css = settings.customCss || '';
-            const js = settings.customJs || '';
-            const srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>${css}</style></head><body>${bodyHtml}<script>(function(){try{${js}}catch(e){console.error(e)}})()<\/script></body></html>`;
-            iframe.srcdoc = srcdoc;
-
-            overlay.appendChild(iframe);
-
-            const cleanup = () => { try { document.body.removeChild(overlay); } catch {} };
-            const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
-            window.addEventListener('keydown', escHandler);
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
-
-            // Close button floating over iframe
-            const closeButton = this._createElement('button', { className: 'seentics-close-button', innerHTML: '&times;' });
-            closeButton.style.position = 'fixed';
-            closeButton.style.top = '12px';
-            closeButton.style.right = '12px';
-            closeButton.onclick = cleanup;
-            overlay.appendChild(closeButton);
-
-            document.body.appendChild(overlay);
-            return;
+      const handleClickOutside = (e) => {
+        if (e.target === overlay) {
+          cleanup();
         }
+      };
 
-        // Default template modal
-        const modal = this._createElement('div', { className: 'seentics-modal', 'data-seentics-id': modalId });
-        const title = this._createElement('h2', { className: 'seentics-modal-title', textContent: settings.modalTitle });
-        const content = this._createElement('p', { className: 'seentics-modal-content', textContent: settings.modalContent });
-        modal.append(title, content);
+      window.addEventListener('keydown', handleEscape);
+      overlay.addEventListener('click', handleClickOutside);
 
-        // Inject default modal CSS if not already injected
-        this._injectDefaultModalCSS();
+      return overlay;
+    },
 
-        const closeButton = this._createElement('button', { className: 'seentics-close-button', innerHTML: '&times;' });
-        const cleanup = () => {
-          try { document.body.removeChild(overlay); } catch {}
-          window.removeEventListener('keydown', escHandler);
-        };
-        const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
-        window.addEventListener('keydown', escHandler);
-        closeButton.onclick = cleanup;
-        modal.appendChild(closeButton);
-        
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+    _showCustomModal(overlay, settings, modalId) {
+      overlay.style.background = 'transparent';
+
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      iframe.style.cssText = 'width:100vw;height:100vh;border:0;background:transparent;';
+
+      const bodyHtml = Utils.extractBodyContent(settings.customHtml);
+      const css = settings.customCss || '';
+      const js = settings.customJs || '';
+      
+      const srcdoc = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1"/>
+          <style>${css}</style>
+        </head>
+        <body>${bodyHtml}
+          <script>(function(){try{${js}}catch(e){console.error(e)}})()</script>
+        </body>
+        </html>`;
+      
+      iframe.srcdoc = srcdoc;
+      overlay.appendChild(iframe);
+
+      // Floating close button
+      const closeButton = Utils.dom.createElement('button', {
+        className: 'seentics-close-button',
+        innerHTML: '&times;'
+      });
+      closeButton.style.cssText = 'position:fixed;top:12px;right:12px;z-index:1000000;';
+      closeButton.onclick = () => overlay.click();
+      overlay.appendChild(closeButton);
+    },
+
+    _showDefaultModal(overlay, settings, modalId) {
+      const modal = Utils.dom.createElement('div', {
+        className: 'seentics-modal',
+        'data-seentics-id': modalId
+      });
+
+      if (settings.modalTitle) {
+        const title = Utils.dom.createElement('h2', {
+          className: 'seentics-modal-title',
+          textContent: settings.modalTitle
+        });
+        modal.appendChild(title);
+      }
+
+      if (settings.modalContent) {
+        const content = Utils.dom.createElement('p', {
+          className: 'seentics-modal-content',
+          textContent: settings.modalContent
+        });
+        modal.appendChild(content);
+      }
+
+      const closeButton = Utils.dom.createElement('button', {
+        className: 'seentics-close-button',
+        innerHTML: '&times;'
+      });
+      closeButton.onclick = () => overlay.click();
+      modal.appendChild(closeButton);
+
+      overlay.appendChild(modal);
     },
 
     _showBanner(settings) {
-        // Ensure settings exists with defaults
-        settings = settings || {};
-        
-        // Set default displayMode if not specified
-        if (!settings.displayMode) {
-            settings.displayMode = 'default';
+      if (!settings.bannerContent && !settings.customHtml) {
+        console.warn('[Seentics] Banner has no content to display');
+        return;
+      }
+
+      const bannerId = Utils.generateId('seentics-banner');
+      const banner = Utils.dom.createElement('div', {
+        className: `seentics-banner seentics-banner-${settings.bannerPosition || 'top'}`,
+        'data-seentics-id': bannerId
+      });
+
+      this._ensureStylesLoaded();
+
+      if (settings.displayMode === 'custom' && settings.customHtml) {
+        this._showCustomBanner(banner, settings);
+      } else {
+        this._showDefaultBanner(banner, settings);
+      }
+
+      document.body.appendChild(banner);
+    },
+
+    _showCustomBanner(banner, settings) {
+      banner.style.cssText = 'background:transparent;box-shadow:none;padding:0;display:block;gap:0;';
+
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      iframe.style.cssText = 'width:100%;border:0;display:block;height:1px;';
+
+      const bodyHtml = Utils.extractBodyContent(settings.customHtml);
+      const css = settings.customCss || '';
+      const js = settings.customJs || '';
+      
+      const srcdoc = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1"/>
+          <style>${css}</style>
+        </head>
+        <body>${bodyHtml}
+          <script>(function(){try{${js}}catch(e){console.error(e)}})()</script>
+        </body>
+        </html>`;
+      
+      iframe.srcdoc = srcdoc;
+
+      // Auto-resize iframe to content
+      const resizeToContent = () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (doc) {
+            const height = Math.max(
+              doc.body?.scrollHeight || 0,
+              doc.documentElement?.scrollHeight || 0
+            );
+            if (height > 0) iframe.style.height = height + 'px';
+          }
+        } catch (e) {
+          // Cross-origin restrictions
         }
+      };
+
+      iframe.onload = resizeToContent;
+      banner.appendChild(iframe);
+
+      // Floating close button
+      const closeButton = Utils.dom.createElement('button', {
+        className: 'seentics-close-button',
+        innerHTML: '&times;'
+      });
+      const isBottom = settings.bannerPosition === 'bottom';
+      closeButton.style.cssText = `position:absolute;right:12px;${isBottom ? 'bottom:12px;' : 'top:12px;'}`;
+      closeButton.onclick = () => this._closeBanner(banner, settings);
+      banner.appendChild(closeButton);
+    },
+
+    _showDefaultBanner(banner, settings) {
+      if (settings.bannerContent) {
+        const content = Utils.dom.createElement('p', {
+          textContent: settings.bannerContent
+        });
+        banner.appendChild(content);
+      }
+
+      if (settings.bannerCtaText && settings.bannerCtaUrl) {
+        const ctaButton = Utils.dom.createElement('a', {
+          className: 'seentics-banner-cta',
+          textContent: settings.bannerCtaText,
+          href: settings.bannerCtaUrl
+        });
+        banner.appendChild(ctaButton);
+      }
+
+      const closeButton = Utils.dom.createElement('button', {
+        className: 'seentics-close-button',
+        innerHTML: '&times;'
+      });
+      closeButton.onclick = () => this._closeBanner(banner, settings);
+      banner.appendChild(closeButton);
+    },
+
+    _closeBanner(banner, settings) {
+      try {
+        banner.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+        banner.style.opacity = '0';
+        const isBottom = settings.bannerPosition === 'bottom';
+        banner.style.transform = isBottom ? 'translateY(100%)' : 'translateY(-100%)';
         
-        // Validate required settings
-        if (!settings.bannerContent && !settings.customHtml) {
-            this._log('Warning: Banner has no content to display', settings);
-            return;
-        }
-        
-        const bannerId = `seentics-banner-${Date.now()}`;
-        const banner = this._createElement('div', { className: `seentics-banner seentics-banner-${settings.bannerPosition || 'top'}`, 'data-seentics-id': bannerId });
-        
-        // Ensure default tracker styles are available for banners (same as modals)
-        this._injectDefaultModalCSS();
-        
-        if (settings.displayMode === 'custom' && settings.customHtml) {
-             // Render custom banner inside an iframe for full CSS/JS isolation (fixes keyframes/scoping issues)
-             banner.style.background = 'transparent';
-             banner.style.boxShadow = 'none';
-             // Remove default padding/gap and flex so iframe is true edge-to-edge
-             banner.style.padding = '0';
-             banner.style.display = 'block';
-             banner.style.gap = '0';
-
-             const iframe = document.createElement('iframe');
-             iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-             iframe.style.width = '100%';
-             iframe.style.border = '0';
-             iframe.style.display = 'block';
-             // Initial small height; will be resized to content
-             iframe.style.height = '1px';
-
-             const bodyHtml = this._extractBodyHtml(settings.customHtml);
-             const css = settings.customCss || '';
-             const js = settings.customJs || '';
-             const srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>${css}</style></head><body>${bodyHtml}<script>(function(){try{${js}}catch(e){console.error(e)}})()<\/script></body></html>`;
-             iframe.srcdoc = srcdoc;
-
-             const resizeToContent = () => {
-                 try {
-                     const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                     if (!doc) return;
-                     const height = Math.max(
-                         doc.body?.scrollHeight || 0,
-                         doc.documentElement?.scrollHeight || 0
-                     );
-                     if (height) iframe.style.height = height + 'px';
-                 } catch {}
-             };
-
-             iframe.onload = () => {
-                 resizeToContent();
-                 try {
-                     const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                     if (!doc) return;
-                     const ro = new (window.ResizeObserver || function(cb){ return { observe(){}, disconnect(){} }; })(() => resizeToContent());
-                     ro.observe(doc.documentElement);
-                     ro.observe(doc.body);
-                 } catch {}
-             };
-
-             banner.appendChild(iframe);
-        } else {
-             const content = this._createElement('p', { textContent: settings.bannerContent });
-             banner.appendChild(content);
-
-             if (settings.bannerCtaText && settings.bannerCtaUrl) {
-                const ctaButton = this._createElement('a', { className: 'seentics-banner-cta', textContent: settings.bannerCtaText, href: settings.bannerCtaUrl });
-                banner.appendChild(ctaButton);
-            }
-        }
-        
-        const closeButton = this._createElement('button', { className: 'seentics-close-button', innerHTML: '&times;' });
-        // For custom iframe banners, float the close button so it doesn't consume horizontal space
-        if (settings.displayMode === 'custom' && settings.customHtml) {
-            closeButton.style.position = 'absolute';
-            closeButton.style.right = '12px';
-            if ((settings.bannerPosition || 'top') === 'bottom') {
-                closeButton.style.bottom = '12px';
-            } else {
-                closeButton.style.top = '12px';
-            }
-        }
-        closeButton.onclick = () => { 
-          try { 
-            banner.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
-            banner.style.opacity = '0';
-            banner.style.transform = settings.bannerPosition === 'bottom' ? 'translateY(100%)' : 'translateY(-100%)';
-            setTimeout(() => { try { document.body.removeChild(banner); } catch {} }, 250);
-          } catch {}
-        };
-        banner.appendChild(closeButton);
-
-        document.body.appendChild(banner);
-
-        // For iframe-based custom banners, JS is injected via srcdoc; no need to execute here
+        setTimeout(() => {
+          try {
+            document.body.removeChild(banner);
+          } catch (e) {
+            console.warn('[Seentics] Error removing banner:', e);
+          }
+        }, 250);
+      } catch (e) {
+        console.warn('[Seentics] Error closing banner:', e);
+      }
     },
 
     _insertSection(settings) {
-        // Ensure settings exists with defaults
-        settings = settings || {};
-        
-        if (!settings.selector) {
-            this._log('Insert Section failed: no selector specified.');
-            return;
-        }
-        
-        const targetElement = document.querySelector(settings.selector);
-        if (!targetElement) {
-            this._log(`Insert Section failed: target element '${settings.selector}' not found.`);
-            return;
-        }
-
-        const sectionId = `seentics-section-${Date.now()}`;
-        const wrapper = this._createElement('div', { 'data-seentics-id': sectionId });
-        wrapper.innerHTML = this._extractBodyHtml(settings.customHtml || '');
-
-        if (settings.customCss) {
-            this._injectStyles(settings.customCss, sectionId);
-        }
-
-        switch (settings.insertPosition) {
-            case 'before': targetElement.parentNode.insertBefore(wrapper, targetElement); break;
-            case 'after': targetElement.parentNode.insertBefore(wrapper, targetElement.nextSibling); break;
-            case 'prepend': targetElement.prepend(wrapper); break;
-            case 'append': targetElement.append(wrapper); break;
-            default: targetElement.append(wrapper);
-        }
-
-        if (settings.customJs) {
-            this._executeJs(settings.customJs, wrapper);
-        }
-    },
-
-    // --- Trigger Setup Helpers ---
-    _setupTimeSpentTrigger(workflow, triggerNode) {
-        const delayMs = Math.max(0, (triggerNode.data.settings.seconds || 0) * 1000);
-        if (delayMs <= 0) return;
-        
-        const timerId = setTimeout(() => {
-            this._log(`Time Spent trigger for '${workflow.name}' fired.`);
-            // Track trigger event for time-based trigger
-            const runId = this._generateRunId();
-            this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-            this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-        }, delayMs);
-        
-        this._activeTimers.add(timerId);
-        
-        // Store cleanup function for later removal
-        const cleanupKey = `timeSpent_${workflow.id}_${triggerNode.id}`;
-        this._eventListeners.set(cleanupKey, () => {
-            clearTimeout(timerId);
-            this._activeTimers.delete(timerId);
-        });
-    },
-
-    _setupInactivityTrigger(workflow, triggerNode) {
-        const thresholdMs = (triggerNode.data.settings?.inactivitySeconds || 30) * 1000;
-        let timeoutId = null;
-        let isFired = false;
-        
-        const fire = () => {
-            if (isFired) return;
-            isFired = true;
-            this._log(`Inactivity trigger for '${workflow.name}' fired.`);
-            const runId = this._generateRunId();
-            this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-            this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-            cleanup();
-        };
-        
-        const resetTimer = () => {
-            if (isFired) return;
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                this._activeTimers.delete(timeoutId);
-            }
-            timeoutId = setTimeout(fire, thresholdMs);
-            this._activeTimers.add(timeoutId);
-        };
-        
-        const activityEvents = ['mousemove','keydown','scroll','click','touchstart'];
-        
-        const cleanup = () => {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                this._activeTimers.delete(timeoutId);
-            }
-            activityEvents.forEach(evt => document.removeEventListener(evt, resetTimer, true));
-            window.removeEventListener('beforeunload', cleanup);
-        };
-        
-        // Store cleanup function for later removal
-        const cleanupKey = `inactivity_${workflow.id}_${triggerNode.id}`;
-        this._eventListeners.set(cleanupKey, cleanup);
-        
-        activityEvents.forEach(evt => document.addEventListener(evt, resetTimer, true));
-        resetTimer();
-        window.addEventListener('beforeunload', cleanup);
-    },
-
-    _setupScrollTrigger(workflow, triggerNode) {
-        this._log(`Setting up scroll trigger for workflow: ${workflow.name}, depth: ${triggerNode.data.settings.scrollDepth}%`);
-        
-        let triggered = false;
-        let lastScrollTime = 0;
-        const throttleDelay = 100; // Throttle to 100ms for better performance
-        
-        const scrollHandler = () => {
-            this._log(`Scroll event detected for ${workflow.name}`);
-            
-            if (triggered) {
-                this._log(`Scroll trigger already fired for ${workflow.name}, removing listener`);
-                window.removeEventListener('scroll', scrollHandler);
-                return;
-            }
-            
-            const now = Date.now();
-            if (now - lastScrollTime < throttleDelay) {
-                this._log(`Scroll event throttled for ${workflow.name}`);
-                return;
-            }
-            lastScrollTime = now;
-            
-            // Simplified scroll calculation that works better
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            const documentHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-            const windowHeight = window.innerHeight;
-            const scrollableHeight = Math.max(documentHeight - windowHeight, 1);
-            const scrollPercent = Math.min((scrollTop / scrollableHeight) * 100, 100);
-            
-            // Fallback: if no scrollable content, use viewport-based calculation
-            let finalScrollPercent = scrollPercent;
-            if (scrollableHeight <= 1 || scrollPercent === 0) {
-                // Use viewport-based calculation as fallback
-                const viewportScrollPercent = (scrollTop / windowHeight) * 100;
-                finalScrollPercent = Math.min(viewportScrollPercent, 100);
-            }
-            const requiredDepth = triggerNode.data.settings.scrollDepth || 0;
-            
-            this._log(`Scroll event: ${finalScrollPercent.toFixed(1)}% (required: ${requiredDepth}%) - scrollTop: ${scrollTop}, docHeight: ${documentHeight}, winHeight: ${windowHeight}, scrollable: ${scrollableHeight}`);
-            
-            if (finalScrollPercent >= requiredDepth) {
-                triggered = true;
-                this._log(`Scroll Depth trigger for '${workflow.name}' fired.`);
-                // Track trigger event for scroll trigger
-                const runId = this._generateRunId();
-                this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-                this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-                window.removeEventListener('scroll', scrollHandler);
-            }
-        };
-        
-        // Store cleanup function for later removal
-        const cleanupKey = `scroll_${workflow.id}_${triggerNode.id}`;
-        this._eventListeners.set(cleanupKey, () => {
-            window.removeEventListener('scroll', scrollHandler);
-        });
-        
-        window.addEventListener('scroll', scrollHandler, { passive: true });
-        
-    },
-
-    _setupExitIntentTrigger(workflow, triggerNode) {
-        let triggered = false;
-        let lastMouseMoveTime = 0;
-        const throttleDelay = 50; // Throttle mouse move events for better performance
-        
-        const fire = () => {
-            if (triggered) return;
-            triggered = true;
-            this._log(`Exit Intent trigger for '${workflow.name}' fired.`);
-            const runId = this._generateRunId();
-            this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-            this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-            cleanup();
-        };
-
-        const onMouseLeave = (e) => {
-            if (triggered) return;
-            // Leaving the document towards the top
-            if (typeof e.clientY === 'number' && e.clientY <= 0) {
-                fire();
-            }
-        };
-
-        const onMouseOut = (e) => {
-            if (triggered) return;
-            const related = e.relatedTarget;
-            const leftDocument = !related || (related && related.nodeName === 'HTML');
-            if (leftDocument && typeof e.clientY === 'number' && e.clientY <= 10) {
-                fire();
-            }
-        };
-
-        let lastY = null;
-        const onMouseMove = (e) => {
-            if (triggered) return;
-            
-            const now = Date.now();
-            if (now - lastMouseMoveTime < throttleDelay) return;
-            lastMouseMoveTime = now;
-            
-            const y = e.clientY;
-            if (typeof y === 'number') {
-                if (y <= 3 && (lastY == null || lastY > 3)) {
-                    fire();
-                }
-                lastY = y;
-            }
-        };
-
-        const cleanup = () => {
-            document.removeEventListener('mouseleave', onMouseLeave);
-            document.removeEventListener('mouseout', onMouseOut);
-            document.removeEventListener('mousemove', onMouseMove, true);
-        };
-        
-        // Store cleanup function for later removal
-        const cleanupKey = `exitIntent_${workflow.id}_${triggerNode.id}`;
-        this._eventListeners.set(cleanupKey, cleanup);
-
-        document.addEventListener('mouseleave', onMouseLeave);
-        document.addEventListener('mouseout', onMouseOut);
-        // Fallback for browsers that don't reliably emit mouseleave/mouseout at the top edge
-        document.addEventListener('mousemove', onMouseMove, true);
-    },
-    
-    _setupClickTrigger(workflow, triggerNode) {
-        let triggered = false;
-        let lastClickTime = 0;
-        const throttleDelay = 100; // Prevent rapid-fire clicks
-        
-        const clickHandler = (e) => {
-            if (triggered) {
-                document.removeEventListener('click', clickHandler, true);
-                return;
-            }
-            
-            const now = Date.now();
-            if (now - lastClickTime < throttleDelay) return;
-            lastClickTime = now;
-            
-            const sel = triggerNode.data.settings.selector;
-            const target = e.target;
-            if (target && (target.matches?.(sel) || target.closest?.(sel))) {
-                triggered = true;
-                this._log(`Element Click trigger for '${workflow.name}' fired.`);
-                // Track trigger event for click trigger
-                const runId = this._generateRunId();
-                this._trackWorkflowEvent(workflow, triggerNode, 'Trigger', { runId });
-                this._executeWorkflow(workflow, triggerNode, { runId, completionSent: false });
-                document.removeEventListener('click', clickHandler, true);
-            }
-        };
-        
-        // Store cleanup function for later removal
-        const cleanupKey = `click_${workflow.id}_${triggerNode.id}`;
-        this._eventListeners.set(cleanupKey, () => {
-            document.removeEventListener('click', clickHandler, true);
-        });
-        
-        document.addEventListener('click', clickHandler, true);
-    },
-    
-    // --- Condition Helpers ---
-    _checkUrlCondition(settings) {
-        if (!settings || !settings.url) return true; // No URL specified means it matches any page
-        let currentUrl = window.location.href;
-        let path = window.location.pathname;
-        // In preview mode, allow overriding the path via a global for testing URL conditions
-        try {
-            if (this.siteId === 'preview') {
-                const overridePath = window.__SEENTICS_PREVIEW_PATH;
-                if (typeof overridePath === 'string' && overridePath.length > 0) {
-                    path = overridePath;
-                    // Construct a fake URL using the same origin for contains/exact checks
-                    currentUrl = window.location.origin + overridePath;
-                }
-            }
-        } catch {}
-        const targetUrl = settings.url;
-
-        switch (settings.urlMatchType) {
-            case 'exact': return currentUrl === targetUrl || path === targetUrl;
-            case 'contains': return currentUrl.includes(targetUrl);
-            case 'startsWith': return path.startsWith(targetUrl);
-            case 'endsWith': return path.endsWith(targetUrl);
-            default: return currentUrl.includes(targetUrl);
-        }
-    },
-
-    _checkReferrerCondition(settings) {
-        const referrer = document.referrer;
-        if (!settings.referrerUrl) {
-            return !referrer; // Match if "direct" traffic
-        }
-        if (!referrer) return false;
-        
-        switch (settings.referrerMatchType) {
-            case 'exact': return referrer === settings.referrerUrl;
-            case 'contains': return referrer.includes(settings.referrerUrl);
-            case 'startsWith': return referrer.startsWith(settings.referrerUrl);
-            case 'endsWith': return referrer.endsWith(settings.referrerUrl);
-            default: return referrer.includes(settings.referrerUrl);
-        }
-    },
-
-    _getBrowser() {
-        const ua = navigator.userAgent;
-        if (ua.indexOf("Chrome") > -1) return "chrome";
-        if (ua.indexOf("Firefox") > -1) return "firefox";
-        if (ua.indexOf("Safari") > -1 && ua.indexOf("Chrome") === -1) return "safari";
-        if (ua.indexOf("Edg") > -1) return "edge";
-        return "other";
-    },
-
-    _isMobile() {
-        return /Mobi|Android/i.test(navigator.userAgent);
-    },
-
-    _checkIfReturning() {
-        const isReturning = localStorage.getItem(this.returningVisitorKey);
-        if (isReturning) {
-            return true;
-        }
-        localStorage.setItem(this.returningVisitorKey, 'true');
-        return false;
-    },
-    
-    _getVisitorId() {
-      // In a real app, this would be more robust.
-      let visitorId = localStorage.getItem('seentics_visitor_id');
-      if (!visitorId) {
-        visitorId = 'visitor_' + Date.now() + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('seentics_visitor_id', visitorId);
+      if (!settings.selector) {
+        console.warn('[Seentics] Insert section missing selector');
+        return;
       }
-      return visitorId;
-    },
-    
 
-    // --- Backend Communication ---
-    _fetchWorkflows() {
-      const apiHost = this._getApiHost();
+      const targetElement = Utils.dom.safeQuery(settings.selector);
+      if (!targetElement) {
+        console.warn(`[Seentics] Target element '${settings.selector}' not found`);
+        return;
+      }
+
+      const sectionId = Utils.generateId('seentics-section');
+      const wrapper = Utils.dom.createElement('div', {
+        'data-seentics-id': sectionId
+      });
       
-      // Add request timeout and better error handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      fetch(`${apiHost}/api/v1/workflows/site/${this.siteId}/active`, {
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json'
+      if (settings.customHtml) {
+        wrapper.innerHTML = Utils.extractBodyContent(settings.customHtml);
+      }
+
+      if (settings.customCss) {
+        this._injectScopedStyles(settings.customCss, sectionId);
+      }
+
+      // Insert based on position
+      switch (settings.insertPosition) {
+        case 'before':
+          targetElement.parentNode.insertBefore(wrapper, targetElement);
+          break;
+        case 'after':
+          targetElement.parentNode.insertBefore(wrapper, targetElement.nextSibling);
+          break;
+        case 'prepend':
+          targetElement.prepend(wrapper);
+          break;
+        case 'append':
+        default:
+          targetElement.appendChild(wrapper);
+          break;
+      }
+
+      if (settings.customJs) {
+        this._executeCustomJs(settings.customJs, wrapper);
+      }
+    },
+
+    _redirectUrl(settings) {
+      if (!settings.redirectUrl) {
+        console.warn('[Seentics] Redirect URL not specified');
+        return;
+      }
+
+      try {
+        this._log(`Redirecting to: ${settings.redirectUrl}`);
+        window.location.href = settings.redirectUrl;
+      } catch (error) {
+        console.error('[Seentics] Redirect failed:', error);
+      }
+    },
+
+    _trackCustomEvent(settings) {
+      if (!settings.eventName) {
+        console.warn('[Seentics] Track event missing event name');
+        return;
+      }
+
+      try {
+        if (window.seentics?.track) {
+          window.seentics.track(settings.eventName);
+        } else {
+          console.warn('[Seentics] Main tracker not available for custom event');
         }
-      })
-        .then(res => {
-          clearTimeout(timeoutId);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      } catch (error) {
+        console.error('[Seentics] Failed to track custom event:', error);
+      }
+    },
+
+    async _waitAction(settings) {
+      const waitSeconds = Math.max(0, settings.waitSeconds || 0);
+      if (waitSeconds > 0) {
+        await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+      }
+    },
+
+    // Utility methods for UI actions
+    _ensureStylesLoaded() {
+      if (document.getElementById('seentics-tracker-styles')) return;
+
+      const link = document.createElement('link');
+      link.id = 'seentics-tracker-styles';
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.SEENTICS_CONFIG?.trackerStylesUrl || '/tracker-styles.css';
+
+      link.onload = () => console.log('[Seentics] Tracker styles loaded');
+      link.onerror = (error) => console.error('[Seentics] Failed to load tracker styles:', error);
+
+      document.head.appendChild(link);
+    },
+
+    _injectScopedStyles(css, scopeId) {
+      const styleId = `seentics-style-${scopeId}`;
+      if (document.getElementById(styleId)) return;
+
+      const style = document.createElement('style');
+      style.id = styleId;
+
+      // Basic CSS scoping
+      let scopedCss = css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|\s*\{)/g, `[data-seentics-id="${scopeId}"] $1$2`);
+      const bodySelector = new RegExp(`\\[data-seentics-id="${scopeId}"\\]\\s*body`, 'g');
+      scopedCss = scopedCss.replace(bodySelector, `[data-seentics-id="${scopeId}"]`);
+
+      style.innerHTML = scopedCss;
+      document.head.appendChild(style);
+    },
+
+    _executeCustomJs(js, element) {
+      try {
+        const scopedDocument = new Proxy(document, {
+          get(target, prop) {
+            switch (prop) {
+              case 'getElementById':
+                return (id) => element.querySelector(`#${CSS.escape ? CSS.escape(id) : id}`);
+              case 'querySelector':
+                return (sel) => element.querySelector(sel);
+              case 'querySelectorAll':
+                return (sel) => element.querySelectorAll(sel);
+              default:
+                return target[prop];
+            }
           }
-          return res.json();
-        })
-        .then(data => {
-            if (data && data.workflows) {
-              this.activeWorkflows = data.workflows.filter(wf => wf.status === 'Active');
-              this._log(`Loaded ${this.activeWorkflows.length} active workflows.`);
-              this._log(`Workflow names: ${this.activeWorkflows.map(w => w.name).join(', ')}`);
-              this._setupTriggers();
-            }
-        })
-        .catch(err => {
-          clearTimeout(timeoutId);
-          if (err.name === 'AbortError') {
-            this._log('Workflow fetch timed out after 10 seconds');
-          } else {
-            this._log('Error fetching workflows:', err);
+        });
+
+        new Function('document', 'element', js)(scopedDocument, element);
+      } catch (error) {
+        console.error('[Seentics] Error executing custom JavaScript:', error);
+      }
+    },
+
+    // Analytics and tracking
+    _trackWorkflowEvent(workflow, node, eventType, options = {}) {
+      if (!this.analyticsManager) {
+        console.warn('[Seentics] Analytics manager not initialized');
+        return;
+      }
+
+      try {
+        const payload = {
+          siteId: this.siteId,
+          workflowId: workflow.id || workflow._id || 'unknown',
+          visitorId: this.visitorId,
+          type: eventType,
+          nodeId: node?.id,
+          nodeTitle: node?.data?.title,
+          nodeType: node?.data?.type,
+          branchSourceNodeId: options.sourceNodeId,
+          stepOrder: options.stepOrder,
+          timestamp: new Date().toISOString()
+        };
+
+        this.analyticsManager.addEvent(payload);
+      } catch (error) {
+        console.error('[Seentics] Error tracking workflow event:', error);
+      }
+    },
+
+    _getStepOrder(node, workflow) {
+      if (!node || !workflow?.nodes || !workflow?.edges) return 0;
+
+      try {
+        const visited = new Set();
+        const queue = [];
+
+        // Start with trigger nodes
+        const triggerNodes = workflow.nodes.filter(n => n.data?.type === 'Trigger');
+        triggerNodes.forEach(trigger => queue.push({ node: trigger, order: 1 }));
+
+        while (queue.length > 0) {
+          const { node: currentNode, order } = queue.shift();
+          if (visited.has(currentNode.id)) continue;
+
+          visited.add(currentNode.id);
+
+          if (currentNode.id === node.id) {
+            return order;
           }
-        });
-    },
 
-    // --- Cleanup and Destruction ---
-    destroy() {
-        this._cleanupEventListeners();
-        this._clearAllTimers();
-        this._flushAnalyticsBatch();
-        this._clearJoinStates();
-        this._log('Workflow tracker destroyed and cleaned up');
-    },
-
-    _cleanupEventListeners() {
-        this._eventListeners.forEach((cleanup, key) => {
-            try {
-                cleanup();
-            } catch (error) {
-                this._log(`Error cleaning up event listener ${key}:`, error);
+          // Add next nodes to queue
+          const nextEdges = workflow.edges.filter(e => e.source === currentNode.id);
+          nextEdges.forEach(edge => {
+            const nextNode = workflow.nodes.find(n => n.id === edge.target);
+            if (nextNode && !visited.has(nextNode.id)) {
+              queue.push({ node: nextNode, order: order + 1 });
             }
-        });
-        this._eventListeners.clear();
-    },
-
-    _clearAllTimers() {
-        this._activeTimers.forEach(timerId => {
-            try {
-                clearTimeout(timerId);
-            } catch (error) {
-                this._log('Error clearing timer:', error);
-            }
-        });
-        this._activeTimers.clear();
-        
-        if (this._analyticsBatchTimer) {
-            clearTimeout(this._analyticsBatchTimer);
-            this._analyticsBatchTimer = null;
+          });
         }
+
+        return 0;
+      } catch (error) {
+        console.warn('[Seentics] Error calculating step order:', error);
+        return 0;
+      }
     },
 
-    _clearJoinStates() {
-        Object.keys(this._joinState).forEach(key => {
-            const state = this._joinState[key];
-            if (state.timer) {
-                try {
-                    clearTimeout(state.timer);
-                } catch (error) {
-                    this._log('Error clearing join timer:', error);
-                }
-            }
-        });
-        this._joinState = {};
-    },
-
-    // --- Helpers ---
-    _createElement(tag, properties = {}) {
-        const el = document.createElement(tag);
-        for (const [key, value] of Object.entries(properties)) {
-            if (key === 'className') el.className = value;
-            else if (key === 'textContent') el.textContent = value;
-            else if (key === 'innerHTML') el.innerHTML = value;
-            else el.setAttribute(key, value);
-        }
-        return el;
-    },
-
+    // Logging
     _log(message, details) {
-        if (this.siteId === 'preview' && window.logToPreviewer) {
-            const logMessage = details ? `${message} | ${JSON.stringify(details)}` : message;
-            window.logToPreviewer(logMessage);
-        }
-        // Enable console logging for debugging
+      // Preview mode logging
+      if (this.siteId === 'preview' && window.logToPreviewer) {
+        const logMessage = details ? `${message} | ${JSON.stringify(details)}` : message;
+        window.logToPreviewer(logMessage);
+      }
+
+      // Console logging (can be disabled in production)
+      if (window.SEENTICS_CONFIG?.debugMode !== false) {
         console.log(`[Seentics Workflow]: ${message}`, details || '');
+      }
     },
+
+    // Cleanup and destruction
+    destroy() {
+      if (!this.isInitialized) {
+        console.warn('[Seentics] Attempted to destroy uninitialized tracker');
+        return;
+      }
+
+      try {
+        // Flush any remaining analytics
+        if (this.analyticsManager) {
+          this.analyticsManager.destroy();
+        }
+
+        // Clean up resources
+        if (this.resourceManager) {
+          this.resourceManager.destroy();
+        }
+
+        // Clear join states
+        this.joinStates.clear();
+
+        // Reset state
+        this.isInitialized = false;
+        this.activeWorkflows = [];
+        this.analyticsManager = null;
+        this.resourceManager = null;
+
+        this._log('Workflow tracker destroyed and cleaned up');
+      } catch (error) {
+        console.error('[Seentics] Error during cleanup:', error);
+      }
+    }
   };
 
-  // Expose the module to the global window object
+  // Global exposure and initialization
   window.seentics = window.seentics || {};
   window.seentics.workflowTracker = workflowTracker;
 
-  // Add global function to manually trigger funnel events for testing
+  // Global configuration with sensible defaults
+  window.SEENTICS_CONFIG = window.SEENTICS_CONFIG || {
+    apiHost: window.SEENTICS_CONFIG?.apiHost || 
+      (window.location.hostname === 'localhost' ? 
+        (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
+        `https://${window.location.hostname}`),
+    batchSize: 10,
+    batchDelay: 1000,
+    requestTimeout: 10000,
+    tagCacheTTL: 5 * 60 * 1000,
+    debugMode: window.location.hostname === 'localhost' || 
+               new URLSearchParams(window.location.search).has('seentics_debug')
+  };
+
+  // Global utility functions
   window.triggerFunnelEvent = (funnelId, eventType, stepIndex = 0, additionalData = {}) => {
+    if (!funnelId || !eventType) {
+      console.warn('[Seentics] Invalid funnel event parameters');
+      return null;
+    }
+
     const funnelEvent = {
       funnel_id: funnelId,
       event_type: eventType,
       step_index: stepIndex,
       timestamp: new Date().toISOString(),
-      website_id: window.seentics?.workflowTracker?.siteId || 'unknown',
+      website_id: workflowTracker.siteId || 'unknown',
       ...additionalData
     };
-    
-    console.log('🎯 Manually triggering funnel event:', funnelEvent);
-    
-    // Dispatch custom event
+
+    console.log('[Seentics] Triggering funnel event:', funnelEvent);
+
     document.dispatchEvent(new CustomEvent('seentics:funnel-event', {
       detail: funnelEvent
     }));
-    
+
     return funnelEvent;
   };
-  
-  // Add global configuration object
-  window.SEENTICS_CONFIG = window.SEENTICS_CONFIG || {
-          apiHost: window.SEENTICS_CONFIG?.apiHost || 
-        (window.location.hostname === 'localhost' ? 
-          (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
-          `https://${window.location.hostname}`),
-    batchSize: 10,
-    batchDelay: 1000,
-    requestTimeout: 10000,
-    tagCacheTTL: 5 * 60 * 1000
-  };
-  
-  // Add global destroy method for cleanup
+
   window.destroySeenticsWorkflowTracker = () => {
-    if (window.seentics.workflowTracker) {
+    if (window.seentics?.workflowTracker) {
       window.seentics.workflowTracker.destroy();
     }
   };
+
+  // Auto-initialize if siteId is provided
+  if (window.SEENTICS_SITE_ID) {
+    try {
+      workflowTracker.init(window.SEENTICS_SITE_ID);
+    } catch (error) {
+      console.error('[Seentics] Auto-initialization failed:', error);
+    }
+  }
+
 })();
