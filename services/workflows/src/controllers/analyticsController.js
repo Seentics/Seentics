@@ -7,22 +7,22 @@ class AnalyticsController {
   // Track single workflow event
   async trackEvent(req, res, next) {
     try {
-      const eventData = {
-        siteId: req.body.siteId,
-        workflowId: req.body.workflowId,
-        visitorId: req.body.visitorId,
-        event: req.body.type,
-        nodeId: req.body.nodeId,
-        nodeTitle: req.body.nodeTitle,
-        nodeType: req.body.nodeType,
-        detail: req.body.detail,
-        runId: req.body.runId,
-        stepOrder: req.body.stepOrder,
-        executionTime: req.body.executionTime,
-        success: req.body.success
-      };
+      // const eventData = {
+      //   siteId: req.body.siteId,
+      //   workflowId: req.body.workflowId,
+      //   visitorId: req.body.visitorId,
+      //   event: req.body.type,
+      //   nodeId: req.body.nodeId,
+      //   nodeTitle: req.body.nodeTitle,
+      //   nodeType: req.body.nodeType,
+      //   detail: req.body.detail,
+      //   runId: req.body.runId,
+      //   stepOrder: req.body.stepOrder,
+      //   executionTime: req.body.executionTime,
+      //   success: req.body.success
+      // };
 
-      await this._processEvent(eventData);
+      // await this._processEvent(eventData);
       
       // Update workflow counters only for main events
       if (req.body.type === 'Trigger') {
@@ -48,22 +48,22 @@ class AnalyticsController {
 
       // Process each event in the batch
       const promises = events.map(async (event) => {
-        const eventData = {
-          siteId: event.siteId,
-          workflowId: event.workflowId,
-          visitorId: event.visitorId,
-          event: event.type,
-          nodeId: event.nodeId,
-          nodeTitle: event.nodeTitle,
-          nodeType: event.nodeType,
-          detail: event.detail,
-          runId: event.runId,
-          stepOrder: event.stepOrder,
-          executionTime: event.executionTime,
-          success: event.success
-        };
+        // const eventData = {
+        //   siteId: event.siteId,
+        //   workflowId: event.workflowId,
+        //   visitorId: event.visitorId,
+        //   event: event.type,
+        //   nodeId: event.nodeId,
+        //   nodeTitle: event.nodeTitle,
+        //   nodeType: event.nodeType,
+        //   detail: event.detail,
+        //   runId: event.runId,
+        //   stepOrder: event.stepOrder,
+        //   executionTime: event.executionTime,
+        //   success: event.success
+        // };
 
-        await this._processEvent(eventData);
+        // await this._processEvent(eventData);
         
         // Update workflow counters
         if (event.type === 'Trigger') {
