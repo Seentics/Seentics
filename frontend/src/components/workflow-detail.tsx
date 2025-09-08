@@ -285,7 +285,7 @@ export function WorkflowDetail({
 
       return (
         <FunnelChart
-          title="Workflow Conversion Funnel"
+          title={`${workflow.name} - Conversion Journey`}
           steps={steps}
           totalVisitors={overallTriggers}
         />
@@ -295,7 +295,7 @@ export function WorkflowDetail({
     // Use real funnel data with actual step names - convert FunnelStep to FunnelChart format
     return (
       <FunnelChart
-        title="Workflow Conversion Funnel"
+        title={`${workflow.name} - Conversion Journey`}
         steps={(() => {
           const safeSteps = funnelData.steps.map((step, idx) => ({
             name: step.name,
@@ -395,54 +395,7 @@ export function WorkflowDetail({
         </CardContent>
       </Card>
 
-      {/* Real-time Activity Feed */}
-      {!isDemo ? (
-        <RealtimeActivityFeed workflowId={workflow.id} />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Real-time Activity Feed</CardTitle>
-            <CardDescription>Live workflow executions and events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { id: '1', status: 'completed', timestamp: '2024-01-15T10:30:00Z', duration: '2.1s', user: 'john@example.com', event: 'Action Executed' },
-                { id: '2', status: 'completed', timestamp: '2024-01-15T09:15:00Z', duration: '2.5s', user: 'sarah@example.com', event: 'Action Executed' },
-                { id: '3', status: 'failed', timestamp: '2024-01-15T08:45:00Z', duration: '0.5s', user: 'mike@example.com', event: 'Action Failed' },
-                { id: '4', status: 'completed', timestamp: '2024-01-15T08:00:00Z', duration: '2.0s', user: 'emma@example.com', event: 'Action Executed' },
-                { id: '5', status: 'completed', timestamp: '2024-01-15T07:30:00Z', duration: '2.3s', user: 'david@example.com', event: 'Action Executed' }
-              ].map((execution) => (
-                <div key={execution.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-3 h-3 rounded-full ${
-                      execution.status === 'completed' ? 'bg-green-500' : 
-                      execution.status === 'failed' ? 'bg-red-500' : 
-                      'bg-blue-500'
-                    }`}></div>
-                    <div>
-                      <p className="font-medium">{execution.event}</p>
-                      <p className="text-sm text-muted-foreground">{execution.user} • {new Date(execution.timestamp).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">{execution.duration}</span>
-                    <Badge variant={execution.status === 'completed' ? 'default' : 'destructive'}>
-                      {execution.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Funnel Analytics - Show conversion funnels for this workflow */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -450,8 +403,8 @@ export function WorkflowDetail({
 
         <Card>
           <CardHeader>
-            <CardTitle>Funnel Insights</CardTitle>
-            <CardDescription>Key performance metrics and optimization opportunities</CardDescription>
+            <CardTitle>Performance Analytics</CardTitle>
+            <CardDescription>Real-time conversion metrics and actionable insights for {workflow.name}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -466,7 +419,7 @@ export function WorkflowDetail({
                       : completionRateValue.toFixed(1)
                     }%
                   </div>
-                  <div className="text-sm text-muted-foreground">Success Rate</div>
+                  <div className="text-sm text-muted-foreground">Overall Conversion Rate</div>
                 </div>
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="text-2xl font-bold text-blue-600">
@@ -490,16 +443,12 @@ export function WorkflowDetail({
                   <div className="text-sm text-muted-foreground">Total Visitors</div>
                 </div>
               </div>
-              
               <div className="space-y-3">
                 {funnelData && funnelData.steps && funnelData.steps.length > 0 ? (
                   <>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-medium">Best Performing Step</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 rounded border">
+                      <span className="text-sm font-medium">Top Performing Step</span>
+                      <span className="text-sm font-semibold">
                         {(() => {
                           const bestStep = funnelData.steps.reduce((best, current) => 
                             parseFloat(current.conversionRate.replace('%', '')) > parseFloat(best.conversionRate.replace('%', '')) ? current : best
@@ -509,12 +458,9 @@ export function WorkflowDetail({
                       </span>
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <span className="text-sm font-medium">Biggest Drop-off</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 rounded border">
+                      <span className="text-sm font-medium">Biggest Drop-off</span>
+                      <span className="text-sm font-semibold">
                         {(() => {
                           const biggestDropOff = funnelData.steps.reduce((biggest, current, index) => {
                             if (index === 0) return biggest;
@@ -526,12 +472,9 @@ export function WorkflowDetail({
                       </span>
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium">Improvement Potential</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 rounded border">
+                      <span className="text-sm font-medium">Optimization Potential</span>
+                      <span className="text-sm font-semibold">
                         {(() => {
                           const firstStep = funnelData.steps[0];
                           const lastStep = funnelData.steps[funnelData.steps.length - 1];
@@ -711,103 +654,9 @@ export function WorkflowDetail({
         </CardContent>
       </Card>
 
-      {/* Activity Trend Chart */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Activity Trend</CardTitle>
-          <CardDescription>Triggers and completions over the last 30 days.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={workflowChartConfig} className="h-[300px] w-full">
-            <AreaChart data={activitySummary || []} margin={{ left: -20, right: 10 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis 
-                dataKey="date" 
-                tickLine={false} 
-                axisLine={false} 
-                tickMargin={8}
-                tickFormatter={(value) => {
-                  try {
-                    const date = new Date(value);
-                    if (isNaN(date.getTime())) {
-                      return 'Invalid';
-                    }
-                    return format(date, 'MMM d');
-                  } catch (error) {
-                    return 'Invalid';
-                  }
-                }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                width={30}
-              />
-              <ChartTooltip 
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" />} 
-              />
-              <defs>
-                <linearGradient id="fillTriggers" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-triggers)" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="var(--color-triggers)" stopOpacity={0.1}/>
-                </linearGradient>
-                <linearGradient id="fillCompletions" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-completions)" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="var(--color-completions)" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <Area
-                dataKey="triggers"
-                type="natural"
-                fill="url(#fillTriggers)"
-                stroke="var(--color-triggers)"
-                stackId="a"
-              />
-              <Area
-                dataKey="completions"
-                type="natural"
-                fill="url(#fill-completions)"
-                stroke="var(--color-completions)"
-                stackId="b"
-              />
-            </AreaChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
 
-      {/* Branch Performance - Only show if there are multiple paths */}
-      {Array.isArray(workflow?.edges) && workflow.edges.length > 1 && (
-        <div className="grid grid-cols-1 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Branch Performance</CardTitle>
-              <CardDescription>Completions per branch (from Action Executed events)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {branchAnalytics.map((split) => (
-                  <div key={split.splitNodeId} className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">Split Node: {split.splitTitle}</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {split.branches.map((b) => (
-                        <div key={b.label} className="flex items-center justify-between rounded-md border p-3">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded bg-primary/10 text-primary text-xs font-semibold px-2">{b.label}</span>
-                            <span className="text-sm text-muted-foreground">{b.percent}%</span>
-                          </div>
-                          <div className="text-sm font-semibold">{b.count.toLocaleString()}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
+
     </div>
   );
 }

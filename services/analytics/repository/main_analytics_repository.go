@@ -12,6 +12,7 @@ type MainAnalyticsRepository struct {
 	dashboard      *DashboardAnalytics
 	topPages       *TopPagesAnalytics
 	topReferrers   *TopReferrersAnalytics
+	topSources     *TopSourcesAnalytics
 	topCountries   *TopCountriesAnalytics
 	topBrowsers    *TopBrowsersAnalytics
 	topDevices     *TopDevicesAnalytics
@@ -27,6 +28,7 @@ func NewMainAnalyticsRepository(db *pgxpool.Pool) *MainAnalyticsRepository {
 		dashboard:      NewDashboardAnalytics(db),
 		topPages:       NewTopPagesAnalytics(db),
 		topReferrers:   NewTopReferrersAnalytics(db),
+		topSources:     NewTopSourcesAnalytics(db),
 		topCountries:   NewTopCountriesAnalytics(db),
 		topBrowsers:    NewTopBrowsersAnalytics(db),
 		topDevices:     NewTopDevicesAnalytics(db),
@@ -66,6 +68,11 @@ func (r *MainAnalyticsRepository) GetPageUTMBreakdown(ctx context.Context, websi
 // Top Referrers Analytics Methods
 func (r *MainAnalyticsRepository) GetTopReferrers(ctx context.Context, websiteID string, days int, limit int) ([]models.ReferrerStat, error) {
 	return r.topReferrers.GetTopReferrers(ctx, websiteID, days, limit)
+}
+
+// Top Sources Analytics Methods
+func (r *MainAnalyticsRepository) GetTopSources(ctx context.Context, websiteID string, days int, limit int) ([]models.SourceStat, error) {
+	return r.topSources.GetTopSources(ctx, websiteID, days, limit)
 }
 
 // Top Countries Analytics Methods

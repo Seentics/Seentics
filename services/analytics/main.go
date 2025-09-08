@@ -224,6 +224,7 @@ func setupRouter(
 			analytics.GET("/top-pages/:website_id", analyticsHandler.GetTopPages)
 			analytics.GET("/page-utm-breakdown/:website_id", analyticsHandler.GetPageUTMBreakdown)
 			analytics.GET("/top-referrers/:website_id", analyticsHandler.GetTopReferrers)
+			analytics.GET("/top-sources/:website_id", analyticsHandler.GetTopSources)
 			analytics.GET("/top-countries/:website_id", analyticsHandler.GetTopCountries)
 			analytics.GET("/top-browsers/:website_id", analyticsHandler.GetTopBrowsers)
 			analytics.GET("/top-devices/:website_id", analyticsHandler.GetTopDevices)

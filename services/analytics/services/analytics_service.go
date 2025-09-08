@@ -96,6 +96,16 @@ func (s *AnalyticsService) GetTopReferrers(ctx context.Context, websiteID string
 	return s.repo.GetTopReferrers(ctx, websiteID, days, limit)
 }
 
+func (s *AnalyticsService) GetTopSources(ctx context.Context, websiteID string, days, limit int) ([]models.SourceStat, error) {
+	s.logger.Info().
+		Str("website_id", websiteID).
+		Int("days", days).
+		Int("limit", limit).
+		Msg("Getting top sources")
+
+	return s.repo.GetTopSources(ctx, websiteID, days, limit)
+}
+
 func (s *AnalyticsService) GetTopCountries(ctx context.Context, websiteID string, days, limit int) ([]models.CountryStat, error) {
 	s.logger.Info().
 		Str("website_id", websiteID).

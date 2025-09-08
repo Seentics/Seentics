@@ -3,7 +3,6 @@ package repository
 import (
 	"analytics-app/models"
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -78,8 +77,9 @@ func (tr *TopReferrersAnalytics) GetTopReferrers(ctx context.Context, websiteID 
 			) as bounce_rate
 		FROM normalized_referrers nr
 		LEFT JOIN session_stats s ON nr.session_id = s.session_id
+		WHERE nr.normalized_referrer IS NOT NULL AND nr.normalized_referrer != ''
 		GROUP BY nr.normalized_referrer
-		ORDER BY unique_visitors DESC
+		ORDER BY unique_visitors DESC, views DESC
 		LIMIT $3`
 
 	rows, err := tr.db.Query(ctx, query, websiteID, days, limit)
@@ -140,11 +140,11 @@ func (tr *TopReferrersAnalytics) GetTopReferrers(ctx context.Context, websiteID 
 		referrers = append(referrers, *ref)
 	}
 
-	// Debug: Print what we're returning
-	fmt.Printf("DEBUG: Returning %d referrers after deduplication\n", len(referrers))
-	for _, ref := range referrers {
-		fmt.Printf("DEBUG: %s - Views: %d, Unique: %d\n", ref.Referrer, ref.Views, ref.Unique)
-	}
+	// Optional: Debug logging (remove in production)
+	// fmt.Printf("DEBUG: Returning %d referrers after deduplication\n", len(referrers))
+	// for _, ref := range referrers {
+	// 	fmt.Printf("DEBUG: %s - Views: %d, Unique: %d\n", ref.Referrer, ref.Views, ref.Unique)
+	// }
 
 	return referrers, nil
 }

@@ -59,9 +59,9 @@ export function FunnelManagement({ websiteId, dateRange, onCreateWorkflow }: Fun
     if (funnels.length > 0 && !selectedFunnel) {
       setSelectedFunnel(funnels[0].id);
     }
-  }, [funnels, selectedFunnel]);
+  }, [funnels.length, selectedFunnel]);
 
-  const handleCreateFunnel = (funnelData: Omit<Funnel, 'id' | 'websiteId' | 'createdAt' | 'updatedAt'>) => {
+  const handleCreateFunnel = (funnelData: Omit<Funnel, 'id' | 'website_id' | 'created_at' | 'updated_at'>) => {
     createFunnelMutation.mutate(
       { websiteId, funnelData },
       {
@@ -77,7 +77,7 @@ export function FunnelManagement({ websiteId, dateRange, onCreateWorkflow }: Fun
     );
   };
 
-  const handleUpdateFunnel = (funnelData: Omit<Funnel, 'id' | 'websiteId' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateFunnel = (funnelData: Omit<Funnel, 'id' | 'website_id' | 'created_at' | 'updated_at'>) => {
     if (!editingFunnel) return;
     
     updateFunnelMutation.mutate(
@@ -238,28 +238,28 @@ export function FunnelManagement({ websiteId, dateRange, onCreateWorkflow }: Fun
                     <div>
                       <p className="text-sm font-medium">{selectedFunnelData.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {selectedFunnelData.steps.length} steps • Created {new Date(selectedFunnelData.createdAt).toLocaleDateString()}
+                        {selectedFunnelData.steps.length} steps • Created {new Date(selectedFunnelData.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    {funnelAnalytics && (
+                    {funnelAnalytics && funnelAnalytics.analytics && funnelAnalytics.analytics.length > 0 && (
                       <>
                         <div className="text-center">
                           <div className="text-lg font-bold text-blue-600">
-                            {funnelAnalytics.totalVisitors.toLocaleString()}
+                            {funnelAnalytics.analytics[0].total_starts?.toLocaleString() || '0'}
                           </div>
                           <div className="text-xs text-muted-foreground">Total Visitors</div>
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-bold text-green-600">
-                            {funnelAnalytics.overallConversionRate.toFixed(1)}%
+                            {funnelAnalytics.analytics[0].conversion_rate?.toFixed(1) || '0'}%
                           </div>
                           <div className="text-xs text-muted-foreground">Conversion Rate</div>
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-bold text-orange-600">
-                            {funnelAnalytics.biggestDropOff.dropOffRate.toFixed(1)}%
+                            {funnelAnalytics.analytics[0].drop_off_rate?.toFixed(1) || '0'}%
                           </div>
-                          <div className="text-xs text-muted-foreground">Biggest Drop-off</div>
+                          <div className="text-xs text-muted-foreground">Drop-off Rate</div>
                         </div>
                       </>
                     )}
@@ -317,10 +317,23 @@ export function FunnelManagement({ websiteId, dateRange, onCreateWorkflow }: Fun
       </Card>
 
       {/* Funnel Visualization */}
-      {selectedFunnelData && funnelAnalytics ? (
+      {selectedFunnelData && funnelAnalytics && funnelAnalytics.analytics ? (
         <EnhancedFunnelChart
           funnel={selectedFunnelData}
-          analytics={funnelAnalytics}
+          analytics={{
+            funnelId: selectedFunnelData.id,
+            totalVisitors: funnelAnalytics.analytics[0]?.total_starts || 0,
+            steps: [],
+            overallConversionRate: funnelAnalytics.analytics[0]?.conversion_rate || 0,
+            biggestDropOff: {
+              stepName: 'Unknown',
+              dropOffRate: funnelAnalytics.analytics[0]?.drop_off_rate || 0
+            },
+            dateRange: {
+              startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+              endDate: new Date().toISOString()
+            }
+          }}
           isLoading={analyticsLoading}
           onCreateWorkflow={onCreateWorkflow}
         />

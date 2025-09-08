@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import type { FunnelStep, Funnel } from '@/lib/analytics-api';
 interface FunnelBuilderProps {
   websiteId: string;
   existingFunnel?: Funnel;
-  onSave: (funnelData: Omit<Funnel, 'id' | 'websiteId' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (funnelData: Omit<Funnel, 'id' | 'website_id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
 }
 
@@ -35,7 +35,7 @@ export function FunnelBuilder({ websiteId, existingFunnel, onSave, onCancel }: F
     ]
   );
 
-  const addStep = () => {
+  const addStep = useCallback(() => {
     const newStep: FunnelStep = {
       id: `step-${Date.now()}`,
       name: '',
@@ -43,36 +43,36 @@ export function FunnelBuilder({ websiteId, existingFunnel, onSave, onCancel }: F
       condition: {},
       order: steps.length + 1
     };
-    setSteps([...steps, newStep]);
-  };
+    setSteps(prevSteps => [...prevSteps, newStep]);
+  }, [steps.length]);
 
-  const updateStep = (stepId: string, updates: Partial<FunnelStep>) => {
-    setSteps(steps.map(step => 
+  const updateStep = useCallback((stepId: string, updates: Partial<FunnelStep>) => {
+    setSteps(prevSteps => prevSteps.map(step => 
       step.id === stepId ? { ...step, ...updates } : step
     ));
-  };
+  }, []);
 
-  const removeStep = (stepId: string) => {
-    setSteps(steps.filter(step => step.id !== stepId));
-  };
+  const removeStep = useCallback((stepId: string) => {
+    setSteps(prevSteps => prevSteps.filter(step => step.id !== stepId));
+  }, []);
 
-  const handleDragEnd = (result: any) => {
+  const handleDragEnd = useCallback((result: any) => {
     if (!result.destination) return;
 
-    const newSteps = Array.from(steps);
-    const [reorderedStep] = newSteps.splice(result.source.index, 1);
-    newSteps.splice(result.destination.index, 0, reorderedStep);
+    setSteps(prevSteps => {
+      const newSteps = Array.from(prevSteps);
+      const [reorderedStep] = newSteps.splice(result.source.index, 1);
+      newSteps.splice(result.destination.index, 0, reorderedStep);
 
-    // Update order numbers
-    const updatedSteps = newSteps.map((step, index) => ({
-      ...step,
-      order: index + 1
-    }));
+      // Update order numbers
+      return newSteps.map((step, index) => ({
+        ...step,
+        order: index + 1
+      }));
+    });
+  }, []);
 
-    setSteps(updatedSteps);
-  };
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!name.trim()) {
       alert('Please enter a funnel name');
       return;
@@ -99,9 +99,9 @@ export function FunnelBuilder({ websiteId, existingFunnel, onSave, onCancel }: F
       name: name.trim(),
       description: description.trim(),
       steps,
-      isActive: true
+      is_active: true
     });
-  };
+  }, [name, description, steps, onSave]);
 
   const getStepIcon = (type: string) => {
     switch (type) {

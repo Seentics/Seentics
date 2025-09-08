@@ -31,6 +31,7 @@ export type NodeSettings = {
   
   // Action Settings
   displayMode?: 'simple' | 'custom'; // For modal/banner
+  displayFrequency?: 'every_trigger' | 'once_per_session' | 'once_ever'; // Frequency control for ALL action nodes
   modalTitle?: string;
   modalContent?: string;
   redirectUrl?: string;

@@ -1121,7 +1121,7 @@ export const useCreateFunnel = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ websiteId, funnelData }: { websiteId: string; funnelData: Omit<Funnel, 'id' | 'website_id' | 'createdAt' | 'updatedAt'> }) =>
+    mutationFn: ({ websiteId, funnelData }: { websiteId: string; funnelData: Omit<Funnel, 'id' | 'website_id' | 'created_at' | 'updated_at'> }) =>
       createFunnel(websiteId, funnelData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [...analyticsKeys.all, 'funnels'] });

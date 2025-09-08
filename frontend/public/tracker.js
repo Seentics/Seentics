@@ -260,12 +260,23 @@
               return; // Skip tracking UI elements
             }
             
-            // If inside a meaningful POST form or just submitted a form, don't send conversion_click
+            // If inside a meaningful form or just submitted a form, don't send conversion_click
             if (parentForm) {
               const method = (parentForm.method || 'get').toLowerCase();
               const fieldCount = parentForm.querySelectorAll('input, textarea, select').length;
               const isSearchForm = parentForm.querySelector('input[type="search"], input[name*="search"], input[name*="query"]');
-              const isMeaningfulForm = method === 'post' && fieldCount > 1 && !isSearchForm;
+              const hasTextarea = parentForm.querySelector('textarea');
+              const hasEmailField = parentForm.querySelector('input[type="email"], input[name*="email"]');
+              const hasMessageField = parentForm.querySelector('input[name*="message"], textarea[name*="message"], input[placeholder*="message"], textarea[placeholder*="message"]');
+              const hasContactFields = hasEmailField || hasMessageField;
+              
+              // Consider form meaningful if it's:
+              // 1. POST method with multiple fields (original logic)
+              // 2. Has contact/message fields (contact forms)
+              // 3. Has textarea (likely a message/feedback form)
+              const isMeaningfulForm = (method === 'post' && fieldCount > 1 && !isSearchForm) || 
+                                     hasContactFields || 
+                                     (hasTextarea && !isSearchForm);
               if (isMeaningfulForm) {
                 return; // prefer form_submit event
               }
@@ -329,15 +340,40 @@
             }
             return;
           }
-          const isMeaningfulForm = formMethod === 'post' && fieldCount > 1;
+          // Use the same improved logic as button click detection
+          const hasTextarea = form.querySelector('textarea');
+          const hasEmailField = form.querySelector('input[type="email"], input[name*="email"]');
+          const hasMessageField = form.querySelector('input[name*="message"], textarea[name*="message"], input[placeholder*="message"], textarea[placeholder*="message"]');
+          const hasContactFields = hasEmailField || hasMessageField;
+          
+          // Consider form meaningful if it's:
+          // 1. POST method with multiple fields (original logic)
+          // 2. Has contact/message fields (contact forms)
+          // 3. Has textarea (likely a message/feedback form)
+          const isMeaningfulForm = (formMethod === 'post' && fieldCount > 1) || 
+                                 hasContactFields || 
+                                 (hasTextarea && !isSearchForm);
+          
           if (isMeaningfulForm) {
             lastFormSubmitAt = Date.now();
-            trackCustomEvent('form_submit', {
+            
+            // Determine form type for better categorization
+            let formType = 'form_submit';
+            if (hasContactFields || hasMessageField) {
+              formType = 'contact_form_submit';
+            } else if (hasTextarea) {
+              formType = 'message_form_submit';
+            }
+            
+            trackCustomEvent(formType, {
               form_action: form.action || 'no-action',
               form_method: formMethod,
               form_id: form.id || 'no-id',
               form_class: form.className || 'no-class',
               field_count: fieldCount,
+              has_email_field: !!hasEmailField,
+              has_message_field: !!hasMessageField,
+              has_textarea: !!hasTextarea,
               page: window.location.pathname,
               page_url: window.location.href
             });

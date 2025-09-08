@@ -144,6 +144,42 @@ const NodeSettingsForm: React.FC<{
     
     onSettingsChange(newSettings);
   };
+
+  // Reusable Frequency Control Component for ALL Action Nodes
+  const FrequencyControlSection = () => {
+    // Only show frequency control for action nodes (not trigger/condition nodes)
+    const isActionNode = ['Show Modal', 'Show Banner', 'Insert Section', 'Redirect URL', 
+                         'Send Email', 'Add/Remove Tag', 'Webhook', 'Track Event', 'Wait'].includes(node.data.title || '');
+    
+    if (!isActionNode) return null;
+    
+    return (
+      <>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Action Frequency</Label>
+          <Select
+            value={settings.displayFrequency || 'once_per_session'}
+            onValueChange={(value) => handleSettingChange('displayFrequency', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="every_trigger">Every Trigger</SelectItem>
+              <SelectItem value="once_per_session">Once Per Session</SelectItem>
+              <SelectItem value="once_ever">Once Ever (Permanent)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {settings.displayFrequency === 'every_trigger' && 'Executes every time the workflow triggers'}
+            {(settings.displayFrequency === 'once_per_session' || !settings.displayFrequency) && 'Executes once per browser session (recommended)'}
+            {settings.displayFrequency === 'once_ever' && 'Executes once per user permanently'}
+          </p>
+        </div>
+        <Separator />
+      </>
+    );
+  };
   
   const displayMode = settings.displayMode || 'simple';
 
@@ -789,6 +825,7 @@ const NodeSettingsForm: React.FC<{
           const isModal = node.data.title === 'Show Modal';
           return (
           <div className="space-y-6">
+             <FrequencyControlSection />
              <div className="space-y-2">
               <Label className="text-sm font-medium">Mode</Label>
               <RadioGroup
@@ -888,6 +925,7 @@ const NodeSettingsForm: React.FC<{
       case 'Insert Section':
         return (
           <div className="space-y-4">
+            <FrequencyControlSection />
             <div className="space-y-2">
               <Label htmlFor="selector" className="text-sm font-medium">Target CSS Selector</Label>
               <Input
@@ -954,6 +992,7 @@ const NodeSettingsForm: React.FC<{
       case 'Redirect URL':
         return (
           <div className="space-y-4">
+            <FrequencyControlSection />
             <div className="space-y-2">
               <Label htmlFor="redirectUrl" className="text-sm font-medium">Redirect URL</Label>
               <Input
@@ -970,7 +1009,9 @@ const NodeSettingsForm: React.FC<{
         );
       case 'Send Email':
         return (
-           <Tabs defaultValue={settings.emailSendType || 'visitor'} onValueChange={(value) => handleSettingChange('emailSendType', value)} className="w-full">
+          <div className="space-y-4">
+            <FrequencyControlSection />
+            <Tabs defaultValue={settings.emailSendType || 'visitor'} onValueChange={(value) => handleSettingChange('emailSendType', value)} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="visitor">To Visitor</TabsTrigger>
                 <TabsTrigger value="custom">To Custom Address</TabsTrigger>
@@ -1014,12 +1055,14 @@ const NodeSettingsForm: React.FC<{
                 </div>
                  <Separator className="my-4" />
                 <LocalStorageForm settings={settings} onSettingsChange={onSettingsChange} />
-            </TabsContent>
-           </Tabs>
-        );
+             </TabsContent>
+            </Tabs>
+          </div>
+         );
       case 'Add/Remove Tag':
         return (
           <div className="space-y-4">
+            <FrequencyControlSection />
             <div className="space-y-2">
               <Label className="text-sm font-medium">Action</Label>
               <RadioGroup
@@ -1054,6 +1097,7 @@ const NodeSettingsForm: React.FC<{
       case 'Webhook':
         return (
             <div className="space-y-4">
+                <FrequencyControlSection />
                 <div className="space-y-2">
                     <Label htmlFor="webhookUrl" className="text-sm font-medium">Webhook URL</Label>
                     <Input 
@@ -1141,6 +1185,7 @@ const NodeSettingsForm: React.FC<{
       case 'Track Event':
         return (
             <div className="space-y-4">
+                <FrequencyControlSection />
                 <div className="space-y-2">
                     <Label htmlFor="eventName" className="text-sm font-medium">Event Name</Label>
                     <Input
@@ -1156,6 +1201,7 @@ const NodeSettingsForm: React.FC<{
       case 'Wait':
         return (
           <div className="space-y-4">
+            <FrequencyControlSection />
             <div className="space-y-2">
               <Label htmlFor="waitSeconds" className="text-sm font-medium">Wait (seconds)</Label>
               <Input id="waitSeconds" type="number" placeholder="e.g., 5" value={settings.waitSeconds || ''} onChange={(e) => handleSettingChange('waitSeconds', parseInt(e.target.value, 10))} />

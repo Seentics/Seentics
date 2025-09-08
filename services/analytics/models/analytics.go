@@ -51,6 +51,13 @@ type ReferrerStat struct {
 	BounceRate *float64 `json:"bounce_rate,omitempty" db:"bounce_rate"`
 }
 
+type SourceStat struct {
+	Source         string  `json:"source" db:"source"`
+	Views          int     `json:"views" db:"views"`
+	UniqueVisitors int     `json:"unique_visitors" db:"unique_visitors"`
+	BounceRate     float64 `json:"bounce_rate" db:"bounce_rate"`
+}
+
 type CountryStat struct {
 	Country    string   `json:"country" db:"country"`
 	Views      int      `json:"views" db:"views"`
