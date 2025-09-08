@@ -67,8 +67,9 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
 
               if (response.ok) {
                 const data = await response.json();
-                if (data.analytics && data.analytics.length > 0) {
-                  const analytics = data.analytics[0];
+                // Handle both response formats: direct object or analytics array
+                const analytics = data.analytics?.[0] || data;
+                if (analytics && (analytics.total_starts !== undefined || analytics.total_conversions !== undefined)) {
                   totalVisitors += analytics.total_starts || 0;
                   totalConversions += analytics.total_conversions || 0;
                   funnelCount++;

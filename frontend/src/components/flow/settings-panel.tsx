@@ -529,7 +529,7 @@ const NodeSettingsForm: React.FC<{
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Device</Label>
+              <Label className="text-sm font-medium">Device Type</Label>
               <Select
                 value={settings.deviceType}
                 onValueChange={(value) => handleSettingChange('deviceType', value)}
@@ -538,14 +538,70 @@ const NodeSettingsForm: React.FC<{
                   <SelectValue placeholder="Select device type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Desktop">Desktop</SelectItem>
-                  <SelectItem value="Mobile">Mobile</SelectItem>
+                  <SelectItem value="Desktop">🖥️ Desktop</SelectItem>
+                  <SelectItem value="Mobile">📱 Mobile</SelectItem>
+                  <SelectItem value="Tablet">📱 Tablet</SelectItem>
+                  <SelectItem value="Any">🌐 Any Device</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Only execute this workflow for visitors on the selected device type.
+                Only execute this workflow for visitors on the selected device type. Uses user agent detection.
               </p>
             </div>
+            
+            {/* Advanced Device Options */}
+            {settings.deviceType && settings.deviceType !== 'Any' && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                <Label className="text-sm font-medium">Advanced Options</Label>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Screen Size Constraints (Optional)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Min Width (px)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 768"
+                        value={settings.minScreenWidth || ''}
+                        onChange={(e) => handleSettingChange('minScreenWidth', e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Max Width (px)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 1200"
+                        value={settings.maxScreenWidth || ''}
+                        onChange={(e) => handleSettingChange('maxScreenWidth', e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Add screen size constraints for more precise targeting.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Touch Support</Label>
+                  <Select
+                    value={settings.touchSupport || 'any'}
+                    onValueChange={(value) => handleSettingChange('touchSupport', value === 'any' ? undefined : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any (Default)</SelectItem>
+                      <SelectItem value="touch">Touch Enabled</SelectItem>
+                      <SelectItem value="no-touch">No Touch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Filter by touch capability detection.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
        case 'Browser':

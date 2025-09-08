@@ -332,7 +332,8 @@ export async function updateWorkflowStatus(id: string, status: 'Active' | 'Pause
 export async function getWorkflowStats(workflowId: string): Promise<WorkflowAnalytics> {
   try {
     const res: any = await api.get(`/workflows/${workflowId}/stats`);
-    return res?.data || {};
+    // The API returns { success: true, data: { actualData } }, so we need res.data.data
+    return res?.data?.data || {};
   } catch (error) {
     console.error(`Error fetching workflow stats for ${workflowId}:`, error);
     throw error;
@@ -342,7 +343,8 @@ export async function getWorkflowStats(workflowId: string): Promise<WorkflowAnal
 export async function getWorkflowNodeStats(workflowId: string): Promise<NodeStats[]> {
   try {
     const res: any = await api.get(`/workflows/${workflowId}/stats/nodes`);
-    return res?.data || [];
+    // The API returns { success: true, data: { actualData } }, so we need res.data.data
+    return res?.data?.data || [];
   } catch (error) {
     console.error(`Error fetching node stats for ${workflowId}:`, error);
     throw error;

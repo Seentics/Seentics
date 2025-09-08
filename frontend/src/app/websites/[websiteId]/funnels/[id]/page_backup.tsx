@@ -87,43 +87,79 @@ export default function FunnelDetailPage() {
   const { data: funnelAnalyticsResponse, isLoading: isLoadingAnalytics } = useFunnelAnalytics(id, dateRange);
   const { data: detailedAnalyticsResponse, isLoading: isLoadingDetailed } = useDetailedFunnelAnalytics(id, dateRange);
   
-  // Use the actual API response data structure from funnelAnalyticsResponse
-  const apiData: any = funnelAnalyticsResponse?.analytics?.[0] || funnelAnalyticsResponse || {};
-  
-  // Extract data from the actual API response format
-  const totalVisitors = (apiData as any).total_starts || 0;
-  const totalConversions = (apiData as any).total_conversions || 0;
-  const conversionRate = (apiData as any).conversion_rate || 0;
-  const avgTime = (apiData as any).avg_time_to_convert || (apiData as any).avg_value || 0;
-  const dropOffRate = (apiData as any).drop_off_rate || (totalVisitors > 0 ? ((totalVisitors - totalConversions) / totalVisitors) * 100 : 0);
-  
   // Transform API response to match expected interface using real data
-  const funnelAnalytics = funnelAnalyticsResponse ? {
+  const funnelAnalytics = funnelAnalyticsResponse?.analytics?.[0] ? {
     funnelId: id,
-    totalVisitors,
-    totalConversions,
-    conversionRate,
-    avgTime,
-    dropOffRate,
-    // Create basic steps from funnel definition since we have overall stats
-    steps: funnel?.steps?.map((step: any, index: number) => ({
-      stepId: step.id || `step-${index}`,
-      name: step.name,
-      count: index === 0 ? totalVisitors : (index === funnel.steps.length - 1 ? totalConversions : Math.floor(totalVisitors * 0.8)),
-      conversionRate: index === 0 ? 100 : (index === funnel.steps.length - 1 ? conversionRate : 80),
-      dropOffRate: index === 0 ? 0 : (index === funnel.steps.length - 1 ? dropOffRate : 20),
-      avgTimeOnStep: avgTime / (funnel.steps.length || 1)
-    })) || [],
-    // Additional calculated metrics
-    overallConversionRate: conversionRate,
-    avgConversionTime: avgTime,
-    bestPerformingStep: {
-      stepName: funnel?.steps?.[0]?.name || 'Entry Step',
-      conversionRate: 100
-    },
+    totalVisitors: funnelAnalyticsResponse.analytics[0].total_starts,
+    steps: detailedAnalyticsResponse?.data?.step_analytics?.map((stepAnalytics: any, index: number) => ({
+      stepId: stepAnalytics.step_id,
+      name: stepAnalytics.step_name,
+      count: stepAnalytics.visitors_reached || 0,
+      conversionRate: isFinite(stepAnalytics.conversion_rate) ? stepAnalytics.conversion_rate : 0,
+      dropOffRate: isFinite(stepAnalytics.drop_off_rate) ? stepAnalytics.drop_off_rate : 0,
+      avgTimeOnStep: stepAnalytics.avg_time_on_step || 0
+    })) || funnel?.steps?.map((step, index) => {
+      if (index === 0) {
+        // First step - all visitors enter here
+        return {
+          stepId: `step${step.order}`,
+          name: step.name,
+          count: funnelAnalyticsResponse.analytics[0].total_starts,
+          conversionRate: 100,
+          dropOffRate: 0,
+          avgTimeOnStep: funnelAnalyticsResponse.analytics[0].avg_value || 0
+        };
+      } else if (index === funnel.steps.length - 1) {
+        // Last step - conversion goal
+        return {
+          stepId: `step${step.order}`,
+          name: step.name,
+          count: funnelAnalyticsResponse.analytics[0].total_conversions,
+          conversionRate: funnelAnalyticsResponse.analytics[0].conversion_rate,
+          dropOffRate: 100 - funnelAnalyticsResponse.analytics[0].conversion_rate,
+          avgTimeOnStep: funnelAnalyticsResponse.analytics[0].avg_value || 0
+        };
+      } else {
+        // Fallback for middle steps if detailed analytics not available
+        const previousStepCount = index === 1 ? funnelAnalyticsResponse.analytics[0].total_starts : 0;
+        const currentStepCount = Math.floor(previousStepCount * 0.8);
+        const conversionRate = previousStepCount > 0 ? (currentStepCount / previousStepCount) * 100 : 0;
+        const dropOffRate = previousStepCount > 0 ? ((previousStepCount - currentStepCount) / previousStepCount) * 100 : 0;
+        return {
+          stepId: `step${step.order}`,
+          name: step.name,
+          count: currentStepCount,
+          conversionRate: isFinite(conversionRate) ? conversionRate : 0,
+          dropOffRate: isFinite(dropOffRate) ? dropOffRate : 0,
+          avgTimeOnStep: funnelAnalyticsResponse.analytics[0].avg_value || 0
+        };
+      }
+    }) || [
+      {
+        stepId: 'step1',
+        name: 'Funnel Entry',
+        count: funnelAnalyticsResponse.analytics[0].total_starts,
+        conversionRate: 100,
+        dropOffRate: 0,
+        avgTimeOnStep: funnelAnalyticsResponse.analytics[0].avg_value || 0
+      },
+      {
+        stepId: 'step2',
+        name: 'Funnel Completion',
+        count: funnelAnalyticsResponse.analytics[0].total_conversions,
+        conversionRate: isFinite(funnelAnalyticsResponse.analytics[0].conversion_rate) ? funnelAnalyticsResponse.analytics[0].conversion_rate : 0,
+        dropOffRate: isFinite(funnelAnalyticsResponse.analytics[0].conversion_rate) ? 100 - funnelAnalyticsResponse.analytics[0].conversion_rate : 0,
+        avgTimeOnStep: funnelAnalyticsResponse.analytics[0].avg_value || 0
+      }
+    ],
+    overallConversionRate: isFinite(funnelAnalyticsResponse.analytics[0].conversion_rate) ? funnelAnalyticsResponse.analytics[0].conversion_rate : 0,
     biggestDropOff: {
-      stepName: funnel?.steps?.[funnel.steps.length - 1]?.name || 'Final Step',
-      dropOffRate: dropOffRate
+      stepName: detailedAnalyticsResponse?.data?.step_analytics?.reduce((max: any, step: any) => 
+        step.drop_off_rate > max.drop_off_rate ? step : max
+      )?.step_name || funnel?.steps?.[0]?.name || 'Funnel Entry',
+      dropOffRate: detailedAnalyticsResponse?.data?.step_analytics?.reduce((max: any, step: any) => 
+        step.drop_off_rate > max.drop_off_rate ? step : max
+      )?.drop_off_rate || (isFinite(funnelAnalyticsResponse.analytics[0].conversion_rate) ? 100 - funnelAnalyticsResponse.analytics[0].conversion_rate : 0)
     },
     dateRange: {
       startDate: new Date(Date.now() - dateRange * 24 * 60 * 60 * 1000).toISOString(),
@@ -339,172 +375,246 @@ export default function FunnelDetailPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Header Section */}
-      <div className="space-y-4">
-        {/* Title and Date Selector */}
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <Target className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+      {/* Header Section with Enhanced Design */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 border border-blue-200/50 dark:border-blue-800/30">
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25" />
+        <div className="relative p-6 sm:p-8">
+          {/* Title and Status */}
+          <div className="flex flex-col space-y-6 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+            <div className="flex items-start gap-4 sm:gap-6">
+              <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                <Target className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-headline text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  {funnel.name}
+                </h1>
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mt-2">
+                  {funnel.description || 'Conversion funnel analysis'}
+                </p>
+                <div className="flex items-center gap-3 mt-4">
+                  <Badge 
+                    variant={funnel.is_active ? "default" : "secondary"} 
+                    className={`px-3 py-1 text-sm font-medium ${
+                      funnel.is_active 
+                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800' 
+                        : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
+                    }`}
+                  >
+                    {funnel.is_active ? (
+                      <>
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
+                        Active
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full mr-2" />
+                        Paused
+                      </>
+                    )}
+                  </Badge>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {funnel.steps?.length || 0} steps • Created {format(new Date(funnel.created_at), 'MMM d, yyyy')}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="font-headline text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
-                {funnel.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {funnel.description || 'Conversion funnel analysis'}
-              </p>
+            
+              {/* Real-time Toggle */}
+              {funnel?.is_active && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-white/20 backdrop-blur-sm">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isRealTimeEnabled 
+                      ? (isRefreshing ? 'bg-blue-500 animate-pulse' : 'bg-green-500 animate-pulse') 
+                      : 'bg-gray-400'
+                  }`} />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {isRefreshing ? 'Updating...' : 'Live'}
+                  </span>
+                  <Switch
+                    checked={isRealTimeEnabled}
+                    onCheckedChange={setIsRealTimeEnabled}
+                    className="scale-75"
+                    disabled={isRefreshing}
+                  />
+                </div>
+              )}
             </div>
           </div>
-          
-          {/* Date Range Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Time period:</span>
-            <Select value={dateRange.toString()} onValueChange={(value) => setDateRange(parseInt(value))}>
-              <SelectTrigger className="w-36 border">
-                <SelectValue placeholder="Select range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Today</SelectItem>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {/* Date Range Filter */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Time period:</span>
+              <Select value={dateRange.toString()} onValueChange={(value) => setDateRange(parseInt(value))}>
+                <SelectTrigger className="w-36 bg-white/50 dark:bg-gray-800/50 border-white/30 dark:border-gray-700/30 backdrop-blur-sm">
+                  <SelectValue placeholder="Select range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Today</SelectItem>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button 
+                onClick={() => handleCreateWorkflow('general')}
+                size="sm"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Create Workflow
+              </Button>
+              
+              <Select onValueChange={(value) => handleCreateWorkflow(value)}>
+                <SelectTrigger className="w-36 bg-white/50 dark:bg-gray-800/50 border-white/30 dark:border-gray-700/30 backdrop-blur-sm">
+                  <SelectValue placeholder="Quick Create" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dropoff">Dropoff Recovery</SelectItem>
+                  <SelectItem value="conversion">Conversion Celebration</SelectItem>
+                  <SelectItem value="milestone">Milestone Alert</SelectItem>
+                  <SelectItem value="abandonment">Abandonment Recovery</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(`/websites/${websiteId}/funnels/${id}/edit`, '_blank')}
+                className="bg-white/50 dark:bg-gray-800/50 border-white/30 dark:border-gray-700/30 backdrop-blur-sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive bg-white/50 dark:bg-gray-800/50 border-white/30 dark:border-gray-700/30 backdrop-blur-sm">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Funnel</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{funnel.name}"? This action cannot be undone and will permanently remove all funnel data and analytics.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete Funnel
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
 
-
-      {/* Key Stats Cards */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Funnel Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Visitors */}
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
-                    Total Visitors
+      {/* Enhanced Key Metrics Cards */}
+      {funnelAnalytics && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="border shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    People who entered your funnel
                   </p>
-                  <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                    {isLoadingAnalytics ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      funnelAnalytics?.totalVisitors?.toLocaleString() || '0'
-                    )}
+                  <p className="text-xl sm:text-2xl font-bold">
+                    {funnelAnalyticsResponse?.analytics?.[0]?.total_starts?.toLocaleString() || '0'}
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  <p className="text-xs text-muted-foreground">
                     {getDateRangeLabel()}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Conversion Rate */}
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">
-                    Conversion Rate
+          <Card className="border shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Percent className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    People who completed all steps
                   </p>
                   <div className="flex items-center gap-2">
-                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                      {isLoadingAnalytics ? (
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                      ) : (
-                        `${funnelAnalytics?.overallConversionRate?.toFixed(1) || '0.0'}%`
-                      )}
+                    <p className="text-xl sm:text-2xl font-bold">
+                      {funnelAnalytics?.overallConversionRate?.toFixed(1) || '0'}%
                     </p>
-                    {!isLoadingAnalytics && (
-                      (funnelAnalytics?.overallConversionRate || 0) > 5 ? (
-                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-medium">Good</span>
-                      ) : (
-                        <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full font-medium">Low</span>
-                      )
+                    {(funnelAnalytics?.overallConversionRate || 0) > 5 ? (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Good</span>
+                    ) : (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">Can improve</span>
                     )}
                   </div>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    {isLoadingAnalytics ? 'Loading...' : (
-                      //@ts-ignore
-                      funnelAnalytics?.steps?.length > 0 ? 
-                        `${funnelAnalytics?.steps?.[funnelAnalytics?.steps?.length - 1]?.count?.toLocaleString() || '0'} completed` : '0 completed'
-                    )}
+                  <p className="text-xs text-muted-foreground">
+                    {funnelAnalytics?.steps?.[1]?.count || 0} people finished
                   </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Percent className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Average Time */}
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
-                    Avg. Time
-                  </p>
-                  <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                    {isLoadingAnalytics ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      (() => {
-                        if (!funnelAnalytics?.steps || funnelAnalytics.steps.length === 0) return '0:00';
-                        const totalTime = funnelAnalytics.steps.reduce((sum: number, step: any) => sum + (step.avgTimeOnStep || 0), 0);
-                        const avgTime = totalTime / funnelAnalytics.steps.length;
-                        return formatTime(avgTime);
-                      })()
-                    )}
-                  </p>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                    Per funnel completion
-                  </p>
+          <Card className="border shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    Average time to complete
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold">
+                    {funnelAnalytics?.steps?.[0]?.avgTimeOnStep ? formatTime(funnelAnalytics.steps[0].avgTimeOnStep) : '0:00.00'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Average time per step
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Drop-off Rate */}
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
-                    Drop-off Rate
-                  </p>
-                  <p className="text-3xl font-bold text-red-900 dark:text-red-100">
-                    {isLoadingAnalytics ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      `${funnelAnalytics?.biggestDropOff?.dropOffRate?.toFixed(1) || '0.0'}%`
-                    )}
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                    {isLoadingAnalytics ? 'Loading...' : (
-                      `At ${funnelAnalytics?.biggestDropOff?.stepName || 'N/A'}`
-                    )}
-                  </p>
+          <Card className="border shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                  <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    Biggest problem area
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold">
+                    {funnelAnalytics?.biggestDropOff?.dropOffRate?.toFixed(1) || '0'}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Overall drop-off rate
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      </div>
+      )}
 
       {/* Main Funnel Visualization */}
       {funnelAnalytics && (
@@ -858,6 +968,7 @@ export default function FunnelDetailPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
     </div>
   );
 }

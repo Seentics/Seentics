@@ -7,9 +7,25 @@
   // --- Main Funnel Tracker ---
   if (document.currentScript) {
     (function (doc) {
-      // Configuration
+      // Configuration - Get site ID from main tracker script or global variable
       const scriptTag = doc.currentScript;
-      const siteId = scriptTag.getAttribute('data-site-id');
+      let siteId = scriptTag?.getAttribute('data-site-id');
+      
+      // If not found in current script, look for main tracker script
+      if (!siteId) {
+        const mainTrackerScript = doc.querySelector('script[data-site-id]');
+        siteId = mainTrackerScript?.getAttribute('data-site-id');
+      }
+      
+      // If still not found, check global seentics object
+      if (!siteId && window.seentics?.siteId) {
+        siteId = window.seentics.siteId;
+      }
+      
+      // If still not found, check other global variables
+      if (!siteId && window.SEENTICS_SITE_ID) {
+        siteId = window.SEENTICS_SITE_ID;
+      }
       const apiHost = window.SEENTICS_CONFIG?.apiHost || 
         (window.location.hostname === 'localhost' ? 
           (window.SEENTICS_CONFIG?.devApiHost || 'http://localhost:8080') : 
@@ -18,6 +34,51 @@
       
       // Feature flags
       const trackFunnels = (scriptTag.getAttribute('data-track-funnels') || '').toLowerCase() !== 'false';
+      const DEBUG = true; // Enable debug logging for troubleshooting
+      
+      // Get authentication token from localStorage (same as frontend)
+      function getAuthToken() {
+        try {
+          // Check multiple possible token keys used by the frontend
+          const possibleKeys = [
+            'auth-token',
+            'token', 
+            'authToken',
+            'accessToken',
+            'access_token',
+            'jwt',
+            'seentics-token',
+            'seentics_token'
+          ];
+          
+          for (const key of possibleKeys) {
+            const token = localStorage.getItem(key);
+            if (token && token !== 'null' && token !== 'undefined') {
+              if (DEBUG) console.log(`🔍 Seentics: Found auth token with key: ${key}`);
+              return token;
+            }
+          }
+          
+          // Also check sessionStorage
+          for (const key of possibleKeys) {
+            const token = sessionStorage.getItem(key);
+            if (token && token !== 'null' && token !== 'undefined') {
+              if (DEBUG) console.log(`🔍 Seentics: Found auth token in sessionStorage with key: ${key}`);
+              return token;
+            }
+          }
+          
+          if (DEBUG) {
+            console.log('🔍 Seentics: No auth token found. Available localStorage keys:', Object.keys(localStorage));
+            console.log('🔍 Seentics: Available sessionStorage keys:', Object.keys(sessionStorage));
+          }
+          
+          return null;
+        } catch (error) {
+          if (DEBUG) console.warn('🔍 Seentics: Error getting auth token:', error);
+          return null;
+        }
+      }
       
       // Constants
       const VISITOR_ID_KEY = 'seentics_visitor_id';
@@ -49,14 +110,21 @@
       // --- Funnel Tracking Functions ---
       
       async function initFunnelTracking() {
-        if (!trackFunnels || !siteId) return;
+        if (!trackFunnels || !siteId) {
+          if (DEBUG) console.log('🔍 Seentics: Funnel tracking disabled or no siteId:', { trackFunnels, siteId });
+          return;
+        }
         
+        if (DEBUG) console.log('🔍 Seentics: Starting funnel tracking initialization...');
         await loadFunnelDefinitions();
         startFunnelMonitoring();
+        if (DEBUG) console.log('🔍 Seentics: Funnel tracking initialization completed');
       }
       
       async function loadFunnelDefinitions() {
         try {
+          if (DEBUG) console.log('🔍 Seentics: Loading funnel definitions for site:', siteId);
+          
           // Load from cache first
           const cacheKey = `${FUNNEL_STATE_KEY}_${siteId}`;
           const savedFunnels = localStorage.getItem(cacheKey);
@@ -66,21 +134,37 @@
               const funnels = JSON.parse(savedFunnels);
               initializeFunnels(funnels);
               funnelsValidated = false;
+              if (DEBUG) console.log('🔍 Seentics: Loaded cached funnels:', funnels.length);
             } catch (error) {
               console.warn('🔍 Seentics: Error loading cached funnels:', error);
             }
           }
 
-          // Fetch from API
-          const response = await fetch(`${apiHost}/api/v1/funnels/active?website_id=${siteId}`, {
+          // Fetch from API - Use public endpoint for funnel tracking
+          const apiUrl = `${apiHost}/api/v1/funnels/active?website_id=${siteId}`;
+          if (DEBUG) console.log('🔍 Seentics: Fetching funnels from public endpoint:', apiUrl);
+          
+          // For public funnel tracking, we don't need authentication
+          // This endpoint is designed for tracker scripts on public websites
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          
+          if (DEBUG) console.log('🔍 Seentics: Request headers (public):', headers);
+          
+          const response = await fetch(apiUrl, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             keepalive: true
           });
 
           if (response.ok) {
             const data = await response.json();
-            const funnels = data.funnels || data || [];
+            // Handle both direct array response and wrapped response
+            const funnels = Array.isArray(data) ? data : (data.funnels || data.data || []);
+            
+            if (DEBUG) console.log('🔍 Seentics: API Response:', { status: response.status, data });
+            if (DEBUG) console.log('🔍 Seentics: Extracted funnels:', funnels);
             
             activeFunnels.clear();
             initializeFunnels(funnels);
@@ -88,11 +172,23 @@
             localStorage.setItem(cacheKey, JSON.stringify(funnels));
             funnelsValidated = true;
             
+            // Trigger initial page check
+            setTimeout(() => {
+              if (DEBUG) console.log('🔍 Seentics: Triggering initial page check for:', currentUrl);
+              monitorPageChanges();
+            }, 100);
+            
             if (funnelEventQueue.length > 0) {
               sendFunnelEvents();
             }
           } else {
-            console.warn('🔍 Seentics: Failed to fetch funnel definitions:', response.status);
+            const errorText = await response.text();
+            console.warn('🔍 Seentics: Failed to fetch funnel definitions:', {
+              status: response.status,
+              statusText: response.statusText,
+              url: apiUrl,
+              error: errorText
+            });
           }
         } catch (error) {
           console.warn('🔍 Seentics: Error loading funnel definitions:', error);
@@ -100,7 +196,16 @@
       }
 
       function initializeFunnels(funnels) {
+        if (DEBUG) console.log('🔍 Seentics: Initializing funnels:', funnels);
+        
+        if (!Array.isArray(funnels)) {
+          console.warn('🔍 Seentics: Funnels is not an array:', funnels);
+          return;
+        }
+        
         funnels.forEach(funnel => {
+          if (DEBUG) console.log('🔍 Seentics: Processing funnel:', funnel.name, 'Active:', funnel.is_active);
+          
           if (funnel.is_active) {
             activeFunnels.set(funnel.id, {
               ...funnel,
@@ -110,8 +215,12 @@
               lastActivity: null,
               converted: false
             });
+            
+            if (DEBUG) console.log('🔍 Seentics: Added active funnel:', funnel.id, 'with', funnel.steps?.length || 0, 'steps');
           }
         });
+        
+        if (DEBUG) console.log('🔍 Seentics: Total active funnels loaded:', activeFunnels.size);
       }
       
       function startFunnelMonitoring() {
@@ -121,22 +230,37 @@
       }
       
       function monitorPageChanges() {
+        if (DEBUG) console.log('🔍 Seentics: Monitoring page changes for:', currentUrl);
+        if (DEBUG) console.log('🔍 Seentics: Active funnels count:', activeFunnels.size);
+        
         activeFunnels.forEach((funnelState, funnelId) => {
-          if (!funnelState.steps) return;
+          if (!funnelState.steps) {
+            if (DEBUG) console.log('🔍 Seentics: No steps for funnel:', funnelId);
+            return;
+          }
+          
+          if (DEBUG) console.log(`🔍 Seentics: Checking funnel ${funnelId} with ${funnelState.steps.length} steps`);
           
           let foundMatch = false;
           
           funnelState.steps.forEach((step, index) => {
-            if (step.type === 'page' && step.condition?.page && 
-                matchesPageCondition(currentUrl, step.condition.page)) {
-              console.log(`🔍 Seentics: Page match for funnel ${funnelId}, step ${index + 1}`);
-              updateFunnelProgress(funnelId, index + 1, step);
-              foundMatch = true;
+            if (DEBUG) console.log(`🔍 Seentics: Checking step ${index + 1}: ${step.name} (${step.type}) - ${step.condition?.page || step.condition?.event || 'N/A'}`);
+            
+            if (step.type === 'page' && step.condition?.page) {
+              const matches = matchesPageCondition(currentUrl, step.condition.page);
+              if (DEBUG) console.log(`🔍 Seentics: Page condition check: "${currentUrl}" vs "${step.condition.page}" = ${matches}`);
+              
+              if (matches) {
+                console.log(`🎯 Seentics: Page match for funnel ${funnelId}, step ${index + 1}: ${step.name}`);
+                updateFunnelProgress(funnelId, index + 1, step);
+                foundMatch = true;
+              }
             }
           });
           
           // Handle dropoff
           if (!foundMatch && funnelState.currentStep > 0) {
+            if (DEBUG) console.log(`🔍 Seentics: No match found, queueing dropoff for funnel ${funnelId}`);
             queueDropoffEvent(funnelId, funnelState);
           }
         });
@@ -355,9 +479,17 @@
       // --- Event Listeners ---
       
       function onRouteChange() {
-        if (window.location.pathname === currentUrl) return;
-        currentUrl = window.location.pathname;
-        setTimeout(monitorPageChanges, 100);
+        const newUrl = window.location.pathname;
+        if (newUrl === currentUrl) return;
+        
+        if (DEBUG) console.log(`🔍 Seentics: Route change detected: ${currentUrl} -> ${newUrl}`);
+        currentUrl = newUrl;
+        
+        // Give React time to render the new page
+        setTimeout(() => {
+          if (DEBUG) console.log('🔍 Seentics: Triggering page monitoring after route change');
+          monitorPageChanges();
+        }, 200);
       }
       
       // SPA navigation detection
@@ -387,6 +519,10 @@
           console.warn('🔍 Seentics: siteId not provided');
           return;
         }
+        
+        if (DEBUG) console.log('🔍 Seentics: Initializing funnel tracker for site:', siteId);
+        if (DEBUG) console.log('🔍 Seentics: Current URL:', currentUrl);
+        if (DEBUG) console.log('🔍 Seentics: API Host:', apiHost);
         
         initFunnelTracking();
         

@@ -237,125 +237,31 @@ export function WorkflowDetail({
   // Use aggregated analytics data or fallback to workflow properties for demo
   const overallTriggers = isDemo ? (workflow.totalTriggers || 0) : (workflowStats?.totalTriggers || 0);
   const overallCompletions = isDemo ? (workflow.totalCompletions || 0) : (workflowStats?.totalCompletions || 0);
+  const overallRuns = isDemo ? (workflow.totalTriggers || 0) : (workflowStats?.totalRuns || 0);
+  const successfulRuns = isDemo ? (workflow.totalCompletions || 0) : (workflowStats?.successfulRuns || 0);
+  const failedRuns = isDemo ? 0 : (workflowStats?.failedRuns || 0);
   const completionRateValue = isDemo 
     ? (parseFloat(workflow.completionRate) || 0) 
     : (workflowStats?.conversionRate ? parseFloat(workflowStats.conversionRate.replace('%', '')) : 0);
+  const successRateValue = isDemo 
+    ? (parseFloat(workflow.completionRate) || 0) 
+    : (workflowStats?.successRate ? parseFloat(workflowStats.successRate.replace('%', '')) : 0);
 
   const stats = [
-    { name: "Status", value: workflow.status, icon: Activity },
-    { name: "Total Triggers", value: (overallTriggers).toLocaleString(), icon: Target },
-    { name: "Total Completions", value: (overallCompletions).toLocaleString(), icon: CircleCheckBig },
-    { name: "Completion Rate", value: `${completionRateValue.toFixed(1)}%`, icon: Percent },
+    { name: "Total Triggers", value: (overallTriggers).toLocaleString(), icon: Target, color: "blue" },
+    { name: "Total Completions", value: (overallCompletions).toLocaleString(), icon: CircleCheckBig, color: "green" },
+    { name: "Conversion Rate", value: `${completionRateValue.toFixed(1)}%`, icon: Percent, color: "purple" },
+    { name: "Success Rate", value: `${successRateValue.toFixed(1)}%`, icon: Activity, color: "emerald" },
   ];
 
-  // Fallback funnel computation (when server funnel data is unavailable)
-  const computeFallbackFunnelSteps = (stepNames: string[]) => {
-    return stepNames.map((name, index) => {
-      if (index === 0) {
-        return { name, count: overallTriggers, conversionRate: 100, dropOff: 0 };
-      }
-      const position = index / (stepNames.length - 1);
-      const estimatedCount = Math.max(
-        overallCompletions,
-        Math.round(overallTriggers - (overallTriggers - overallCompletions) * position)
-      );
-      const prevCount = index === 0 ? overallTriggers : Math.max(
-        overallCompletions,
-        Math.round(overallTriggers - (overallTriggers - overallCompletions) * ((index - 1) / (stepNames.length - 1)))
-      );
-      const dropOffPct = prevCount > 0 ? ((prevCount - estimatedCount) / prevCount) * 100 : 0;
-      return {
-        name,
-        count: estimatedCount,
-        conversionRate: overallTriggers > 0 ? (estimatedCount / overallTriggers) * 100 : 0,
-        dropOff: dropOffPct
-      };
-    });
-  };
+  const additionalStats = [
+    { name: "Total Runs", value: (overallRuns).toLocaleString(), color: "indigo" },
+    { name: "Successful Runs", value: (successfulRuns).toLocaleString(), color: "green" },
+    { name: "Failed Runs", value: (failedRuns).toLocaleString(), color: "red" },
+    { name: "Last Triggered", value: workflowStats?.lastTriggered ? new Date(workflowStats.lastTriggered).toLocaleString() : 'Never', color: "gray" },
+  ];
 
-  // Use real funnel data instead of hardcoded assumptions
-  const renderFunnelChart = () => {
-    if (!funnelData || !funnelData.steps || funnelData.steps.length === 0) {
-      // Extract actual step names from workflow configuration
-      const getStepNames = () => {
-        if (!workflow || !workflow.nodes || !Array.isArray(workflow.nodes)) {
-          return ['Workflow Triggered', 'First Action', 'Condition Check', 'Final Action'];
-        }
 
-        const stepNames: string[] = [];
-        
-        // Add trigger node name
-        const triggerNode = workflow.nodes.find((node: any) => node.data?.type === 'Trigger');
-        if (triggerNode) {
-          stepNames.push(triggerNode.data?.title || 'Workflow Triggered');
-        }
-
-        // Add action node names in order
-        const actionNodes = workflow.nodes
-          .filter((node: any) => node.data?.type === 'Action')
-          .sort((a: any, b: any) => (a.position?.x || 0) - (b.position?.x || 0));
-        
-        actionNodes.forEach((node: any) => {
-          stepNames.push(node.data?.title || 'Action');
-        });
-
-        // Add condition node names if they exist
-        const conditionNodes = workflow.nodes
-          .filter((node: any) => node.data?.type === 'Condition')
-          .sort((a: any, b: any) => (a.position?.x || 0) - (b.position?.x || 0));
-        
-        conditionNodes.forEach((node: any) => {
-          stepNames.push(node.data?.title || 'Condition');
-        });
-
-        // If no steps found, use defaults
-        if (stepNames.length === 0) {
-          return ['Workflow Triggered', 'First Action', 'Condition Check', 'Final Action'];
-        }
-
-        return stepNames;
-      };
-
-      const stepNames = getStepNames();
-      
-      // Create funnel steps with actual names
-      const steps = computeFallbackFunnelSteps(stepNames);
-
-      return (
-        <FunnelChart
-          title={`${workflow.name} - Conversion Journey`}
-          steps={steps}
-          totalVisitors={overallTriggers}
-        />
-      );
-    }
-
-    // Use real funnel data with actual step names - convert FunnelStep to FunnelChart format
-    return (
-      <FunnelChart
-        title={`${workflow.name} - Conversion Journey`}
-        steps={(() => {
-          const safeSteps = funnelData.steps.map((step, idx) => ({
-            name: step.name,
-            count: step.count,
-            conversionRate: typeof step.conversionRate === 'string' ? parseFloat(step.conversionRate.replace('%', '')) : Number(step.conversionRate) || 0,
-            dropOff: step.dropOff
-          }));
-          // Ensure dropOff is computed as percentage from previous step if missing or inconsistent
-          for (let i = 1; i < safeSteps.length; i++) {
-            const prev = safeSteps[i - 1];
-            const curr = safeSteps[i];
-            const expectedDrop = prev.count > 0 ? ((prev.count - curr.count) / prev.count) * 100 : 0;
-            if (typeof curr.dropOff !== 'number' || !isFinite(curr.dropOff)) {
-              curr.dropOff = expectedDrop;
-            }
-          }
-          return safeSteps;
-        })()}
-        totalVisitors={funnelData.totalVisitors}
-      />
-    );
-  };
 
   const getBasePath = () => isDemo ? '/demo' : `/websites/${siteId}`;
 
@@ -411,92 +317,219 @@ export function WorkflowDetail({
         </div>
       </header>
 
-      <Card className="bg-card shadow-sm">
-        <CardHeader>
-            <CardTitle>Performance Overview</CardTitle>
-            <CardDescription>Live metrics for this workflow.</CardDescription>
+      {/* Main Performance Overview */}
+      <Card className="bg-gradient-to-br from-card to-card/50 shadow-lg border-0">
+        <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold">Performance Overview</CardTitle>
+            <CardDescription>Real-time analytics and performance metrics</CardDescription>
         </CardHeader>
         <CardContent>
             {isLoadingStats && !isDemo ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading analytics...</span>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-base text-muted-foreground">Loading analytics...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {Array.isArray(stats) ? stats.map((stat) => (
-                      <div key={stat.name} className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50">
-                          <div className="p-3 bg-primary/10 rounded-lg">
-                               <stat.icon className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
+              <div className="space-y-6">
+                {/* Primary Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {stats.map((stat) => (
+                        <div key={stat.name} className={`relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-${stat.color}-50 to-${stat.color}-100 dark:from-${stat.color}-950/20 dark:to-${stat.color}-900/20 border border-${stat.color}-200 dark:border-${stat.color}-800`}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className={`text-sm font-medium text-${stat.color}-700 dark:text-${stat.color}-300`}>{stat.name}</p>
+                                    <p className={`text-2xl font-bold text-${stat.color}-900 dark:text-${stat.color}-100 mt-1`}>{stat.value}</p>
+                                </div>
+                                <div className={`p-3 bg-${stat.color}-200 dark:bg-${stat.color}-800 rounded-lg`}>
+                                    <stat.icon className={`h-6 w-6 text-${stat.color}-700 dark:text-${stat.color}-300`} />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Additional Stats */}
+                {!isDemo && workflowStats && (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {additionalStats.map((stat) => (
+                          <div key={stat.name} className="p-4 rounded-lg bg-secondary/30 border border-border/50">
                               <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
-                              <p className="text-2xl font-bold">{stat.value}</p>
+                              <p className={`text-lg font-semibold mt-1 text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
                           </div>
-                      </div>
-                  )) : null}
+                      ))}
+                  </div>
+                )}
+
+                {/* Insights */}
+                {!isDemo && workflowStats?.insights && workflowStats.insights.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Insights</h4>
+                    <div className="space-y-2">
+                      {workflowStats.insights.map((insight, index) => (
+                        <div key={index} className={`p-4 rounded-lg border-l-4 ${
+                          insight.type === 'success' ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500 text-green-800 dark:text-green-200' :
+                          insight.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-l-yellow-500 text-yellow-800 dark:text-yellow-200' :
+                          insight.type === 'error' ? 'bg-red-50 dark:bg-red-950/20 border-l-red-500 text-red-800 dark:text-red-200' :
+                          'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500 text-blue-800 dark:text-blue-200'
+                        }`}>
+                          <p className="text-sm font-medium">{insight.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
         </CardContent>
       </Card>
 
-
-
-      {/* Node Performance Analytics */}
-      {!isDemo && nodeStats.length > 0 && (
-        <Card className="mb-8">
+      {/* Node Type Summary */}
+      {!isDemo && workflowStats?.nodeTypeSummary && (
+        <Card className="bg-card shadow-sm">
           <CardHeader>
-            <CardTitle>Node Performance Analytics</CardTitle>
+            <CardTitle className="text-lg font-semibold">Node Type Performance</CardTitle>
+            <CardDescription>Summary of performance by node type</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Triggers */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100">Triggers</h4>
+                  <Target className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-blue-700 dark:text-blue-300">Count:</span>
+                    <span className="font-medium text-blue-900 dark:text-blue-100">{workflowStats.nodeTypeSummary.triggers.count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-blue-700 dark:text-blue-300">Executions:</span>
+                    <span className="font-medium text-blue-900 dark:text-blue-100">{workflowStats.nodeTypeSummary.triggers.executions}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conditions */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-purple-900 dark:text-purple-100">Conditions</h4>
+                  <Activity className="h-5 w-5 text-purple-600" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-purple-700 dark:text-purple-300">Count:</span>
+                    <span className="font-medium text-purple-900 dark:text-purple-100">{workflowStats.nodeTypeSummary.conditions.count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-purple-700 dark:text-purple-300">Passed:</span>
+                    <span className="font-medium text-green-600">{workflowStats.nodeTypeSummary.conditions.passed}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-purple-700 dark:text-purple-300">Failed:</span>
+                    <span className="font-medium text-red-600">{workflowStats.nodeTypeSummary.conditions.failed}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-green-900 dark:text-green-100">Actions</h4>
+                  <CircleCheckBig className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-700 dark:text-green-300">Count:</span>
+                    <span className="font-medium text-green-900 dark:text-green-100">{workflowStats.nodeTypeSummary.actions.count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-700 dark:text-green-300">Completions:</span>
+                    <span className="font-medium text-green-600">{workflowStats.nodeTypeSummary.actions.completions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-700 dark:text-green-300">Failures:</span>
+                    <span className="font-medium text-red-600">{workflowStats.nodeTypeSummary.actions.failures}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-700 dark:text-green-300">Skipped:</span>
+                    <span className="font-medium text-yellow-600">{workflowStats.nodeTypeSummary.actions.skipped}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
+
+      {/* Individual Node Performance */}
+      {!isDemo && workflowStats?.nodeStats && Object.keys(workflowStats.nodeStats).length > 0 && (
+        <Card className="bg-card shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Individual Node Performance</CardTitle>
             <CardDescription>Detailed performance metrics for each workflow node</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {nodeStats.map((node) => (
-                <div key={node.nodeTitle} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
+            <div className="gap-6 grid grid-cols-1 md:grid-cols-3">
+              {Object.entries(workflowStats.nodeStats).map(([nodeId, node]) => (
+                <div key={nodeId} className="border border-border/50 rounded-xl p-6 bg-gradient-to-r from-card to-card/50">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="font-medium">{node.nodeTitle}</h4>
-                      <p className="text-sm text-muted-foreground capitalize">{node.nodeType}</p>
+                      <h4 className="font-semibold text-lg">{node.nodeTitle}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {node.nodeType}
+                        </Badge>
+                        {node.successRate && (
+                          <Badge variant="outline" className={`text-xs ${
+                            parseFloat(node.successRate.replace('%', '')) >= 90 ? 'border-green-500 text-green-700' :
+                            parseFloat(node.successRate.replace('%', '')) >= 70 ? 'border-yellow-500 text-yellow-700' :
+                            'border-red-500 text-red-700'
+                          }`}>
+                            {node.successRate} success rate
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {node.successRate || '0%'} success rate
-                    </Badge>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  
+                  <div className="grid ">
                     {node.triggers !== undefined && (
-                      <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                        <div className="text-lg font-semibold text-blue-600">{node.triggers}</div>
-                        <div className="text-xs text-muted-foreground">Triggers</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{node.triggers}</div>
+                        <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Triggers</div>
                       </div>
                     )}
                     {node.completions !== undefined && (
-                      <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
-                        <div className="text-lg font-semibold text-green-600">{node.completions}</div>
-                        <div className="text-xs text-muted-foreground">Completions</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="text-xl font-bold text-green-700 dark:text-green-300">{node.completions}</div>
+                        <div className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">Completions</div>
                       </div>
                     )}
                     {node.failures !== undefined && (
-                      <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
-                        <div className="text-lg font-semibold text-red-600">{node.failures}</div>
-                        <div className="text-xs text-muted-foreground">Failures</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                        <div className="text-xl font-bold text-red-700 dark:text-red-300">{node.failures}</div>
+                        <div className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">Failures</div>
                       </div>
                     )}
                     {node.skipped !== undefined && (
-                      <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
-                        <div className="text-lg font-semibold text-yellow-600">{node.skipped}</div>
-                        <div className="text-xs text-muted-foreground">Skipped</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <div className="text-xl font-bold text-yellow-700 dark:text-yellow-300">{node.skipped}</div>
+                        <div className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mt-1">Skipped</div>
                       </div>
                     )}
                     {node.conditionsPassed !== undefined && (
-                      <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
-                        <div className="text-lg font-semibold text-green-600">{node.conditionsPassed}</div>
-                        <div className="text-xs text-muted-foreground">Passed</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{node.conditionsPassed}</div>
+                        <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1">Passed</div>
                       </div>
                     )}
                     {node.conditionsFailed !== undefined && (
-                      <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
-                        <div className="text-lg font-semibold text-red-600">{node.conditionsFailed}</div>
-                        <div className="text-xs text-muted-foreground">Failed</div>
+                      <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                        <div className="text-xl font-bold text-red-700 dark:text-red-300">{node.conditionsFailed}</div>
+                        <div className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">Failed</div>
                       </div>
                     )}
                   </div>
@@ -646,176 +679,7 @@ export function WorkflowDetail({
         </Card>
       )}
 
-      {/* Funnel Analytics - Show conversion funnels for this workflow */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {renderFunnelChart()}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance Analytics</CardTitle>
-            <CardDescription>Real-time conversion metrics and actionable insights for {workflow.name}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="text-2xl font-bold text-green-600">
-                    {funnelData && funnelData.steps && funnelData.steps.length > 0 ? 
-                      (() => {
-                        const lastStep = funnelData.steps[funnelData.steps.length - 1];
-                        return lastStep ? parseFloat(lastStep.conversionRate.replace('%', '')).toFixed(1) : '0.0';
-                      })()
-                      : completionRateValue.toFixed(1)
-                    }%
-                  </div>
-                  <div className="text-sm text-muted-foreground">Overall Conversion Rate</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {funnelData && funnelData.steps && funnelData.steps.length > 0 ? 
-                      (() => {
-                        const lastStep = funnelData.steps[funnelData.steps.length - 1];
-                        return lastStep ? lastStep.count.toLocaleString() : '0';
-                      })()
-                      : overallCompletions.toLocaleString()
-                    }
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Completions</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-blue-800">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {funnelData && funnelData.steps && funnelData.steps.length > 0 ? 
-                      funnelData.totalVisitors.toLocaleString()
-                      : overallTriggers.toLocaleString()
-                    }
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Visitors</div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {funnelData && funnelData.steps && funnelData.steps.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between p-3 rounded border">
-                      <span className="text-sm font-medium">Top Performing Step</span>
-                      <span className="text-sm font-semibold">
-                        {(() => {
-                          const bestStep = funnelData.steps.reduce((best, current) => 
-                            parseFloat(current.conversionRate.replace('%', '')) > parseFloat(best.conversionRate.replace('%', '')) ? current : best
-                          );
-                          return `${bestStep.name} (${parseFloat(bestStep.conversionRate.replace('%', '')).toFixed(1)}%)`;
-                        })()}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 rounded border">
-                      <span className="text-sm font-medium">Biggest Drop-off</span>
-                      <span className="text-sm font-semibold">
-                        {(() => {
-                          const biggestDropOff = funnelData.steps.reduce((biggest, current, index) => {
-                            if (index === 0) return biggest;
-                            const dropOff = Math.abs(current.dropOff);
-                            return dropOff > Math.abs(biggest.dropOff) ? current : biggest;
-                          });
-                          return biggestDropOff ? `${biggestDropOff.name} (${Math.abs(biggestDropOff.dropOff).toFixed(1)}%)` : 'N/A';
-                        })()}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 rounded border">
-                      <span className="text-sm font-medium">Optimization Potential</span>
-                      <span className="text-sm font-semibold">
-                        {(() => {
-                          const firstStep = funnelData.steps[0];
-                          const lastStep = funnelData.steps[funnelData.steps.length - 1];
-                          if (firstStep && lastStep) {
-                            return (100 - parseFloat(lastStep.conversionRate.replace('%', ''))).toFixed(1);
-                          }
-                          return '0.0';
-                        })()}%
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {(() => {
-                      const names = getWorkflowStepNames();
-                      const orderedNames = [names.trigger, names.firstAction, names.condition, names.finalAction].filter(Boolean);
-                      const steps = computeFallbackFunnelSteps(orderedNames);
-                      const best = steps.reduce((acc, s) => (s.conversionRate > (acc?.conversionRate ?? -Infinity) ? s : acc), steps[0]);
-                      let biggest = null as null | typeof steps[number];
-                      for (let i = 1; i < steps.length; i++) {
-                        if (!biggest || steps[i].dropOff > biggest.dropOff) biggest = steps[i];
-                      }
-                      const last = steps[steps.length - 1];
-                      return (
-                        <>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                              <span className="text-sm font-medium">Best Performing Step</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">{`${best?.name ?? 'N/A'} (${(best?.conversionRate ?? 0).toFixed(1)}%)`}</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                              <span className="text-sm font-medium">Biggest Drop-off</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">{biggest ? `${biggest.name} (${biggest.dropOff.toFixed(1)}%)` : 'N/A'}</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                              <span className="text-sm font-medium">Improvement Potential</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">{(100 - (last?.conversionRate ?? completionRateValue)).toFixed(1)}%</span>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
-              </div>
-
-              {/* Optimization Tip */}
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100">Optimization Tip</h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      {funnelData && funnelData.steps && funnelData.steps.length > 0 ? (
-                        (() => {
-                          const lastStep = funnelData.steps[funnelData.steps.length - 1];
-                          const successRate = lastStep ? parseFloat(lastStep.conversionRate.replace('%', '')) : 0;
-                          
-                          if (successRate < 50) {
-                            return "Your workflow has significant drop-off. Consider simplifying the logic or adding fallback paths.";
-                          } else if (successRate < 75) {
-                            return "Good performance! Focus on optimizing the steps with highest drop-off to improve completion rates.";
-                          } else {
-                            return "Excellent performance! Your workflow is well-optimized with minimal drop-off.";
-                          }
-                        })()
-                      ) : (
-                        completionRateValue < 50 
-                          ? "Your workflow has significant drop-off. Consider simplifying the logic or adding fallback paths."
-                          : completionRateValue < 75
-                          ? "Good performance! Focus on optimizing the steps with highest drop-off to improve completion rates."
-                          : "Excellent performance! Your workflow is well-optimized with minimal drop-off."
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Workflow Preview */}
       <Card className="mb-8">

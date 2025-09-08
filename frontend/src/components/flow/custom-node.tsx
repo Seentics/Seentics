@@ -22,7 +22,10 @@ export type NodeSettings = {
   inactivitySeconds?: number;
 
   // Condition Settings
-  deviceType?: 'Desktop' | 'Mobile';
+  deviceType?: 'Desktop' | 'Mobile' | 'Tablet' | 'Any';
+  minScreenWidth?: number;
+  maxScreenWidth?: number;
+  touchSupport?: 'touch' | 'no-touch';
   browser?: 'chrome' | 'firefox' | 'safari' | 'edge' | 'other';
   referrerUrl?: string;
   referrerMatchType?: 'exact' | 'contains' | 'startsWith' | 'endsWith';
