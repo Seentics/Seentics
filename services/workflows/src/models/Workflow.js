@@ -49,6 +49,33 @@ const workflowSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   nodes: [nodeSchema],
   edges: [edgeSchema],
+  
+  // Workflow-level analytics counters
+  analytics: {
+    totalTriggers: { type: Number, default: 0 },
+    totalCompletions: { type: Number, default: 0 },
+    totalRuns: { type: Number, default: 0 },
+    successfulRuns: { type: Number, default: 0 },
+    failedRuns: { type: Number, default: 0 },
+    averageCompletionTime: { type: Number, default: 0 }, // in milliseconds
+    lastTriggered: { type: Date },
+    
+    // Node-wise counters
+    nodeStats: {
+      type: Map,
+      of: {
+        triggers: { type: Number, default: 0 },
+        completions: { type: Number, default: 0 },
+        failures: { type: Number, default: 0 },
+        skipped: { type: Number, default: 0 },
+        conditionsPassed: { type: Number, default: 0 },
+        conditionsFailed: { type: Number, default: 0 }
+      },
+      default: new Map()
+    }
+  },
+  
+  // Legacy fields for backward compatibility
   totalTriggers: { type: Number, default: 0 },
   totalCompletions: { type: Number, default: 0 },
   completionRate: { type: String, default: '0.0%' }

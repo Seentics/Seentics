@@ -32,6 +32,7 @@ type PaletteNode = Omit<CustomNodeData, 'settings' | 'subtitle'> & {
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
 };
 
+// MVP Node Types - Simplified for essential features only
 const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: LucideIcon; color: string; description: string }[] = [
   {
     name: 'Triggers',
@@ -49,6 +50,24 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
+        name: 'Element Click', 
+        iconName: 'CheckSquare', 
+        type: 'Trigger', 
+        color: 'hsl(var(--chart-1))',
+        description: 'Triggers when a specific element is clicked',
+        isPopular: true,
+        difficulty: 'Beginner'
+      },
+      { 
+        name: 'Funnel', 
+        iconName: 'BarChart3', 
+        type: 'Trigger', 
+        color: 'hsl(var(--chart-1))',
+        description: 'Triggers when specific funnel events occur',
+        difficulty: 'Intermediate',
+        isPopular: true
+      },
+      { 
         name: 'Time Spent', 
         iconName: 'Clock', 
         type: 'Trigger', 
@@ -57,55 +76,11 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
-        name: 'Funnel', 
-        iconName: 'BarChart3', 
-        type: 'Trigger', 
-        color: 'hsl(var(--chart-1))',
-        description: 'Triggers workflows ONLY when specific funnel events occur (dropoff, conversion, milestone, etc.)',
-        difficulty: 'Intermediate',
-        isNew: true,
-        isPopular: true
-      },
-      { 
-        name: 'Scroll Depth', 
-        iconName: 'ArrowDownToLine', 
-        type: 'Trigger', 
-        color: 'hsl(var(--chart-1))',
-        description: 'Triggers when visitor scrolls to a certain point',
-        isPopular: true,
-        difficulty: 'Beginner'
-      },
-      { 
         name: 'Exit Intent', 
         iconName: 'MousePointer', 
         type: 'Trigger', 
         color: 'hsl(var(--chart-1))',
         description: 'Triggers when visitor moves mouse to leave',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Element Click', 
-        iconName: 'CheckSquare', 
-        type: 'Trigger', 
-        color: 'hsl(var(--chart-1))',
-        description: 'Triggers when a specific element is clicked',
-        isPopular: true,
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Custom Event', 
-        iconName: 'Zap', 
-        type: 'Trigger', 
-        color: 'hsl(var(--chart-1))',
-        description: 'Triggers on custom events from your code',
-        difficulty: 'Advanced'
-      },
-      { 
-        name: 'Inactivity', 
-        iconName: 'Timer', 
-        type: 'Trigger', 
-        color: 'hsl(var(--chart-1))',
-        description: 'Triggers after no user activity for N seconds',
         difficulty: 'Intermediate'
       },
     ],
@@ -126,22 +101,6 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
-        name: 'Device Type', 
-        iconName: 'Smartphone', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Checks if visitor is on mobile or desktop',
-        difficulty: 'Beginner'
-      },
-      { 
-        name: 'Browser', 
-        iconName: 'Globe', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Checks visitor\'s browser type',
-        difficulty: 'Beginner'
-      },
-      { 
         name: 'Traffic Source', 
         iconName: 'Filter', 
         type: 'Condition', 
@@ -158,62 +117,13 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
-        name: 'Tag', 
-        iconName: 'Tag', 
+        name: 'Device', 
+        iconName: 'Smartphone', 
         type: 'Condition', 
         color: 'hsl(var(--chart-2))',
-        description: 'Checks if visitor has a specific tag',
+        description: 'Checks visitor device type (mobile/desktop)',
         difficulty: 'Beginner'
       },
-      { 
-        name: 'Frequency Cap', 
-        iconName: 'AlarmClock', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Prevent firing more than once within a cooldown',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'A/B Split', 
-        iconName: 'Split', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Randomly split traffic into variants',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Branch Split', 
-        iconName: 'GitBranch', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Split into A/B/C with ratios and labels',
-        difficulty: 'Advanced'
-      },
-      { 
-        name: 'Join', 
-        iconName: 'GitMerge', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Wait for all inbound branches before continuing',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Time Window', 
-        iconName: 'CalendarClock', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Only run during certain hours/days',
-        difficulty: 'Beginner'
-      },
-      { 
-        name: 'Query Param', 
-        iconName: 'ListFilter', 
-        type: 'Condition', 
-        color: 'hsl(var(--chart-2))',
-        description: 'Match URL query parameters',
-        difficulty: 'Beginner'
-      },
-      
     ],
   },
   {
@@ -240,45 +150,11 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
-        name: 'Insert Section', 
-        iconName: 'LayoutTemplate', 
-        type: 'Action', 
-        color: 'hsl(var(--chart-4))',
-        description: 'Inserts custom HTML into the page',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Redirect URL', 
-        iconName: 'Link2', 
-        type: 'Action', 
-        color: 'hsl(var(--chart-4))',
-        description: 'Redirects visitor to another page',
-        difficulty: 'Beginner'
-      },
-      { 
         name: 'Track Event', 
         iconName: 'BarChart2', 
         type: 'Action', 
         color: 'hsl(var(--chart-4))',
         description: 'Sends analytics event to your dashboard',
-        difficulty: 'Beginner'
-      },
-      { 
-        name: 'Send Email', 
-        iconName: 'Send', 
-        type: 'Action', 
-        color: 'hsl(var(--chart-4))', 
-        isServerAction: true,
-        description: 'Sends an email to visitor or your team',
-        difficulty: 'Intermediate'
-      },
-      { 
-        name: 'Add/Remove Tag', 
-        iconName: 'Tags', 
-        type: 'Action', 
-        color: 'hsl(var(--chart-4))', 
-        isServerAction: true,
-        description: 'Adds or removes tags from the visitor',
         difficulty: 'Beginner'
       },
       { 
@@ -288,14 +164,14 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         color: 'hsl(var(--chart-4))', 
         isServerAction: true,
         description: 'Sends data to your external service',
-        difficulty: 'Advanced'
+        difficulty: 'Intermediate'
       },
       { 
-        name: 'Wait', 
-        iconName: 'Hourglass', 
+        name: 'Redirect URL', 
+        iconName: 'Link2', 
         type: 'Action', 
-        color: 'hsl(var(--chart-4))', 
-        description: 'Pause the flow for N seconds',
+        color: 'hsl(var(--chart-4))',
+        description: 'Redirects visitor to another page',
         difficulty: 'Beginner'
       },
     ],

@@ -17,6 +17,45 @@ export type Workflow = {
   createdAt: string;
   nodes: Node<CustomNodeData>[];
   edges: Edge[];
+  analytics?: WorkflowAnalytics;
+};
+
+export type WorkflowAnalytics = {
+  totalTriggers: number;
+  totalCompletions: number;
+  totalRuns: number;
+  successfulRuns: number;
+  failedRuns: number;
+  conversionRate: string;
+  successRate: string;
+  lastTriggered?: string;
+  nodeStats: Record<string, NodeStats>;
+  nodeTypeSummary: NodeTypeSummary;
+  insights: AnalyticsInsight[];
+};
+
+export type NodeStats = {
+  triggers?: number;
+  completions?: number;
+  failures?: number;
+  skipped?: number;
+  conditionsPassed?: number;
+  conditionsFailed?: number;
+  nodeTitle: string;
+  nodeType: string;
+  totalExecutions?: number;
+  successRate?: string;
+};
+
+export type NodeTypeSummary = {
+  triggers: { count: number; executions: number };
+  conditions: { count: number; passed: number; failed: number };
+  actions: { count: number; completions: number; failures: number; skipped: number };
+};
+
+export type AnalyticsInsight = {
+  type: 'success' | 'info' | 'warning' | 'error';
+  message: string;
 };
 
 export type ActivityLog = {
@@ -289,6 +328,38 @@ export async function updateWorkflowStatus(id: string, status: 'Active' | 'Pause
   }
 }
 
+// New aggregated analytics API
+export async function getWorkflowStats(workflowId: string): Promise<WorkflowAnalytics> {
+  try {
+    const res: any = await api.get(`/workflows/${workflowId}/stats`);
+    return res?.data || {};
+  } catch (error) {
+    console.error(`Error fetching workflow stats for ${workflowId}:`, error);
+    throw error;
+  }
+}
+
+export async function getWorkflowNodeStats(workflowId: string): Promise<NodeStats[]> {
+  try {
+    const res: any = await api.get(`/workflows/${workflowId}/stats/nodes`);
+    return res?.data || [];
+  } catch (error) {
+    console.error(`Error fetching node stats for ${workflowId}:`, error);
+    throw error;
+  }
+}
+
+export async function getWorkflowsSummary(siteId: string): Promise<any> {
+  try {
+    const res: any = await api.get(`/workflows/stats/summary?siteId=${siteId}`);
+    return res?.data || {};
+  } catch (error) {
+    console.error(`Error fetching workflows summary for site ${siteId}:`, error);
+    throw error;
+  }
+}
+
+// Legacy activity API (still available)
 export async function getWorkflowActivity(workflowId: string): Promise<ActivityLog[]> {
   try {
     const res: any = await api.get(`/workflows/analytics/workflow/${workflowId}/activity`);

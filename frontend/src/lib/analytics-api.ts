@@ -1057,10 +1057,53 @@ export async function getFunnelAnalytics(funnelId: string, dateRange: number = 7
     const response = await api.get(`/funnels/${funnelId}/analytics`, {
       params: { days: dateRange }
     });
-    return response.data;
+    
+    // Handle different response formats from the analytics service
+    if (response.data && typeof response.data === 'object') {
+      // If the response has a 'data' wrapper, unwrap it
+      if ('data' in response.data) {
+        return response.data.data;
+      }
+      // If it's a direct analytics object, return it
+      return response.data;
+    }
+    
+    // Return empty analytics if no valid data
+    return {
+      status: 'success',
+      analytics: [{
+        funnel_id: funnelId,
+        website_id: '',
+        date: new Date().toISOString().split('T')[0],
+        total_starts: 0,
+        total_conversions: 0,
+        conversion_rate: 0,
+        avg_value: 0,
+        total_value: 0,
+        drop_off_rate: 100,
+        abandonment_rate: 100
+      }],
+      count: 0
+    };
   } catch (error) {
-    // Return empty analytics if API fails - no demo data
-    throw error;
+    console.warn(`Failed to fetch funnel analytics for ${funnelId}:`, error);
+    // Return empty analytics structure instead of throwing
+    return {
+      status: 'error',
+      analytics: [{
+        funnel_id: funnelId,
+        website_id: '',
+        date: new Date().toISOString().split('T')[0],
+        total_starts: 0,
+        total_conversions: 0,
+        conversion_rate: 0,
+        avg_value: 0,
+        total_value: 0,
+        drop_off_rate: 100,
+        abandonment_rate: 100
+      }],
+      count: 0
+    };
   }
 }
 

@@ -6,38 +6,25 @@
 
 Seentics is an open-source, microservices-based platform for creating intelligent, automated workflows that respond to user behavior in real-time. It combines a visual workflow builder, high-performance analytics, and scalable automation capabilities.
 
-## 🌟 **Core Features**
+## 🌟 **MVP Features**
 
-### 🎯 **Visual Workflow Builder**
+### 🎯 **Simple Workflow Builder**
 - **Drag-and-Drop Interface**: Intuitive node-based workflow creation
-- **Smart Triggers**: Page views, clicks, scroll depth, exit intent, custom events
-- **Conditional Logic**: Advanced filtering and user behavior conditions
-- **Action Library**: Modals, notifications, emails, webhooks, redirects
+- **Essential Triggers**: Page views, element clicks, funnel events, time spent, exit intent
+- **Basic Conditions**: URL path, traffic source, new vs returning visitors, device type
+- **Core Actions**: Show modals, show banners, track events, webhooks, URL redirects
 - **Real-time Preview**: See workflow structure as you build
-- **Version Control**: Track changes and rollback to previous versions
 
-### 📊 **Advanced Analytics Engine**
-- **Real-time Tracking**: Live visitor monitoring and activity feeds
-- **Behavior Analytics**: Page views, session duration, bounce rates
-- **Conversion Funnels**: Multi-step conversion path analysis
-- **Geographic Insights**: Country and region-based analytics
-- **Device Analytics**: Browser, OS, and device type tracking
-- **UTM Campaign Tracking**: Marketing campaign performance analysis
+### 📊 **Basic Analytics**
+- **Event Tracking**: Simple page views and custom event tracking
+- **Workflow Analytics**: Basic workflow performance metrics
+- **Visitor Tracking**: Anonymous visitor identification and session tracking
 
-### ⚡ **Real-time Automation**
-- **Instant Actions**: Sub-second response to user behavior
-- **Client-Side Actions**: Modals, notifications, content changes
-- **Server-Side Actions**: Emails, webhooks, API calls, SMS
-- **Smart Scheduling**: Time-based and event-driven automation
-- **A/B Testing**: Test different action variations
-- **Rate Limiting**: Prevent action spam and abuse
-
-### 🚀 **Performance & Scalability**
-- **High Throughput**: 10,000+ events/second processing
-- **Time-series Optimization**: TimescaleDB for fast analytics queries
-- **Continuous Aggregates**: Pre-computed metrics for instant dashboards
-- **Connection Pooling**: Optimized database connections
-- **Horizontal Scaling**: Stateless services for easy scaling
+### ⚡ **Essential Automation**
+- **Instant Actions**: Fast response to user behavior triggers
+- **Client-Side Actions**: Modals, banners, redirects
+- **Server-Side Actions**: Webhooks, event tracking
+- **Simple Execution**: Streamlined workflow processing
 
 ## 🏗️ **System Architecture**
 

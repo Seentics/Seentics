@@ -48,31 +48,49 @@ func (r *CustomEventsAggregatedRepository) UpsertCustomEvent(ctx context.Context
 		}
 	}
 
-	// Use UPSERT (INSERT ... ON CONFLICT ... DO UPDATE)
-	query := `
-		INSERT INTO custom_events_aggregated (
-			website_id, event_type, event_signature, count, sample_properties, 
-			first_seen, last_seen, created_at, updated_at
-		) VALUES ($1, $2, $3, 1, $4, $5, $5, $5, $5)
-		ON CONFLICT (website_id, event_signature) 
-		DO UPDATE SET 
-			count = custom_events_aggregated.count + 1,
-			last_seen = $5,
-			updated_at = $5,
-			sample_properties = CASE 
-				WHEN custom_events_aggregated.last_seen < $5 THEN $4
-				ELSE custom_events_aggregated.sample_properties
-			END
+	// Use a different approach for TimescaleDB - check if exists and update or insert
+	// First, try to find existing record within recent time window
+	checkQuery := `
+		SELECT id, count, first_seen FROM custom_events_aggregated 
+		WHERE website_id = $1 AND event_signature = $2 
+		AND last_seen >= $3 - INTERVAL '1 hour'
+		ORDER BY last_seen DESC LIMIT 1
 	`
-
+	
 	now := time.Now()
-	_, err := r.db.Exec(ctx, query,
-		event.WebsiteID,
-		event.EventType,
-		signature,
-		propertiesJSON,
-		now,
-	)
+	var existingID string
+	var existingCount int
+	var firstSeen time.Time
+	
+	err := r.db.QueryRow(ctx, checkQuery, event.WebsiteID, signature, now).Scan(&existingID, &existingCount, &firstSeen)
+	
+	var query string
+	var args []interface{}
+	
+	if err != nil {
+		// No existing record found, insert new one
+		query = `
+			INSERT INTO custom_events_aggregated (
+				website_id, event_type, event_signature, count, sample_properties, 
+				first_seen, last_seen, created_at, updated_at
+			) VALUES ($1, $2, $3, 1, $4, $5, $5, $5, $5)
+		`
+		args = []interface{}{event.WebsiteID, event.EventType, signature, propertiesJSON, now}
+	} else {
+		// Update existing record
+		query = `
+			UPDATE custom_events_aggregated 
+			SET count = $3, last_seen = $4, updated_at = $4,
+				sample_properties = CASE 
+					WHEN last_seen < $4 THEN $5
+					ELSE sample_properties
+				END
+			WHERE id = $1 AND website_id = $2
+		`
+		args = []interface{}{existingID, event.WebsiteID, existingCount + 1, now, propertiesJSON}
+	}
+
+	_, err = r.db.Exec(ctx, query, args...)
 
 	if err != nil {
 		r.logger.Error().Err(err).

@@ -38,17 +38,11 @@
       const VISITOR_EXPIRY_MS = 2592000000; // 30 days
       const BATCH_DELAY = 100;
 
-      // Pre-compiled regex patterns
-      const UI_ELEMENT_REGEX = /tab|dropdown|menu|toggle|switch|accordion|modal|dialog|popover|tooltip|trigger|radix|shadcn|ui-|btn-|button-/i;
-      const CONVERSION_REGEX = /buy|purchase|order|checkout|signup|register|subscribe|download|get started|start trial|free trial|learn more|contact|demo|trial|submit|send|save|create|add|join|login|sign in/i;
-      const FILE_EXTENSION_REGEX = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|mp4|mp3|avi|mov|jpg|jpeg|png|gif|svg)$/i;
-
       // State variables
       let visitorId = getOrCreateId(VISITOR_ID_KEY, VISITOR_EXPIRY_MS);
       let sessionId = getOrCreateId(SESSION_ID_KEY, SESSION_EXPIRY_MS);
       let pageStartTime = performance.now();
       let pageviewSent = false;
-      let lastFormSubmitAt = 0;
       let currentUrl = loc.pathname;
       let cachedUTMParams = null;
       let lastUrlForUTM = '';
@@ -248,168 +242,9 @@
         }
       }
 
-      // --- Event Handlers ---
+      // --- Automatic event handlers removed - users can manually call seentics.track() ---
 
-      function handleClick(e) {
-        const element = e.target;
-        const now = Date.now();
-
-        if (element.tagName === 'BUTTON' || element.type === 'submit') {
-          handleButtonClick(element, now);
-        }
-
-        if (element.tagName === 'A' && element.href) {
-          handleLinkClick(element);
-        }
-      }
-
-      function handleButtonClick(element, now) {
-        const buttonText = (element.textContent?.trim() || element.value || 'Button').slice(0, 100);
-        const buttonId = element.id || 'no-id';
-        const buttonClass = element.className || 'no-class';
-
-        if (now - lastFormSubmitAt < 800) return;
-
-        if (UI_ELEMENT_REGEX.test(buttonClass) ||
-          UI_ELEMENT_REGEX.test(buttonId) ||
-          buttonText.length < 3 ||
-          /^[0-9]+$/.test(buttonText)) {
-          return;
-        }
-
-        const parentForm = element.closest('form');
-        if (parentForm && isMeaningfulForm(parentForm)) return;
-
-        if (CONVERSION_REGEX.test(buttonText)) {
-          trackCustomEvent('conversion_click', {
-            element_type: 'button',
-            element_text: buttonText,
-            element_id: buttonId,
-            element_class: buttonClass,
-            page: loc.pathname,
-            page_url: loc.href
-          });
-        }
-      }
-
-      function handleLinkClick(element) {
-        const linkHref = element.href;
-        const isExternal = !linkHref.startsWith(loc.origin);
-
-        if (isExternal) {
-          trackCustomEvent('external_link_click', {
-            element_type: 'link',
-            element_text: (element.textContent?.trim() || 'Link').slice(0, 100),
-            element_href: linkHref,
-            element_id: element.id || 'no-id',
-            element_class: element.className || 'no-class',
-            page: loc.pathname,
-            page_url: loc.href
-          });
-        }
-
-        const hasDownloadAttr = element.hasAttribute('download');
-        const isFileDownload = FILE_EXTENSION_REGEX.test(linkHref.toLowerCase());
-
-        if (hasDownloadAttr || isFileDownload) {
-          const fileName = element.download || linkHref.split('/').pop() || 'file';
-          trackCustomEvent('file_download', {
-            file_name: fileName,
-            file_url: linkHref,
-            element_text: (element.textContent?.trim() || 'Download').slice(0, 100),
-            page: loc.pathname,
-            page_url: loc.href
-          });
-        }
-      }
-
-      function isMeaningfulForm(form) {
-        const method = (form.method || 'get').toLowerCase();
-        const fieldCount = form.querySelectorAll('input, textarea, select').length;
-        const isSearchForm = form.querySelector('input[type="search"], input[name*="search"], input[name*="query"]');
-        const hasTextarea = form.querySelector('textarea');
-        const hasEmailField = form.querySelector('input[type="email"], input[name*="email"]');
-        const hasMessageField = form.querySelector('input[name*="message"], textarea[name*="message"], input[placeholder*="message"], textarea[placeholder*="message"]');
-        const hasContactFields = hasEmailField || hasMessageField;
-
-        return (method === 'post' && fieldCount > 1 && !isSearchForm) ||
-          hasContactFields ||
-          (hasTextarea && !isSearchForm);
-      }
-
-      function handleFormSubmit(e) {
-        const form = e.target;
-        const searchInput = form.querySelector('input[type="search"], input[name*="search"], input[name*="query"]');
-
-        if (searchInput) {
-          const searchTerm = searchInput.value?.trim();
-          if (searchTerm && searchTerm.length > 2) {
-            trackCustomEvent('search_submitted', {
-              search_term: searchTerm.slice(0, 200),
-              form_id: form.id || 'no-id',
-              page: loc.pathname,
-              page_url: loc.href
-            });
-          }
-          return;
-        }
-
-        if (isMeaningfulForm(form)) {
-          lastFormSubmitAt = Date.now();
-
-          const hasEmailField = form.querySelector('input[type="email"], input[name*="email"]');
-          const hasMessageField = form.querySelector('input[name*="message"], textarea[name*="message"], input[placeholder*="message"], textarea[placeholder*="message"]');
-          const hasTextarea = form.querySelector('textarea');
-
-          let formType = 'form_submit';
-          if (hasEmailField || hasMessageField) {
-            formType = 'contact_form_submit';
-          } else if (hasTextarea) {
-            formType = 'message_form_submit';
-          }
-
-          trackCustomEvent(formType, {
-            form_action: form.action || 'no-action',
-            form_method: (form.method || 'get').toLowerCase(),
-            form_id: form.id || 'no-id',
-            form_class: form.className || 'no-class',
-            field_count: form.querySelectorAll('input, textarea, select').length,
-            has_email_field: !!hasEmailField,
-            has_message_field: !!hasMessageField,
-            has_textarea: !!hasTextarea,
-            page: loc.pathname,
-            page_url: loc.href
-          });
-        }
-      }
-
-      function handleVideoEvent(e, action) {
-        if (e.target.tagName === 'VIDEO') {
-          const video = e.target;
-          const eventData = {
-            action,
-            video_src: (video.src || 'no-src').slice(0, 200),
-            page: loc.pathname,
-            page_url: loc.href
-          };
-
-          if (action === 'play') {
-            eventData.video_duration = Math.round(video.duration) || 0;
-          } else {
-            eventData.video_current_time = Math.round(video.currentTime) || 0;
-          }
-
-          trackCustomEvent('video_interaction', eventData);
-        }
-      }
-
-      function setupAutomaticEventTracking() {
-        doc.addEventListener('click', handleClick, { passive: true });
-        doc.addEventListener('submit', handleFormSubmit);
-
-        doc.addEventListener('play', (e) => handleVideoEvent(e, 'play'), true);
-        doc.addEventListener('pause', (e) => handleVideoEvent(e, 'pause'), true);
-      }
+      // Removed automatic event tracking - users can manually call seentics.track()
 
       // --- Event Listeners ---
 
@@ -519,7 +354,6 @@
         }
 
         requestIdleCallback(() => sendPageview());
-        setupAutomaticEventTracking();
         setupEventListeners();
         requestIdleCallback(() => loadAdditionalTrackers());
 

@@ -51,7 +51,7 @@ logs/
 
 # Mongo & Postgres (TimescaleDB) dump files
 *.dump
-*.sql
+
 
 # Redis dump
 dump.rdb

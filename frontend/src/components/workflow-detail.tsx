@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { 
   type Workflow, 
   type WorkflowActivitySummary, 
   type WorkflowFunnelData,
-  workflowChartConfig
+  type WorkflowAnalytics,
+  type NodeStats,
+  workflowChartConfig,
+  getWorkflowStats,
+  getWorkflowNodeStats
 } from '@/lib/workflow-api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -74,6 +78,37 @@ export function WorkflowDetail({
 }: WorkflowDetailProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [workflowStats, setWorkflowStats] = useState<WorkflowAnalytics | null>(null);
+  const [nodeStats, setNodeStats] = useState<NodeStats[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Load aggregated analytics data
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (isDemo) return; // Skip API calls for demo mode
+      
+      try {
+        setIsLoadingStats(true);
+        const [stats, nodes] = await Promise.all([
+          getWorkflowStats(workflow.id),
+          getWorkflowNodeStats(workflow.id)
+        ]);
+        setWorkflowStats(stats);
+        setNodeStats(nodes);
+      } catch (error) {
+        console.error('Error loading workflow analytics:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load workflow analytics',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [workflow.id, isDemo, toast]);
 
   // Helper function to get actual workflow step names
   const getWorkflowStepNames = () => {
@@ -199,9 +234,12 @@ export function WorkflowDetail({
     }
   };
 
-  const overallTriggers = workflow.totalTriggers || 0;
-  const overallCompletions = workflow.totalCompletions || 0;
-  const completionRateValue = parseFloat(workflow.completionRate) || 0;
+  // Use aggregated analytics data or fallback to workflow properties for demo
+  const overallTriggers = isDemo ? (workflow.totalTriggers || 0) : (workflowStats?.totalTriggers || 0);
+  const overallCompletions = isDemo ? (workflow.totalCompletions || 0) : (workflowStats?.totalCompletions || 0);
+  const completionRateValue = isDemo 
+    ? (parseFloat(workflow.completionRate) || 0) 
+    : (workflowStats?.conversionRate ? parseFloat(workflowStats.conversionRate.replace('%', '')) : 0);
 
   const stats = [
     { name: "Status", value: workflow.status, icon: Activity },
@@ -379,23 +417,234 @@ export function WorkflowDetail({
             <CardDescription>Live metrics for this workflow.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {Array.isArray(stats) ? stats.map((stat) => (
-                    <div key={stat.name} className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50">
-                        <div className="p-3 bg-primary/10 rounded-lg">
-                             <stat.icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
-                            <p className="text-2xl font-bold">{stat.value}</p>
-                        </div>
-                    </div>
-                )) : null}
-            </div>
+            {isLoadingStats && !isDemo ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading analytics...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {Array.isArray(stats) ? stats.map((stat) => (
+                      <div key={stat.name} className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50">
+                          <div className="p-3 bg-primary/10 rounded-lg">
+                               <stat.icon className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                              <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
+                              <p className="text-2xl font-bold">{stat.value}</p>
+                          </div>
+                      </div>
+                  )) : null}
+              </div>
+            )}
         </CardContent>
       </Card>
 
 
+
+      {/* Node Performance Analytics */}
+      {!isDemo && nodeStats.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Node Performance Analytics</CardTitle>
+            <CardDescription>Detailed performance metrics for each workflow node</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {nodeStats.map((node) => (
+                <div key={node.nodeTitle} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-medium">{node.nodeTitle}</h4>
+                      <p className="text-sm text-muted-foreground capitalize">{node.nodeType}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {node.successRate || '0%'} success rate
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {node.triggers !== undefined && (
+                      <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                        <div className="text-lg font-semibold text-blue-600">{node.triggers}</div>
+                        <div className="text-xs text-muted-foreground">Triggers</div>
+                      </div>
+                    )}
+                    {node.completions !== undefined && (
+                      <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                        <div className="text-lg font-semibold text-green-600">{node.completions}</div>
+                        <div className="text-xs text-muted-foreground">Completions</div>
+                      </div>
+                    )}
+                    {node.failures !== undefined && (
+                      <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                        <div className="text-lg font-semibold text-red-600">{node.failures}</div>
+                        <div className="text-xs text-muted-foreground">Failures</div>
+                      </div>
+                    )}
+                    {node.skipped !== undefined && (
+                      <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
+                        <div className="text-lg font-semibold text-yellow-600">{node.skipped}</div>
+                        <div className="text-xs text-muted-foreground">Skipped</div>
+                      </div>
+                    )}
+                    {node.conditionsPassed !== undefined && (
+                      <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                        <div className="text-lg font-semibold text-green-600">{node.conditionsPassed}</div>
+                        <div className="text-xs text-muted-foreground">Passed</div>
+                      </div>
+                    )}
+                    {node.conditionsFailed !== undefined && (
+                      <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                        <div className="text-lg font-semibold text-red-600">{node.conditionsFailed}</div>
+                        <div className="text-xs text-muted-foreground">Failed</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Analytics Insights */}
+      {!isDemo && workflowStats?.insights && workflowStats.insights.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Analytics Insights</CardTitle>
+            <CardDescription>AI-powered recommendations based on workflow performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {workflowStats.insights.map((insight, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg border ${
+                    insight.type === 'success'
+                      ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+                      : insight.type === 'warning'
+                      ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800'
+                      : insight.type === 'error'
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
+                      : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-1 rounded ${
+                      insight.type === 'success'
+                        ? 'bg-green-100 dark:bg-green-900/30'
+                        : insight.type === 'warning'
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30'
+                        : insight.type === 'error'
+                        ? 'bg-red-100 dark:bg-red-900/30'
+                        : 'bg-blue-100 dark:bg-blue-900/30'
+                    }`}>
+                      {insight.type === 'success' && (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {insight.type === 'warning' && (
+                        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      )}
+                      {insight.type === 'error' && (
+                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                      {insight.type === 'info' && (
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    <p className={`text-sm ${
+                      insight.type === 'success'
+                        ? 'text-green-700 dark:text-green-300'
+                        : insight.type === 'warning'
+                        ? 'text-yellow-700 dark:text-yellow-300'
+                        : insight.type === 'error'
+                        ? 'text-red-700 dark:text-red-300'
+                        : 'text-blue-700 dark:text-blue-300'
+                    }`}>
+                      {insight.message}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Node Type Summary */}
+      {!isDemo && workflowStats?.nodeTypeSummary && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Node Type Summary</CardTitle>
+            <CardDescription>Performance breakdown by node type</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">Triggers</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-700 dark:text-blue-300">Total Nodes:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.triggers.count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-700 dark:text-blue-300">Executions:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.triggers.executions}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <h4 className="font-medium text-amber-900 dark:text-amber-100 mb-3">Conditions</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-700 dark:text-amber-300">Total Nodes:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.conditions.count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-700 dark:text-amber-300">Passed:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.conditions.passed}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-700 dark:text-amber-300">Failed:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.conditions.failed}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-lg border border-violet-200 dark:border-violet-800">
+                <h4 className="font-medium text-violet-900 dark:text-violet-100 mb-3">Actions</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-violet-700 dark:text-violet-300">Total Nodes:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.actions.count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-violet-700 dark:text-violet-300">Completions:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.actions.completions}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-violet-700 dark:text-violet-300">Failures:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.actions.failures}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-violet-700 dark:text-violet-300">Skipped:</span>
+                    <span className="font-medium">{workflowStats.nodeTypeSummary.actions.skipped}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Funnel Analytics - Show conversion funnels for this workflow */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

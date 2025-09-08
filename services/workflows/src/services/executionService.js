@@ -69,25 +69,17 @@ export class ExecutionService {
     const { title, settings } = node.data;
     const { workflowId, siteId, visitorId, identifiedUser, localStorageData } = context;
     
+    // MVP Actions Only - Simplified execution
     switch (title) {
-      case 'Send Email':
-        return await this.sendEmail(settings, context);
-      
       case 'Webhook':
         return await this.sendWebhook(settings, context);
       
-      case 'Add Tag':
-        return await this.addTag(settings, context);
-      
-      case 'Remove Tag':
-        return await this.removeTag(settings, context);
-      
-      case 'Custom Code':
-        return await this.executeCustomCode(settings, context);
+      case 'Track Event':
+        return await this.trackEvent(settings, context);
       
       default:
-        logger.warn(`Unknown server action: ${title}`);
-        return { success: false, error: 'Unknown action type' };
+        logger.warn(`Unknown or unsupported server action: ${title}`);
+        return { success: false, error: 'Action not supported in MVP' };
     }
   }
 
@@ -144,61 +136,25 @@ export class ExecutionService {
     }
   }
 
-  async sendEmail(settings, context) {
+  // MVP Action: Track Event
+  async trackEvent(settings, context) {
     try {
-      const { emailTo, emailSubject, emailBody } = settings;
-      const { identifiedUser, localStorageData } = context;
+      const { eventName, eventData } = settings;
+      const { siteId, visitorId } = context;
       
-      // Replace placeholders in email content
-      const processedSubject = this.replacePlaceholders(emailSubject, {
-        identifiedUser,
-        localStorageData
+      // Send event to analytics service
+      await analyticsService.trackWorkflowEvent({
+        siteId,
+        visitorId,
+        event: eventName || 'Custom Event',
+        detail: eventData || {},
+        timestamp: new Date().toISOString()
       });
       
-      const processedBody = this.replacePlaceholders(emailBody, {
-        identifiedUser,
-        localStorageData
-      });
-      
-      if (!config.email.resendApiKey) {
-        logger.warn('RESEND_API_KEY not configured; skipping real email send');
-        return { success: true, message: 'Email send simulated (no API key configured)' };
-      }
-
-      const resp = await withRetry(async () => {
-        const r = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${config.email.resendApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: config.email.fromAddress,
-            to: Array.isArray(emailTo) ? emailTo : [emailTo],
-            subject: processedSubject || '(no subject)',
-            html: processedBody || ''
-          })
-        });
-        if (!r.ok) {
-          const t = await r.text().catch(() => '');
-          throw new Error(`Resend failed: ${r.status} ${t}`);
-        }
-        return r;
-      }, { maxAttempts: 5, initialDelayMs: 1000, multiplier: 2, maxDelayMs: 15000 }, (err, attempt, delay) => {
-        logger.warn(`Resend attempt ${attempt} failed; retrying in ${delay}ms`, { error: err?.message });
-      });
-
-      if (!resp.ok) {
-        const text = await resp.text().catch(() => '');
-        throw new Error(`Resend failed: ${resp.status} ${text}`);
-      }
-
-      const json = await resp.json().catch(() => ({}));
-      logger.info('Resend email sent', { id: json?.id });
-      return { success: true, message: 'Email sent successfully', providerId: json?.id };
+      logger.info('Event tracked successfully', { eventName, siteId, visitorId });
+      return { success: true, message: 'Event tracked successfully' };
     } catch (error) {
-      logger.error('Error sending email:', error);
-      try { await sendToDLQ({ type: 'email', settings, context }, error.message); } catch {}
+      logger.error('Error tracking event:', error);
       return { success: false, error: error.message };
     }
   }
@@ -292,62 +248,7 @@ export class ExecutionService {
     }
   }
 
-  async addTag(settings, context) {
-    try {
-      const { tagName } = settings;
-      const { visitorId, siteId } = context;
-      
-      if (!tagName || !visitorId || !siteId) {
-        return { success: false, error: 'Missing tag name or visitor ID' };
-      }
-      
-      await visitorService.addTag(siteId, visitorId, tagName);
-      logger.info(`Tag "${tagName}" added to visitor ${visitorId}`);
-      
-      return { success: true, message: 'Tag added successfully' };
-    } catch (error) {
-      logger.error('Error adding tag:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  async removeTag(settings, context) {
-    try {
-      const { tagName } = settings;
-      const { visitorId, siteId } = context;
-      
-      if (!tagName || !visitorId || !siteId) {
-        return { success: false, error: 'Missing tag name or visitor ID' };
-      }
-      
-      await visitorService.removeTag(siteId, visitorId, tagName);
-      logger.info(`Tag "${tagName}" removed from visitor ${visitorId}`);
-      
-      return { success: true, message: 'Tag removed successfully' };
-    } catch (error) {
-      logger.error('Error removing tag:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  async executeCustomCode(settings, context) {
-    try {
-      const { customCode } = settings;
-      
-      // WARNING: This is potentially dangerous in production
-      // Consider using a sandboxed environment or restrict this feature
-      logger.warn('Custom code execution requested - this should be restricted in production');
-      
-      // For now, just log and return success
-      logger.info('Custom code would be executed:', { code: customCode });
-      
-      return { success: true, message: 'Custom code executed successfully' };
-    } catch (error) {
-      logger.error('Error executing custom code:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
+  // Helper method for placeholder replacement
   replacePlaceholders(text, data) {
     if (!text) return text;
     

@@ -24,11 +24,17 @@ class AnalyticsController {
 
       // await this._processEvent(eventData);
       
-      // Update workflow counters only for main events
-      if (req.body.type === 'Trigger') {
-        await workflowService.incrementTriggers(req.body.workflowId);
-      } else if (req.body.type === 'Action Executed') {
-        await workflowService.incrementCompletions(req.body.workflowId);
+      // Handle new analytics event structure from workflow-tracker.js
+      const eventData = req.body;
+      
+      // Process the event through analytics service
+      await analyticsService.trackWorkflowEvent(eventData);
+      
+      // Update workflow counters for main events (both old and new event types)
+      if (eventData.type === 'Trigger' || eventData.analytics_event_type === 'workflow_trigger') {
+        await workflowService.incrementTriggers(eventData.workflowId || eventData.workflow_id);
+      } else if (eventData.type === 'Action Executed' || eventData.analytics_event_type === 'action_completed') {
+        await workflowService.incrementCompletions(eventData.workflowId || eventData.workflow_id);
       }
       
       res.json({ success: true });
@@ -48,28 +54,14 @@ class AnalyticsController {
 
       // Process each event in the batch
       const promises = events.map(async (event) => {
-        // const eventData = {
-        //   siteId: event.siteId,
-        //   workflowId: event.workflowId,
-        //   visitorId: event.visitorId,
-        //   event: event.type,
-        //   nodeId: event.nodeId,
-        //   nodeTitle: event.nodeTitle,
-        //   nodeType: event.nodeType,
-        //   detail: event.detail,
-        //   runId: event.runId,
-        //   stepOrder: event.stepOrder,
-        //   executionTime: event.executionTime,
-        //   success: event.success
-        // };
-
-        // await this._processEvent(eventData);
+        // Process the event through analytics service
+        await analyticsService.trackWorkflowEvent(event);
         
-        // Update workflow counters
-        if (event.type === 'Trigger') {
-          await workflowService.incrementTriggers(event.workflowId);
-        } else if (event.type === 'Action Executed') {
-          await workflowService.incrementCompletions(event.workflowId);
+        // Update workflow counters for main events (both old and new event types)
+        if (event.type === 'Trigger' || event.analytics_event_type === 'workflow_trigger') {
+          await workflowService.incrementTriggers(event.workflowId || event.workflow_id);
+        } else if (event.type === 'Action Executed' || event.analytics_event_type === 'action_completed') {
+          await workflowService.incrementCompletions(event.workflowId || event.workflow_id);
         }
       });
 

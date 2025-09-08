@@ -42,6 +42,7 @@ type PageStat struct {
 	BounceRate *float64 `json:"bounce_rate,omitempty" db:"bounce_rate"`
 	AvgTime    *int     `json:"avg_time,omitempty" db:"avg_time"`
 	ExitRate   *float64 `json:"exit_rate,omitempty" db:"exit_rate"`
+	EntryRate  *float64 `json:"entry_rate,omitempty" db:"entry_rate"`
 }
 
 type ReferrerStat struct {

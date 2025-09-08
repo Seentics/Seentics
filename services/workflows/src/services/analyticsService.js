@@ -6,17 +6,39 @@ export class AnalyticsService {
 
   async trackWorkflowEvent(eventData) {
     try {
-      const event = new WorkflowEvent({
-        ...eventData,
-        timestamp: new Date()
-      });
-
-      await event.save();
+      // Handle new analytics event structure from workflow-tracker.js
+      let processedData = eventData;
       
-      logger.debug('Workflow event tracked:', { 
-        workflowId: event.workflowId,
-        event: event.event,
-        nodeId: event.nodeId 
+      if (eventData.event_type === 'workflow_analytics') {
+        processedData = {
+          workflowId: eventData.workflow_id,
+          visitorId: eventData.visitor_id,
+          sessionId: eventData.session_id,
+          nodeId: eventData.node_id,
+          nodeTitle: eventData.node_title,
+          event: eventData.analytics_event_type,
+          runId: eventData.runId,
+          nodeType: eventData.nodeType,
+          triggerType: eventData.triggerType,
+          actionType: eventData.actionType,
+          conditionType: eventData.conditionType,
+          result: eventData.result,
+          status: eventData.status,
+          frequency: eventData.frequency,
+          reason: eventData.reason,
+          error: eventData.error,
+          totalNodes: eventData.totalNodes,
+          timestamp: new Date(eventData.timestamp || Date.now())
+        };
+      }
+
+      // Update aggregated counters instead of storing raw events
+      await this.updateWorkflowCounters(processedData);
+      
+      logger.debug('Workflow counters updated:', { 
+        workflowId: processedData.workflowId,
+        event: processedData.event,
+        nodeId: processedData.nodeId 
       });
       
       return { success: true };
@@ -26,44 +48,229 @@ export class AnalyticsService {
     }
   }
 
+  async updateWorkflowCounters(eventData) {
+    const { workflowId, event, nodeId, nodeTitle, result, status, reason } = eventData;
+    
+    if (!workflowId) return;
+
+    const updateOperations = {};
+    const nodeStatsKey = `analytics.nodeStats.${nodeId}`;
+
+    // Workflow-level counters
+    switch (event) {
+      case 'workflow_trigger':
+        updateOperations['$inc'] = {
+          'analytics.totalTriggers': 1,
+          'analytics.totalRuns': 1,
+          [`${nodeStatsKey}.triggers`]: 1
+        };
+        updateOperations['$set'] = {
+          'analytics.lastTriggered': new Date()
+        };
+        break;
+
+      case 'workflow_completed':
+        updateOperations['$inc'] = {
+          'analytics.successfulRuns': 1
+        };
+        break;
+
+      case 'workflow_stopped':
+        updateOperations['$inc'] = {
+          'analytics.failedRuns': 1
+        };
+        break;
+
+      case 'condition_evaluated':
+        const conditionField = result === 'passed' ? 'conditionsPassed' : 'conditionsFailed';
+        updateOperations['$inc'] = {
+          [`${nodeStatsKey}.${conditionField}`]: 1
+        };
+        break;
+
+      case 'action_completed':
+        updateOperations['$inc'] = {
+          'analytics.totalCompletions': 1,
+          [`${nodeStatsKey}.completions`]: 1
+        };
+        break;
+
+      case 'action_failed':
+        updateOperations['$inc'] = {
+          [`${nodeStatsKey}.failures`]: 1
+        };
+        break;
+
+      case 'action_skipped':
+        updateOperations['$inc'] = {
+          [`${nodeStatsKey}.skipped`]: 1
+        };
+        break;
+    }
+
+    if (Object.keys(updateOperations).length > 0) {
+      await Workflow.findByIdAndUpdate(workflowId, updateOperations);
+      
+      // Update legacy fields for backward compatibility
+      if (event === 'workflow_trigger' || event === 'action_completed') {
+        const workflow = await Workflow.findById(workflowId);
+        if (workflow) {
+          const completionRate = workflow.analytics.totalTriggers > 0 
+            ? ((workflow.analytics.totalCompletions / workflow.analytics.totalTriggers) * 100).toFixed(1)
+            : '0.0';
+          
+          await Workflow.findByIdAndUpdate(workflowId, {
+            totalTriggers: workflow.analytics.totalTriggers,
+            totalCompletions: workflow.analytics.totalCompletions,
+            completionRate: `${completionRate}%`
+          });
+        }
+      }
+    }
+  }
+
   async getWorkflowAnalytics(workflowId, dateRange = {}) {
     try {
-      const { startDate, endDate } = dateRange;
-      let query = { workflowId };
+      // Get workflow with aggregated analytics
+      const workflow = await Workflow.findById(workflowId).lean();
       
-      if (startDate || endDate) {
-        query.timestamp = {};
-        if (startDate) query.timestamp.$gte = new Date(startDate);
-        if (endDate) query.timestamp.$lte = new Date(endDate);
+      if (!workflow) {
+        throw new Error('Workflow not found');
       }
+
+      const analytics = workflow.analytics || {};
+      const nodeStats = analytics.nodeStats || new Map();
       
-      const events = await WorkflowEvent.find(query)
-        .sort({ timestamp: -1 })
-        .lean();
-      
-      // Calculate metrics
-      const triggers = events.filter(e => e.event === 'Trigger').length;
-      const completions = events.filter(e => e.event === 'Action Executed').length;
-      const conversionRate = triggers > 0 ? (completions / triggers * 100).toFixed(1) : '0.0';
-      
-      // Group by date for trends
-      const dailyData = this.groupEventsByDate(events);
-      
-      // Get hourly distribution
-      const hourlyData = this.groupEventsByHour(events);
-      
+      // Convert Map to object for JSON serialization and handle nested structure
+      const nodeStatsObject = {};
+      for (const [nodeKey, stats] of Object.entries(nodeStats)) {
+        // Handle the nested structure: 'dnd-node_1757342976145_0': { '5918177854200795': { conditionsPassed: 5 } }
+        if (typeof stats === 'object' && stats !== null) {
+          // Find the actual node ID by looking for nodes that start with the key
+          const fullNodeId = workflow.nodes.find(n => n.id.startsWith(nodeKey))?.id || nodeKey;
+          const node = workflow.nodes.find(n => n.id === fullNodeId);
+          
+          // Flatten the nested stats structure
+          const flatStats = {};
+          Object.values(stats).forEach(nestedStats => {
+            Object.assign(flatStats, nestedStats);
+          });
+          
+          nodeStatsObject[fullNodeId] = {
+            ...flatStats,
+            nodeTitle: node?.data?.title || 'Unknown Node',
+            nodeType: node?.data?.type || 'Unknown'
+          };
+        }
+      }
+
+      const totalTriggers = analytics.totalTriggers || 0;
+      const totalCompletions = analytics.totalCompletions || 0;
+      const conversionRate = totalTriggers > 0 
+        ? ((totalCompletions / totalTriggers) * 100).toFixed(1) 
+        : '0.0';
+
       return {
-        totalTriggers: triggers,
-        totalCompletions: completions,
+        // Overall workflow stats
+        totalTriggers,
+        totalCompletions,
+        totalRuns: analytics.totalRuns || 0,
+        successfulRuns: analytics.successfulRuns || 0,
+        failedRuns: analytics.failedRuns || 0,
         conversionRate: `${conversionRate}%`,
-        dailyData,
-        hourlyData,
-        recentEvents: events.slice(0, 50)
+        successRate: analytics.totalRuns > 0 
+          ? `${((analytics.successfulRuns || 0) / analytics.totalRuns * 100).toFixed(1)}%`
+          : '0.0%',
+        lastTriggered: analytics.lastTriggered,
+        
+        // Node-wise analytics
+        nodeStats: nodeStatsObject,
+        
+        // Summary by node type
+        nodeTypeSummary: this.summarizeByNodeType(nodeStatsObject),
+        
+        // Performance insights
+        insights: this.generateInsights(analytics, nodeStatsObject)
       };
     } catch (error) {
       logger.error('Error getting workflow analytics:', error);
       throw error;
     }
+  }
+
+  summarizeByNodeType(nodeStats) {
+    const summary = {
+      triggers: { count: 0, executions: 0 },
+      conditions: { count: 0, passed: 0, failed: 0 },
+      actions: { count: 0, completions: 0, failures: 0, skipped: 0 }
+    };
+
+    Object.values(nodeStats).forEach(stats => {
+      switch (stats.nodeType) {
+        case 'Trigger':
+          summary.triggers.count++;
+          summary.triggers.executions += stats.triggers || 0;
+          break;
+        case 'Condition':
+          summary.conditions.count++;
+          summary.conditions.passed += stats.conditionsPassed || 0;
+          summary.conditions.failed += stats.conditionsFailed || 0;
+          break;
+        case 'Action':
+          summary.actions.count++;
+          summary.actions.completions += stats.completions || 0;
+          summary.actions.failures += stats.failures || 0;
+          summary.actions.skipped += stats.skipped || 0;
+          break;
+      }
+    });
+
+    return summary;
+  }
+
+  generateInsights(analytics, nodeStats) {
+    const insights = [];
+    
+    // Conversion rate insight
+    const conversionRate = analytics.totalTriggers > 0 
+      ? (analytics.totalCompletions / analytics.totalTriggers * 100)
+      : 0;
+    
+    if (conversionRate > 80) {
+      insights.push({
+        type: 'success',
+        message: 'Excellent conversion rate! Your workflow is performing very well.'
+      });
+    } else if (conversionRate > 50) {
+      insights.push({
+        type: 'info',
+        message: 'Good conversion rate. Consider optimizing conditions for better performance.'
+      });
+    } else if (conversionRate > 0) {
+      insights.push({
+        type: 'warning',
+        message: 'Low conversion rate. Review your workflow conditions and triggers.'
+      });
+    }
+
+    // Node performance insights
+    Object.entries(nodeStats).forEach(([nodeId, stats]) => {
+      if (stats.nodeType === 'Action' && stats.skipped > stats.completions) {
+        insights.push({
+          type: 'warning',
+          message: `Action "${stats.nodeTitle}" is being skipped frequently due to frequency limits.`
+        });
+      }
+      
+      if (stats.nodeType === 'Condition' && stats.conditionsFailed > stats.conditionsPassed) {
+        insights.push({
+          type: 'info',
+          message: `Condition "${stats.nodeTitle}" fails more often than it passes. Consider adjusting criteria.`
+        });
+      }
+    });
+
+    return insights;
   }
 
   async getWorkflowActivity(workflowId, options = {}) {
@@ -115,10 +322,10 @@ export class AnalyticsService {
           $group: {
             _id: "$_id.date",
             triggers: {
-              $sum: { $cond: [{ $eq: ["$_id.event", "Trigger"] }, "$count", 0] }
+              $sum: { $cond: [{ $in: ["$_id.event", ["Trigger", "workflow_trigger"]] }, "$count", 0] }
             },
             completions: {
-              $sum: { $cond: [{ $eq: ["$_id.event", "Action Executed"] }, "$count", 0] }
+              $sum: { $cond: [{ $in: ["$_id.event", ["Action Executed", "action_completed"]] }, "$count", 0] }
             }
           }
         },
@@ -212,9 +419,9 @@ export class AnalyticsService {
         grouped[date] = { date, triggers: 0, completions: 0 };
       }
       
-      if (event.event === 'Trigger') {
+      if (event.event === 'Trigger' || event.event === 'workflow_trigger') {
         grouped[date].triggers++;
-      } else if (event.event === 'Action Executed') {
+      } else if (event.event === 'Action Executed' || event.event === 'action_completed') {
         grouped[date].completions++;
       }
     });
@@ -231,9 +438,9 @@ export class AnalyticsService {
     
     events.forEach(event => {
       const hour = new Date(event.timestamp).getHours();
-      if (event.event === 'Trigger') {
+      if (event.event === 'Trigger' || event.event === 'workflow_trigger') {
         hourlyData[hour].triggers++;
-      } else if (event.event === 'Action Executed') {
+      } else if (event.event === 'Action Executed' || event.event === 'action_completed') {
         hourlyData[hour].completions++;
       }
     });
@@ -244,7 +451,7 @@ export class AnalyticsService {
   async getWorkflowTriggerTypes(workflowId) {
     try {
       const pipeline = [
-        { $match: { workflowId, event: 'Trigger' } },
+        { $match: { workflowId, event: { $in: ['Trigger', 'workflow_trigger'] } } },
         {
           $group: {
             _id: { triggerType: "$detail" },
@@ -278,7 +485,7 @@ export class AnalyticsService {
   async getWorkflowActionTypes(workflowId) {
     try {
       const pipeline = [
-        { $match: { workflowId, event: 'Action Executed' } },
+        { $match: { workflowId, event: { $in: ['Action Executed', 'action_completed'] } } },
         {
           $group: {
             _id: { actionType: "$detail" },
@@ -322,10 +529,10 @@ export class AnalyticsService {
           $group: {
             _id: "$_id.hour",
             triggers: {
-              $sum: { $cond: [{ $eq: ["$_id.event", "Trigger"] }, "$count", 0] }
+              $sum: { $cond: [{ $in: ["$_id.event", ["Trigger", "workflow_trigger"]] }, "$count", 0] }
             },
             completions: {
-              $sum: { $cond: [{ $eq: ["$_id.event", "Action Executed"] }, "$count", 0] }
+              $sum: { $cond: [{ $in: ["$_id.event", ["Action Executed", "action_completed"]] }, "$count", 0] }
             }
           }
         },

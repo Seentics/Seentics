@@ -75,7 +75,7 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 			GROUP BY session_id
 		)
 		SELECT 
-			e.page as page,
+			e.page_url as page,
 			COUNT(*) as views,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COALESCE(
@@ -84,22 +84,22 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 			) as bounce_rate,
 			COALESCE(AVG(e.time_on_page), 0) as avg_time,
 			COALESCE(
-				(COUNT(*) FILTER (WHERE e.page = (
-					SELECT e2.page 
+				(COUNT(*) FILTER (WHERE e.page_url = (
+					SELECT e2.page_url 
 					FROM events e2 
 					WHERE e2.session_id = e.session_id 
-					AND e2.timestamp > e.timestamp 
+					AND e2.event_type = 'pageview' 
 					ORDER BY e2.timestamp ASC 
 					LIMIT 1
-				)) * 100.0) / NULLIF(COUNT(*), 0), 0
-			) as exit_rate
+				)) * 100.0) / NULLIF(COUNT(DISTINCT e.session_id), 0), 0
+			) as entry_rate
 		FROM events e
 		LEFT JOIN session_stats s ON e.session_id = s.session_id
 		WHERE e.website_id = $1 
 		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
 		AND e.event_type = 'pageview'
-		AND e.page IS NOT NULL
-		GROUP BY e.page
+		AND e.page_url IS NOT NULL
+		GROUP BY e.page_url
 		ORDER BY views DESC
 		LIMIT $3`
 
@@ -114,12 +114,12 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 
 	for rows.Next() {
 		var page models.PageStat
-		var bounceRate, exitRate *float64
+		var bounceRate, entryRate *float64
 		var avgTime *int
 		var uniqueVisitors int
 		var rawPage string
 
-		err := rows.Scan(&rawPage, &page.Views, &uniqueVisitors, &bounceRate, &avgTime, &exitRate)
+		err := rows.Scan(&rawPage, &page.Views, &uniqueVisitors, &bounceRate, &avgTime, &entryRate)
 		if err != nil {
 			continue
 		}
@@ -137,7 +137,7 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 
 		page.BounceRate = bounceRate
 		page.AvgTime = avgTime
-		page.ExitRate = exitRate
+		page.EntryRate = entryRate
 
 		// Deduplicate by normalized page path
 		if existing, exists := pageMap[page.Page]; exists {
@@ -151,8 +151,8 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 			if existing.BounceRate != nil && page.BounceRate != nil {
 				*existing.BounceRate = (*existing.BounceRate + *page.BounceRate) / 2
 			}
-			if existing.ExitRate != nil && page.ExitRate != nil {
-				*existing.ExitRate = (*existing.ExitRate + *page.ExitRate) / 2
+			if existing.EntryRate != nil && page.EntryRate != nil {
+				*existing.EntryRate = (*existing.EntryRate + *page.EntryRate) / 2
 			}
 		} else {
 			// Create a new copy to avoid pointer issues
@@ -288,7 +288,7 @@ func (tp *TopPagesAnalytics) GetTopPagesWithTimeBucket(ctx context.Context, webs
 			GROUP BY session_id
 		)
 		SELECT 
-			e.page,
+			e.page_url as page,
 			COUNT(*) as views,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COALESCE(
@@ -297,22 +297,22 @@ func (tp *TopPagesAnalytics) GetTopPagesWithTimeBucket(ctx context.Context, webs
 			) as bounce_rate,
 			COALESCE(AVG(e.time_on_page), 0) as avg_time,
 			COALESCE(
-				(COUNT(*) FILTER (WHERE e.page = (
-					SELECT e2.page 
+				(COUNT(*) FILTER (WHERE e.page_url = (
+					SELECT e2.page_url 
 					FROM events e2 
 					WHERE e2.session_id = e.session_id 
-					AND e2.timestamp > e.timestamp 
+					AND e2.event_type = 'pageview' 
 					ORDER BY e2.timestamp ASC 
 					LIMIT 1
-				)) * 100.0) / NULLIF(COUNT(*), 0), 0
-			) as exit_rate
+				)) * 100.0) / NULLIF(COUNT(DISTINCT e.session_id), 0), 0
+			) as entry_rate
 		FROM events e
 		LEFT JOIN session_stats s ON e.session_id = s.session_id
 		WHERE e.website_id = $1 
 		AND e.timestamp >= time_bucket('1 day', NOW()) - INTERVAL '1 day' * $2
 		AND e.event_type = 'pageview'
-		AND e.page IS NOT NULL
-		GROUP BY e.page
+		AND e.page_url IS NOT NULL
+		GROUP BY e.page_url
 		ORDER BY views DESC
 		LIMIT $3`
 
