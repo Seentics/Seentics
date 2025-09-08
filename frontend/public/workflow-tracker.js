@@ -863,40 +863,6 @@
       this._fetchFunnelWorkflows();
     },
 
-    async _fetchFunnelWorkflows() {
-      try {
-        const apiHost = this._getApiHost();
-        const controller = new AbortController();
-        this.resourceManager.addAbortController(controller);
-
-        const response = await Utils.withTimeout(
-          fetch(`${apiHost}/api/v1/workflows/site/${this.siteId}/active`, {
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' }
-          })
-        );
-
-        if (!response.ok) return;
-
-        const workflows = await response.json();
-        const funnelWorkflows = workflows.filter(workflow =>
-          workflow.nodes?.some(node =>
-            node.data?.type === 'Trigger' && node.data?.title === CONSTANTS.TRIGGER_TYPES.FUNNEL
-          )
-        );
-
-        // Add new funnel workflows
-        funnelWorkflows.forEach(workflow => {
-          if (!this.activeWorkflows.find(w => w.id === workflow.id)) {
-            this.activeWorkflows.push(workflow);
-            this._log(`Added funnel workflow: ${workflow.name}`);
-          }
-        });
-      } catch (error) {
-        console.warn('[Seentics] Failed to fetch funnel workflows:', error);
-      }
-    },
-
     _getTriggerNodes(workflow, triggerType) {
       if (!workflow?.nodes || !Array.isArray(workflow.nodes)) return [];
       
@@ -2018,11 +1984,7 @@
           nodeTitle: node?.data?.title,
           nodeType: node?.data?.type,
           branchSourceNodeId: options.sourceNodeId,
-          detail: options.detail,
-          runId: options.runId,
           stepOrder: options.stepOrder,
-          executionTime: options.executionTime,
-          success: options.success,
           timestamp: new Date().toISOString()
         };
 
