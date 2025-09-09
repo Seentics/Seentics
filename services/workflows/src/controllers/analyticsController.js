@@ -7,22 +7,6 @@ class AnalyticsController {
   // Track single workflow event
   async trackEvent(req, res, next) {
     try {
-      // const eventData = {
-      //   siteId: req.body.siteId,
-      //   workflowId: req.body.workflowId,
-      //   visitorId: req.body.visitorId,
-      //   event: req.body.type,
-      //   nodeId: req.body.nodeId,
-      //   nodeTitle: req.body.nodeTitle,
-      //   nodeType: req.body.nodeType,
-      //   detail: req.body.detail,
-      //   runId: req.body.runId,
-      //   stepOrder: req.body.stepOrder,
-      //   executionTime: req.body.executionTime,
-      //   success: req.body.success
-      // };
-
-      // await this._processEvent(eventData);
       
       // Handle new analytics event structure from workflow-tracker.js
       const eventData = req.body;

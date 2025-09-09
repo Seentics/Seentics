@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/seentics/seentics#readme",
   "scripts": {
-    "dev": "next dev",
+    "dev": " next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -85,6 +85,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cpx2": "^8.0.0",
     "patch-package": "^8.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

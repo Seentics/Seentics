@@ -333,7 +333,7 @@
       async function loadAdditionalTrackers() {
         try {
           await Promise.all([
-            loadResource('/tracker-styles.css', 'link'),
+            loadResource('/styles/tracker-styles.css', 'link'),
             loadResource('/workflow-tracker.js'),
             loadResource('/funnel-tracker.js')
           ]);

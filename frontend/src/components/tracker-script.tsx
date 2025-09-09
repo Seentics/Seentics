@@ -46,7 +46,7 @@ export default function TrackerScript({ siteId, autoLoad = true }: TrackerScript
 
   return (
     <Script
-      src="/tracker.js"
+      src="/trackers/tracker.js"
       data-site-id={currentSiteId}
       strategy="afterInteractive"
       onLoad={() => {
