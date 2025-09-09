@@ -1,17 +1,15 @@
 
-import type { Metadata } from 'next';
-import './globals.css';
-import { Inter, Space_Grotesk } from 'next/font/google';
-import Script from 'next/script';
-import { cn } from '@/lib/utils';
-import { ThemeProvider } from '@/components/theme-provider';
 import { QueryProvider } from '@/components/query-provider';
+import { ThemeProvider } from '@/components/theme-provider';
+import { cn } from '@/lib/utils';
+import type { Metadata } from 'next';
+import { Inter, Space_Grotesk } from 'next/font/google';
+import './globals.css';
 
-import { LemonSqueezyProvider } from '@/components/lemonsqueezy-provider';
-import { Toaster } from '@/components/ui/toaster';
-import TrackerScript from '@/components/tracker-script';
 import AuthInitializer from '@/components/auth-initializer';
 import CookieConsentManager from '@/components/cookie-consent-manager';
+import TrackerScript from '@/components/tracker-script';
+import { Toaster } from '@/components/ui/toaster';
 // import { Toaster } from "@/components/ui/sonner"
 
 const fontBody = Inter({
@@ -49,7 +47,6 @@ export default function RootLayout({
           </QueryProvider>
           <Toaster />
         </ThemeProvider>
-        <LemonSqueezyProvider />
         
         {/* Initialize authentication state */}
         <AuthInitializer />

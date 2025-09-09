@@ -1,10 +1,9 @@
-import { executionService } from '../services/executionService.js';
+import * as executionService from '../services/executionService.js';
 import { workflowQueue } from '../services/queueService.js';
 import { logger } from '../utils/logger.js';
 
-class ExecutionController {
-  // Execute workflow action
-  async executeAction(req, res, next) {
+// Execute workflow action
+export const executeAction = async (req, res, next) => {
     try {
       const actionData = {
         workflowId: req.body.workflowId,
@@ -37,10 +36,10 @@ class ExecutionController {
       logger.error('Controller error:', error);
       next(error);
     }
-  }
+};
 
-  // Get execution status
-  async getExecutionStatus(req, res, next) {
+// Get execution status
+export const getExecutionStatus = async (req, res, next) => {
     try {
       const job = await workflowQueue.getJob(req.params.jobId);
       
@@ -61,10 +60,10 @@ class ExecutionController {
     } catch (error) {
       next(error);
     }
-  }
+};
 
-  // Get execution logs for a workflow
-  async getExecutionLogs(req, res, next) {
+// Get execution logs for a workflow
+export const getExecutionLogs = async (req, res, next) => {
     try {
       const { limit = 100, offset = 0 } = req.query;
       const { workflowId } = req.params;
@@ -72,16 +71,16 @@ class ExecutionController {
       // Get recent jobs for this workflow
       const jobs = await workflowQueue.getJobs(['completed', 'failed'], parseInt(offset), parseInt(limit));
       
-      const logs = this._formatExecutionLogs(jobs, workflowId);
+      const logs = formatExecutionLogs(jobs, workflowId);
       
       res.json(logs);
     } catch (error) {
       next(error);
     }
-  }
+};
 
-  // Private helper method to format execution logs
-  _formatExecutionLogs(jobs, workflowId) {
+// Helper method to format execution logs
+const formatExecutionLogs = (jobs, workflowId) => {
     return jobs
       .filter(job => job.data.actionData.workflowId === workflowId)
       .map(job => ({
@@ -93,7 +92,4 @@ class ExecutionController {
         error: job.failedReason,
         data: job.data.actionData
       }));
-  }
-}
-
-export const executionController = new ExecutionController();
+};

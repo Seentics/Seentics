@@ -1,9 +1,7 @@
 import { Website } from '../../models/Website.js';
-import { Subscription } from '../../models/Subscription.js';
 
-class WebsiteController {
-  // Get website by domain (for public route validation)
-  async getWebsiteByDomain(req, res) {
+// Get website by domain (for public route validation)
+export const getWebsiteByDomain = async (req, res) => {
     try {
       const { domain } = req.params;
       
@@ -19,9 +17,6 @@ class WebsiteController {
         });
       }
 
-      // Fetch subscription to include eventsSuspended flag
-      const subscription = await Subscription.findOne({ userId: website.userId._id }).select('eventsSuspended');
-
       // Return website data for cache
       const websiteData = {
         id: website._id.toString(),
@@ -30,8 +25,7 @@ class WebsiteController {
         userId: website.userId._id.toString(),
         isActive: website.isActive,
         plan: website.userId.plan || 'free',
-        userStatus: website.userId.status || 'active',
-        eventsSuspended: subscription?.eventsSuspended || false
+        userStatus: website.userId.status || 'active'
       };
 
       res.json(websiteData);
@@ -42,10 +36,10 @@ class WebsiteController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
-  // Get website by siteId (for public route validation)
-  async getWebsiteBySiteId(req, res) {
+// Get website by siteId (for public route validation)
+export const getWebsiteBySiteId = async (req, res) => {
     try {
       const { siteId } = req.params;
       
@@ -61,9 +55,6 @@ class WebsiteController {
         });
       }
 
-      // Fetch subscription to include eventsSuspended flag
-      const subscription = await Subscription.findOne({ userId: website.userId._id }).select('eventsSuspended');
-
       // Return website data for cache
       const websiteData = {
         id: website._id.toString(),
@@ -72,8 +63,7 @@ class WebsiteController {
         userId: website.userId._id.toString(),
         isActive: website.isActive,
         plan: website.userId.plan || 'free',
-        userStatus: website.userId.status || 'active',
-        eventsSuspended: subscription?.eventsSuspended || false
+        userStatus: website.userId.status || 'active'
       };
 
       res.json(websiteData);
@@ -84,10 +74,10 @@ class WebsiteController {
         message: 'Internal server error'
       });
     }
-  }
+};
 
-  // Get website by ID (for ownership validation)
-  async getWebsiteById(req, res) {
+// Get website by ID (for ownership validation)
+export const getWebsiteById = async (req, res) => {
     try {
       const { websiteId } = req.params;
       
@@ -103,9 +93,6 @@ class WebsiteController {
         });
       }
 
-      // Fetch subscription to include eventsSuspended flag
-      const subscription = await Subscription.findOne({ userId: website.userId._id }).select('eventsSuspended');
-
       // Return website data for cache
       const websiteData = {
         id: website._id.toString(),
@@ -114,8 +101,7 @@ class WebsiteController {
         userId: website.userId._id.toString(),
         isActive: website.isActive,
         plan: website.userId.plan || 'free',
-        userStatus: website.userId.status || 'active',
-        eventsSuspended: subscription?.eventsSuspended || false
+        userStatus: website.userId.status || 'active'
       };
 
       res.json(websiteData);
@@ -126,7 +112,4 @@ class WebsiteController {
         message: 'Internal server error'
       });
     }
-  }
-}
-
-export default new WebsiteController();
+};

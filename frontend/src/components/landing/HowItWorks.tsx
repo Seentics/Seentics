@@ -79,13 +79,13 @@ export default function HowItWorks() {
                 <CardHeader className="text-center pb-6">
                   
                   {/* Step Number */}
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-6">
+                  <div className="w-12 h-12 bg-slate-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-slate-900 font-bold text-lg mx-auto mb-6">
                     {step.step}
                   </div>
                   
                   {/* Icon */}
-                  <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mx-auto mb-6">
-                    <step.icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-6">
+                    <step.icon className="h-8 w-8 text-slate-600 dark:text-slate-400" />
                   </div>
                   
                   {/* Title */}
@@ -124,7 +124,7 @@ export default function HowItWorks() {
         
         {/* Bottom CTA */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold mb-6 group transition-colors duration-300 cursor-pointer">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-900 hover:bg-slate-800 rounded-lg text-white font-semibold mb-6 group transition-colors duration-300 cursor-pointer">
             <Rocket className="w-5 h-5" />
             <span>Get Started Now</span>
             <Play className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />

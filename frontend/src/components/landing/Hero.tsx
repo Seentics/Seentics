@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowRight, Github, Heart, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import VideoDemoSection from './VideoDemoSection';
 import { useAuth } from '@/stores/useAuthStore';
+import { ArrowRight, Heart } from 'lucide-react';
+import Link from 'next/link';
+import { FaGithub } from "react-icons/fa";
 
 export default function Hero() {
   const { isAuthenticated, user } = useAuth();
@@ -15,7 +15,7 @@ export default function Hero() {
 
       {/* Minimal floating elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-800 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute top-20 left-20 w-64 h-64 bg-slate-200 dark:bg-slate-800 rounded-full blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-200 dark:bg-purple-800 rounded-full blur-3xl animate-float-slow" />
       </div>
 
@@ -31,7 +31,7 @@ export default function Hero() {
           {/* Clean, powerful headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-[0.9] mb-8 text-slate-900 dark:text-white">
             <span className="block mb-6">
-              Track <span className="text-blue-600 dark:text-blue-500">visitors</span>,
+              Track <span className="">visitors</span>,
             </span>
 
             <span className="block mb-6">
@@ -54,7 +54,7 @@ export default function Hero() {
             {isAuthenticated && user ? (
               <>
                 <Link href="/websites">
-                  <Button size="lg" className="px-10 py-6 text-lg font-semibold bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white rounded-lg shadow-lg transition-all duration-300">
+                  <Button size="lg" className="px-10 py-6 text-lg font-semibold">
                     Go to Dashboard
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -62,23 +62,23 @@ export default function Hero() {
 
                 <a href="https://github.com/seentics/seentics" target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" size="lg" className="px-10 py-6 text-lg font-semibold border-2 border-slate-300 dark:border-slate-600 rounded-xl transition-all duration-300">
-                    <Github className="mr-2 h-5 w-5" />
+                  <FaGithub size={30} />
                     View Source
                   </Button>
                 </a>
               </>
             ) : (
               <>
-                <Link href="/login">
-                  <Button size="lg" className="px-10 py-6 text-lg font-semibold bg-blue-600 hover:bg-white hover:text-blue-600 border-2 border-blue-600 text-white rounded-lg shadow-lg transition-all duration-300">
+                <Link href="/signup">
+                  <Button size="lg"  className="px-10 py-6 text-lg font-semibold">
                     Start Free Today
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
 
                 <a href="https://github.com/seentics/seentics" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="lg" className="px-10 py-6 text-lg font-semibold border-2 border-slate-800 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg transition-all duration-300">
-                    <Github className="mr-2 h-5 w-5" />
+                  <Button variant="secondary" size="lg" className="font-semibold text-lg">
+                  <FaGithub size={30} />
                     GitHub
                   </Button>
                 </a>

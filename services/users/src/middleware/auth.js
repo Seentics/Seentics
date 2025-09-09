@@ -1,6 +1,5 @@
 import { verifyToken } from '../utils/jwt.js';
 import { User } from '../models/User.js';
-import { Subscription } from '../models/Subscription.js';
 
 // Simple gateway-only authenticate middleware
 export const authenticate = async (req, res, next) => {
@@ -47,31 +46,17 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-export const authorize = (requiredPlan = null) => {
+// Simple authorization middleware for open-source version
+export const authorize = (requiredRole = null) => {
   return async (req, res, next) => {
     try {
-      const subscription = await Subscription.findOne({ userId: req.userId });
-      
-      if (!subscription) {
-        return res.status(403).json({
+      // For open-source version, just check if user is authenticated
+      // All authenticated users have access
+      if (!req.userId) {
+        return res.status(401).json({
           success: false,
-          message: 'No subscription found'
+          message: 'Authentication required'
         });
-      }
-
-      req.subscription = subscription;
-
-      if (requiredPlan) {
-        const planHierarchy = ['free', 'standard', 'pro', 'enterprise', 'lifetime'];
-        const userPlanIndex = planHierarchy.indexOf(subscription.plan);
-        const requiredPlanIndex = planHierarchy.indexOf(requiredPlan);
-
-        if (userPlanIndex < requiredPlanIndex) {
-          return res.status(403).json({
-            success: false,
-            message: `${requiredPlan} plan required`
-          });
-        }
       }
 
       next();
@@ -84,28 +69,12 @@ export const authorize = (requiredPlan = null) => {
   };
 };
 
+// Simplified usage limit check for open-source version
 export const checkUsageLimit = (action) => {
   return async (req, res, next) => {
     try {
-      const subscription = await Subscription.findOne({ userId: req.userId });
-      
-      if (!subscription) {
-        return res.status(403).json({
-          success: false,
-          message: 'No subscription found'
-        });
-      }
-
-      if (!subscription.canPerformAction(action)) {
-        return res.status(403).json({
-          success: false,
-          message: `Usage limit exceeded for ${action}`,
-          limits: subscription.limits,
-          usage: subscription.usage
-        });
-      }
-
-      req.subscription = subscription;
+      // For open-source version, no usage limits
+      // Just proceed to next middleware
       next();
     } catch (error) {
       return res.status(500).json({

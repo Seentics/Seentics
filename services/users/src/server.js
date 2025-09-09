@@ -10,10 +10,9 @@ import { notFound } from './middleware/notFound.js';
 import { apiKeyMiddleware } from './middleware/apiKey.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
-import subscriptionRoutes from './routes/subscriptions.js';
 import websiteRoutes from './routes/websites.js';
-import webhookRoutes from './routes/webhooks.js';
 import privacyRoutes from './routes/privacy.js';
+import validationRoutes from './routes/validation.js';
 import { config } from './config/config.js';
 
 const app = express();
@@ -61,10 +60,9 @@ app.use((req, res, next) => {
 // API routes
 app.use('/api/v1/user/auth', authRoutes);
 app.use('/api/v1/user/users', userRoutes);
-app.use('/api/v1/user/subscriptions', subscriptionRoutes);
 app.use('/api/v1/user/websites', websiteRoutes);
-app.use('/api/v1/user/webhooks', webhookRoutes);
 app.use('/api/v1/user/privacy', privacyRoutes);
+app.use('/api/v1/user/validation', validationRoutes);
 
 // Error handling middleware
 app.use(notFound);

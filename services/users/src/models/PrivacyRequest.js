@@ -32,8 +32,7 @@ const privacyRequestSchema = new mongoose.Schema({
   requestedData: {
     profile: { type: Boolean, default: true },
     analytics: { type: Boolean, default: true },
-    workflows: { type: Boolean, default: true },
-    subscriptions: { type: Boolean, default: true }
+    workflows: { type: Boolean, default: true }
   },
   processingNotes: {
     type: String

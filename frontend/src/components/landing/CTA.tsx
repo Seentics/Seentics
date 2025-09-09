@@ -32,7 +32,7 @@ export default function CTA() {
             </CardTitle>
             <CardDescription className="text-lg md:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 px-4 max-w-4xl mx-auto leading-relaxed">
               Join thousands of businesses using Seentics to automatically convert visitors into customers. 
-              <span className="text-blue-600 dark:text-blue-400 font-semibold"> Start seeing results in 30 days.</span>
+              <span className="text-slate-600 dark:text-slate-400 font-semibold"> Start seeing results in 30 days.</span>
             </CardDescription>
           </CardHeader>
           
@@ -49,8 +49,8 @@ export default function CTA() {
                 </div>
               </div>
               <div className="flex items-center gap-3 text-center md:text-left">
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-6 w-6 md:h-7 md:w-7 text-blue-600 dark:text-blue-400" />
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-6 w-6 md:h-7 md:w-7 text-slate-600 dark:text-slate-400" />
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white text-sm md:text-base">2-Minute Setup</div>
@@ -70,16 +70,16 @@ export default function CTA() {
             
             {/* Clean CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
-              <Link href="/signup" className="w-full sm:w-auto group">
-                <Button size="lg" className="gap-3 text-lg md:text-xl px-10 md:px-12 py-6 md:py-7 bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 w-full sm:w-auto shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+              <Link href="/signup" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto">
                   Start Free Trial
-                  <ArrowRight className="h-5 w-5 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/demo" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="gap-3 text-lg md:text-xl px-10 md:px-12 py-6 md:py-7 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold transition-all duration-300 w-full sm:w-auto shadow-lg hover:shadow-xl">
-                  <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   Watch Demo
+                  <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
             </div>
@@ -109,12 +109,12 @@ export default function CTA() {
                 Our team is here to help you get started and see results fast.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
-                <button className="px-6 md:px-8 py-3 md:py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:bg-slate-800 dark:hover:bg-gray-100 transition-colors shadow-lg">
+                <Button>
                   Schedule a Call
-                </button>
-                <button className="px-6 md:px-8 py-3 md:py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                </Button>
+                <Button variant="outline">
                   View Documentation
-                </button>
+                </Button>
               </div>
             </div>
           </CardContent>

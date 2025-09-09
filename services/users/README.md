@@ -1,11 +1,11 @@
-# Seentics User Service
+# Seentics User Service (Open Source)
 
-A comprehensive Node.js microservice for user management, authentication, and subscription handling for the Seentics platform.
+A comprehensive Node.js microservice for user management and authentication for the Seentics platform. This is the open-source version with essential user and website functionality.
 
 ## Features
 
 ### 🔐 Authentication
-- Email/password registration and login
+- Email/password registration and login with email verification
 - Google OAuth integration (without Passport.js)
 - GitHub OAuth integration (without Passport.js)
 - JWT-based authentication with refresh tokens
@@ -16,18 +16,13 @@ A comprehensive Node.js microservice for user management, authentication, and su
 - Account deactivation
 - Password change functionality
 - Email verification system
-
-### 💳 Subscription Management
-- Integration with Lemon Squeezy
-- Webhook handling for subscription events
-- Usage tracking and limits
-- Multiple subscription plans (free, standard, pro, enterprise, lifetime)
+- Privacy settings and GDPR compliance
 
 ### 🌐 Website Management
 - Create and manage websites
 - Website verification system
-- Usage limits based on subscription
 - Settings management
+- Domain validation
 
 ### 🛡️ Security Features
 - Request rate limiting
@@ -80,6 +75,7 @@ PORT=3001
 MONGODB_URI=mongodb://localhost:27017/seentics_users
 JWT_SECRET=your-super-secret-jwt-key
 JWT_REFRESH_SECRET=your-refresh-secret
+FRONTEND_URL=http://localhost:3000
 
 # OAuth (optional)
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -87,9 +83,11 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret
 
-# Lemon Squeezy (optional)
-LEMON_SQUEEZY_API_KEY=your-api-key
-LEMON_SQUEEZY_WEBHOOK_SECRET=your-webhook-secret
+# Email (optional - for email verification)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 ```
 
 ### 4. Run the Service
@@ -107,25 +105,14 @@ The service will be available at `http://localhost:3001`
 ## API Endpoints
 
 ### Authentication
-- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/register` - Register new user with email verification
 - `POST /api/v1/auth/login` - Login user
 - `POST /api/v1/auth/google` - Google OAuth
 - `POST /api/v1/auth/github` - GitHub OAuth
 - `POST /api/v1/auth/refresh` - Refresh JWT token
 - `POST /api/v1/auth/logout` - Logout user
 - `GET /api/v1/auth/me` - Get current user
-
-### User Management
-- `GET /api/v1/users/profile` - Get user profile
-- `PUT /api/v1/users/profile` - Update user profile
-- `PUT /api/v1/users/password` - Change password
-- `DELETE /api/v1/users/account` - Delete account
-
-### Subscriptions
-- `GET /api/v1/subscriptions/current` - Get current subscription
-- `GET /api/v1/subscriptions/usage` - Get usage statistics
-- `POST /api/v1/subscriptions/check-limit` - Check usage limits
-- `POST /api/v1/subscriptions/increment-usage` - Increment usage
+- `POST /api/v1/auth/validate` - Validate JWT token
 
 ### Website Management
 - `GET /api/v1/websites` - Get all websites
@@ -134,10 +121,20 @@ The service will be available at `http://localhost:3001`
 - `PUT /api/v1/websites/:id` - Update website
 - `DELETE /api/v1/websites/:id` - Delete website
 - `PUT /api/v1/websites/:id/settings` - Update website settings
-- `POST /api/v1/websites/:id/verify` - Verify website ownership
+- `POST /api/v1/websites/validate` - Validate website ID and domain
 
-### Webhooks
-- `POST /api/v1/webhooks/lemon-squeezy` - Lemon Squeezy webhook handler
+### Privacy & GDPR
+- `GET /api/v1/privacy/settings` - Get privacy settings
+- `PUT /api/v1/privacy/settings` - Update privacy settings
+- `POST /api/v1/privacy/request` - Create privacy request (export/deletion)
+- `GET /api/v1/privacy/requests` - Get privacy requests
+- `GET /api/v1/privacy/download/:filename` - Download data export
+
+### Validation (Internal)
+- `GET /api/v1/validation/websites/by-domain/:domain` - Get website by domain
+- `GET /api/v1/validation/websites/by-site-id/:siteId` - Get website by site ID
+- `GET /api/v1/validation/websites/:websiteId` - Get website by ID
+- `POST /api/v1/validation/auth/validate` - Validate authentication token
 
 ## OAuth Setup
 
@@ -153,22 +150,33 @@ The service will be available at `http://localhost:3001`
 2. Create a new OAuth App
 3. Set authorization callback URL: `http://localhost:3000/auth/github/callback`
 
-## Lemon Squeezy Integration
+## Email Verification Setup
 
-### Webhook Configuration
-1. In your Lemon Squeezy dashboard, go to Settings > Webhooks
-2. Add endpoint: `https://your-domain.com/api/v1/webhooks/lemon-squeezy`
-3. Select events: `order_created`, `subscription_created`, `subscription_updated`, etc.
-4. Set the webhook secret in your environment variables
+For email verification functionality, configure SMTP settings in your environment:
 
-### Subscription Plans
-The service supports multiple subscription plans:
+1. **Gmail**: Use App Passwords for authentication
+2. **Other SMTP providers**: Configure host, port, and credentials
+3. **Development**: Consider using services like Mailtrap for testing
 
-- **Free**: 1 website, 5 workflows, 10K monthly events
-- **Standard**: 5 websites, 25 workflows, 100K monthly events
-- **Pro**: 20 websites, 100 workflows, 500K monthly events
-- **Enterprise**: 100 websites, 500 workflows, 2M monthly events
-- **Lifetime**: 50 websites, 200 workflows, 1M monthly events
+## Architecture Overview
+
+### Function-Based Controllers
+All controllers use modern ES6 function exports instead of classes:
+```javascript
+// Authentication functions
+export const register = async (req, res) => { /* ... */ };
+export const login = async (req, res) => { /* ... */ };
+
+// Website management functions  
+export const getAllWebsites = async (req, res) => { /* ... */ };
+export const createWebsite = async (req, res) => { /* ... */ };
+```
+
+### Key Features
+- **No Usage Limits**: Open-source version removes subscription-based restrictions
+- **Email Verification**: Built-in email verification for new registrations
+- **GDPR Compliance**: Privacy settings and data export/deletion functionality
+- **Modern Architecture**: Function-based exports, ES6 modules, async/await
 
 ## Development
 
@@ -185,9 +193,9 @@ src/
 
 ### Key Components
 
-- **Authentication**: JWT-based with refresh tokens
+- **Authentication**: JWT-based with refresh tokens and email verification
 - **OAuth**: Direct integration with Google and GitHub APIs
-- **Subscription**: Lemon Squeezy webhook processing
+- **Privacy**: GDPR-compliant data handling and user rights
 - **Security**: Multiple layers of protection
 - **Validation**: Comprehensive input validation
 
@@ -198,7 +206,7 @@ src/
 3. **Rate Limiting**: Configured to prevent abuse
 4. **CORS**: Properly configured for your frontend domain
 5. **Input Validation**: All inputs are validated and sanitized
-6. **Webhook Verification**: Signatures are verified for security
+6. **Password Security**: Bcrypt hashing with salt rounds
 
 ## Deployment
 

@@ -1,25 +1,25 @@
 import express from 'express';
-import AuthController from '../controllers/auth/authController.js';
-import OAuthController from '../controllers/auth/oauthController.js';
-import UserController from '../controllers/auth/userController.js';
+import { register, login, refreshToken, logout, getCurrentUser as authGetCurrentUser, validateToken as authValidateToken } from '../controllers/auth/authController.js';
+import { googleAuth, githubAuth, healthCheck } from '../controllers/auth/oauthController.js';
+import { getCurrentUser, validateToken } from '../controllers/auth/userController.js';
 import { registerValidation, loginValidation } from '../middleware/validation.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Authentication routes
-router.post('/register', registerValidation, AuthController.register);
-router.post('/login', loginValidation, AuthController.login);
-router.post('/refresh', AuthController.refreshToken);
-router.post('/logout', authenticate, AuthController.logout);
+router.post('/register', registerValidation, register);
+router.post('/login', loginValidation, login);
+router.post('/refresh', refreshToken);
+router.post('/logout', authenticate, logout);
 
 // OAuth routes
-router.post('/google', OAuthController.googleAuth);
-router.post('/github', OAuthController.githubAuth);
-router.get('/oauth/health', OAuthController.healthCheck);
+router.post('/google', googleAuth);
+router.post('/github', githubAuth);
+router.get('/oauth/health', healthCheck);
 
 // User routes
-router.get('/me', authenticate, UserController.getCurrentUser);
-router.post('/validate', UserController.validateToken);
+router.get('/me', authenticate, getCurrentUser);
+router.post('/validate', validateToken);
 
 export default router;

@@ -1,9 +1,8 @@
-import { visitorService } from '../services/visitorService.js';
+import * as visitorService from '../services/visitorService.js';
 import { logger } from '../utils/logger.js';
 
-class VisitorTagController {
-  // Check if visitor has a specific tag
-  async hasTag(req, res, next) {
+// Check if visitor has a specific tag
+export const hasTag = async (req, res, next) => {
     try {
       const { siteId, visitorId } = req.params;
       const { tag } = req.query;
@@ -20,10 +19,10 @@ class VisitorTagController {
       logger.error('Error checking visitor tag:', error);
       next(error);
     }
-  }
+};
 
-  // Add tag to visitor
-  async addTag(req, res, next) {
+// Add tag to visitor
+export const addTag = async (req, res, next) => {
     try {
       const { siteId, visitorId } = req.params;
       const { tagName } = req.body;
@@ -38,10 +37,10 @@ class VisitorTagController {
       logger.error('Error adding tag to visitor:', error);
       next(error);
     }
-  }
+};
 
-  // Remove tag from visitor
-  async removeTag(req, res, next) {
+// Remove tag from visitor
+export const removeTag = async (req, res, next) => {
     try {
       const { siteId, visitorId, tagName } = req.params;
       
@@ -51,10 +50,10 @@ class VisitorTagController {
       logger.error('Error removing tag from visitor:', error);
       next(error);
     }
-  }
+};
 
-  // Get all tags for a visitor
-  async getTags(req, res, next) {
+// Get all tags for a visitor
+export const getTags = async (req, res, next) => {
     try {
       const { siteId, visitorId } = req.params;
       
@@ -64,7 +63,4 @@ class VisitorTagController {
       logger.error('Error getting visitor tags:', error);
       next(error);
     }
-  }
-}
-
-export const visitorTagController = new VisitorTagController();
+};

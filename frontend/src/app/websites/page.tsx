@@ -6,9 +6,7 @@ import { toast } from 'sonner';
 import { addWebsite, getWebsites, deleteWebsite, Website } from '@/lib/websites-api';
 import { getTrafficSummary, type TrafficSummary } from '@/lib/analytics-api';
 import { useAuth } from '@/stores/useAuthStore';
-import { checkPermission, getSubscription, type Subscription } from '@/lib/subscription-api';
 import { useToast } from '@/hooks/use-toast';
-import ContextualUpgradeBanner from '@/components/contextual-upgrade-banner';
 
 // Import our new modular components
 import { WebsitesHeader } from '@/components/websites/websites-header';
@@ -52,40 +50,12 @@ export default function WebsitesPage() {
     }
   };
 
-  // Fetch subscription with usage data
-  const fetchSubscription = async () => {
-    if (!user) return;
-    
-    try {
-      const resp = await fetch('/api/user/subscriptions/usage');
-      if (resp.ok) {
-        const data = await resp.json();
-        const subscriptionData = data?.data;
-        if (subscriptionData) {
-          setSubscription(subscriptionData);
-        }
-      } else {
-        // Fallback to basic subscription if usage endpoint fails
-        const subscriptionData = await getSubscription();
-        setSubscription(subscriptionData!);
-      }
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-      // Fallback to basic subscription
-      try {
-        const subscriptionData = await getSubscription();
-        setSubscription(subscriptionData!);
-      } catch (fallbackError) {
-        console.error('Fallback subscription fetch failed:', fallbackError);
-      }
-    }
-  };
+  // Open source version - no subscription needed
 
   // Initial data fetch
   useEffect(() => {
     if (user) {
       fetchWebsites();
-      fetchSubscription();
     }
   }, [user]);
 
@@ -126,7 +96,9 @@ export default function WebsitesPage() {
     };
   }, [websites]);
 
-  const { allowed: canAddWebsite, planName } = checkPermission('websites', websites?.length || 0, subscription);
+  // Open source version - unlimited websites
+  const canAddWebsite = true;
+  const planName = 'Open Source';
 
   const handleCreateWebsite = async (website: { name: string; url: string }) => {
     if (!canAddWebsite) {
@@ -208,29 +180,7 @@ export default function WebsitesPage() {
       
       <main className="p-4 sm:p-6  max-w-7xl mx-auto">
         <div className="max-w-7xl mx-auto">
-          {/* Usage Summary Banner */}
-          {subscription && subscription.limits && (
-            <div className="mb-6 space-y-4">
-              <ContextualUpgradeBanner
-                type="websites"
-                current={websites?.length || 0}
-                limit={subscription.limits.websites || 1}
-                plan={subscription.plan || 'free'}
-                className="mb-4"
-              />
-              
-              {/* Show monthly events usage if available */}
-              {subscription.usage && (
-                <ContextualUpgradeBanner
-                  type="monthlyEvents"
-                  current={subscription.usage.monthlyEvents || 0}
-                  limit={subscription.limits.monthlyEvents || 10000}
-                  plan={subscription.plan || 'free'}
-                  className="mb-4"
-                />
-              )}
-            </div>
-          )}
+          {/* Open Source Version - No Usage Limits */}
           
           <div className="mb-8">
             <h1 className="font-headline text-3xl font-bold tracking-tight">Your Websites</h1>

@@ -112,7 +112,7 @@ export default function ImprovedComparison() {
           
           {/* Header */}
           <div className="text-center mb-16">
-            <Badge className="mb-6 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <Badge className="mb-6 px-4 py-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               <Target className="w-4 h-4 mr-2" />
               Platform Comparison
             </Badge>
@@ -129,10 +129,10 @@ export default function ImprovedComparison() {
           {/* Platform Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {platforms.map((platform, index) => (
-              <Card key={index} className={`relative ${platform.isRecommended ? 'ring-2 ring-blue-500 shadow-xl' : 'shadow-lg'} bg-white dark:bg-slate-800`}>
+              <Card key={index} className={`relative ${platform.isRecommended ? 'ring-2 ring-slate-500 shadow-xl' : 'shadow-lg'} bg-white dark:bg-slate-800`}>
                 {platform.isRecommended && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-blue-600 text-white px-3 py-1">
+                    <Badge className="bg-slate-900 text-white px-3 py-1">
                       <Crown className="w-3 h-3 mr-1" />
                       Recommended
                     </Badge>
@@ -212,7 +212,7 @@ export default function ImprovedComparison() {
                       <th className="px-4 py-4 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">
                         Fathom
                       </th>
-                      <th className="px-4 py-4 text-center text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20">
+                      <th className="px-4 py-4 text-center text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/20">
                         Seentics
                       </th>
                     </tr>
@@ -222,8 +222,8 @@ export default function ImprovedComparison() {
                       <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                              <feature.icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                              <feature.icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                             </div>
                             <span className="font-medium text-slate-900 dark:text-white">
                               {feature.feature}
@@ -251,9 +251,9 @@ export default function ImprovedComparison() {
                             <X className="w-5 h-5 text-red-500 mx-auto" />
                           )}
                         </td>
-                        <td className="px-4 py-4 text-center bg-blue-50 dark:bg-blue-950/20">
+                        <td className="px-4 py-4 text-center bg-slate-50 dark:bg-slate-950/20">
                           {feature.seentics ? (
-                            <Check className="w-5 h-5 text-blue-600 mx-auto" />
+                            <Check className="w-5 h-5 text-slate-600 mx-auto" />
                           ) : (
                             <X className="w-5 h-5 text-red-500 mx-auto" />
                           )}

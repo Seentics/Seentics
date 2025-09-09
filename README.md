@@ -174,7 +174,7 @@ MONGODB_URI=mongodb://localhost:27017/seentics_users
 JWT_SECRET=your-secure-jwt-secret
 GOOGLE_CLIENT_ID=your-google-oauth-client-id
 GITHUB_CLIENT_ID=your-github-oauth-client-id
-LEMON_SQUEEZY_API_KEY=your-lemon-squeezy-key
+# Removed: Commercial billing integration
 ```
 
 #### **Analytics Service** (`.env`)
@@ -242,7 +242,7 @@ POST /api/v1/workflows                         - Create workflow
 
 ### **Webhook Endpoints**
 ```
-POST /api/v1/webhooks/lemon-squeezy           - Lemon Squeezy subscription updates
+# Removed: Commercial webhook endpoints
 ```
 
 ## 🔧 **Development Workflow**

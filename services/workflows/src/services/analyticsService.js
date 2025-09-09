@@ -2,9 +2,8 @@ import { WorkflowEvent, DailyAggregation } from '../models/WorkflowEvent.js';
 import { Workflow } from '../models/Workflow.js';
 import { logger } from '../utils/logger.js';
 
-export class AnalyticsService {
-
-  async trackWorkflowEvent(eventData) {
+// Track workflow event
+export const trackWorkflowEvent = async (eventData) => {
     try {
       // Handle new analytics event structure from workflow-tracker.js
       let processedData = eventData;
@@ -33,7 +32,7 @@ export class AnalyticsService {
       }
 
       // Update aggregated counters instead of storing raw events
-      await this.updateWorkflowCounters(processedData);
+      await updateWorkflowCounters(processedData);
       
       logger.debug('Workflow counters updated:', { 
         workflowId: processedData.workflowId,
@@ -46,9 +45,10 @@ export class AnalyticsService {
       logger.error('Error tracking workflow event:', error);
       throw error;
     }
-  }
+};
 
-  async updateWorkflowCounters(eventData) {
+// Update workflow counters
+const updateWorkflowCounters = async (eventData) => {
     const { workflowId, event, nodeId, nodeTitle, result, status, reason } = eventData;
     
     if (!workflowId) return;
@@ -127,9 +127,10 @@ export class AnalyticsService {
         }
       }
     }
-  }
+};
 
-  async getWorkflowAnalytics(workflowId, dateRange = {}) {
+// Get workflow analytics
+export const getWorkflowAnalytics = async (workflowId, dateRange = {}) => {
     try {
       // Get workflow with aggregated analytics
       const workflow = await Workflow.findById(workflowId).lean();
@@ -187,18 +188,19 @@ export class AnalyticsService {
         nodeStats: nodeStatsObject,
         
         // Summary by node type
-        nodeTypeSummary: this.summarizeByNodeType(nodeStatsObject),
+        nodeTypeSummary: summarizeByNodeType(nodeStatsObject),
         
         // Performance insights
-        insights: this.generateInsights(analytics, nodeStatsObject)
+        insights: generateInsights(analytics, nodeStatsObject)
       };
     } catch (error) {
       logger.error('Error getting workflow analytics:', error);
       throw error;
     }
-  }
+};
 
-  summarizeByNodeType(nodeStats) {
+// Summarize by node type
+const summarizeByNodeType = (nodeStats) => {
     const summary = {
       triggers: { count: 0, executions: 0 },
       conditions: { count: 0, passed: 0, failed: 0 },
@@ -226,9 +228,10 @@ export class AnalyticsService {
     });
 
     return summary;
-  }
+};
 
-  generateInsights(analytics, nodeStats) {
+// Generate insights
+const generateInsights = (analytics, nodeStats) => {
     const insights = [];
     
     // Conversion rate insight
@@ -271,9 +274,10 @@ export class AnalyticsService {
     });
 
     return insights;
-  }
+};
 
-  async getWorkflowActivity(workflowId, options = {}) {
+// Get workflow activity
+export const getWorkflowActivity = async (workflowId, options = {}) => {
     try {
       const { limit = 50, offset = 0 } = options;
       
@@ -294,9 +298,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow activity:', error);
       throw error;
     }
-  }
+};
 
-  async getWorkflowPerformanceChart(workflowId, period = '30d') {
+// Get workflow performance chart
+export const getWorkflowPerformanceChart = async (workflowId, period = '30d') => {
     try {
       const days = parseInt(period.replace('d', ''));
       const startDate = new Date();
@@ -353,9 +358,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow performance chart:', error);
       throw error;
     }
-  }
+};
 
-  async getWorkflowNodePerformance(workflowId) {
+// Get workflow node performance
+export const getWorkflowNodePerformance = async (workflowId) => {
     try {
       const pipeline = [
         { $match: { workflowId } },
@@ -408,9 +414,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow node performance:', error);
       throw error;
     }
-  }
+};
 
-  groupEventsByDate(events) {
+// Group events by date
+const groupEventsByDate = (events) => {
     const grouped = {};
     
     events.forEach(event => {
@@ -427,9 +434,10 @@ export class AnalyticsService {
     });
     
     return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
-  }
+};
 
-  groupEventsByHour(events) {
+// Group events by hour
+const groupEventsByHour = (events) => {
     const hourlyData = Array.from({ length: 24 }, (_, i) => ({
       hour: i,
       triggers: 0,
@@ -446,9 +454,10 @@ export class AnalyticsService {
     });
     
     return hourlyData;
-  }
+};
 
-  async getWorkflowTriggerTypes(workflowId) {
+// Get workflow trigger types
+export const getWorkflowTriggerTypes = async (workflowId) => {
     try {
       const pipeline = [
         { $match: { workflowId, event: { $in: ['Trigger', 'workflow_trigger'] } } },
@@ -480,9 +489,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow trigger types:', error);
       throw error;
     }
-  }
+};
 
-  async getWorkflowActionTypes(workflowId) {
+// Get workflow action types
+export const getWorkflowActionTypes = async (workflowId) => {
     try {
       const pipeline = [
         { $match: { workflowId, event: { $in: ['Action Executed', 'action_completed'] } } },
@@ -510,9 +520,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow action types:', error);
       throw error;
     }
-  }
+};
 
-  async getWorkflowHourlyData(workflowId) {
+// Get workflow hourly data
+export const getWorkflowHourlyData = async (workflowId) => {
     try {
       const pipeline = [
         { $match: { workflowId } },
@@ -571,9 +582,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow hourly data:', error);
       throw error;
     }
-  }
+};
 
-  async getWorkflowFunnelData(workflowId, dateRange = {}) {
+// Get workflow funnel data
+export const getWorkflowFunnelData = async (workflowId, dateRange = {}) => {
     try {
       const { startDate, endDate } = dateRange;
       let query = { workflowId };
@@ -591,15 +603,15 @@ export class AnalyticsService {
       }).sort({ timestamp: 1 }).lean();
       
       // Group events by runId to track individual visitor journeys
-      const visitorJourneys = this.groupEventsByRunId(events);
+      const visitorJourneys = groupEventsByRunId(events);
       
       // Calculate step-by-step funnel data
-      const funnelSteps = this.calculateFunnelSteps(visitorJourneys, workflowId);
+      const funnelSteps = calculateFunnelSteps(visitorJourneys, workflowId);
       
       // Calculate additional metrics
-      const dropOffRates = this.calculateDropOffRates(funnelSteps);
-      const averageTimePerStep = this.calculateStepTiming(visitorJourneys);
-      const pathAnalysis = this.analyzeVisitorPaths(visitorJourneys);
+      const dropOffRates = calculateDropOffRates(funnelSteps);
+      const averageTimePerStep = calculateStepTiming(visitorJourneys);
+      const pathAnalysis = analyzeVisitorPaths(visitorJourneys);
       
       return {
         totalVisitors: funnelSteps[0]?.count || 0,
@@ -614,9 +626,10 @@ export class AnalyticsService {
       logger.error('Error getting workflow funnel data:', error);
       throw error;
     }
-  }
+};
 
-  groupEventsByRunId(events) {
+// Group events by run ID
+const groupEventsByRunId = (events) => {
     const journeys = {};
     
     events.forEach(event => {
@@ -666,9 +679,10 @@ export class AnalyticsService {
     });
     
     return Object.values(journeys);
-  }
+};
 
-  calculateFunnelSteps(visitorJourneys, workflowId) {
+// Calculate funnel steps
+const calculateFunnelSteps = (visitorJourneys, workflowId) => {
     if (visitorJourneys.length === 0) return [];
     
     // Get workflow structure to understand the intended flow
@@ -730,9 +744,10 @@ export class AnalyticsService {
     });
     
     return steps;
-  }
+};
 
-  calculateDropOffRates(funnelSteps) {
+// Calculate drop off rates
+const calculateDropOffRates = (funnelSteps) => {
     if (funnelSteps.length < 2) return [];
     
     const dropOffs = [];
@@ -754,9 +769,10 @@ export class AnalyticsService {
     }
     
     return dropOffs;
-  }
+};
 
-  calculateStepTiming(visitorJourneys) {
+// Calculate step timing
+const calculateStepTiming = (visitorJourneys) => {
     const stepTiming = {};
     
     visitorJourneys.forEach(journey => {
@@ -779,9 +795,10 @@ export class AnalyticsService {
       averageTime: Math.round(timing.avgTime),
       totalExecutions: timing.count
     }));
-  }
+};
 
-  analyzeVisitorPaths(visitorJourneys) {
+// Analyze visitor paths
+const analyzeVisitorPaths = (visitorJourneys) => {
     const paths = {};
     
     visitorJourneys.forEach(journey => {
@@ -800,11 +817,11 @@ export class AnalyticsService {
       .map(([path, data]) => ({ path, count: data.count, visitors: data.visitors }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10); // Top 10 paths
-  }
+};
 
-  // Clean up old workflow events to maintain performance
-  // This is a backup to the TTL index and can be called manually if needed
-  async cleanupOldEvents(hoursOld = 24) {
+// Clean up old workflow events to maintain performance
+// This is a backup to the TTL index and can be called manually if needed
+export const cleanupOldEvents = async (hoursOld = 24) => {
     try {
       const cutoffDate = new Date(Date.now() - (hoursOld * 60 * 60 * 1000));
       
@@ -823,9 +840,6 @@ export class AnalyticsService {
       logger.error('Error cleaning up old workflow events:', error);
       throw error;
     }
-  }
+};
 
-  // Get cleanup statistics for monitoring
-}
-
-export const analyticsService = new AnalyticsService();
+// Get cleanup statistics for monitoring

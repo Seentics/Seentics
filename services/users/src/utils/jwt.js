@@ -22,17 +22,11 @@ export const verifyToken = (token, isRefresh = false) => {
   }
 };
 
-export const generateTokenPayload = (user, subscription = null) => {
+export const generateTokenPayload = (user) => {
   return {
     userId: user._id,
     email: user.email,
     name: user.name,
-    plan: subscription?.plan || 'free',
-    limits: subscription?.limits || {
-      websites: 1,
-      workflows: 5,
-      monthlyEvents: 10000,
-      aiOptimizations: 5
-    }
+    isActive: user.isActive
   };
 };

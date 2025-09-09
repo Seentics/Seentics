@@ -106,13 +106,13 @@ export function TrackingCodeModal({
           
           {/* Installation Steps */}
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
-                <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">1</span>
+            <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-950/20 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-full">
+                <span className="text-slate-600 dark:text-slate-400 font-bold text-sm">1</span>
               </div>
               <div className="text-sm">
-                <p className="font-semibold text-blue-900 dark:text-blue-100">Installation Steps:</p>
-                <ol className="mt-2 text-blue-800 dark:text-blue-200 space-y-1">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">Installation Steps:</p>
+                <ol className="mt-2 text-slate-800 dark:text-slate-200 space-y-1">
                   <li>• Copy the tracking code above</li>
                   <li>• Paste it into your website's {'<head>'} section</li>
                   <li>• Save and publish your website</li>

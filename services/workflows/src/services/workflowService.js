@@ -3,153 +3,156 @@ import { logger } from '../utils/logger.js';
 import { validateWorkflow } from '../utils/validators.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
 
-export class WorkflowService {
+// Helper method to clean workflow data from UI-specific properties
+const cleanWorkflowData = (workflowData) => {
+  const cleanData = { ...workflowData };
+  
+  // Clean nodes - remove UI-specific properties
+  if (cleanData.nodes && Array.isArray(cleanData.nodes)) {
+    cleanData.nodes = cleanData.nodes.map(node => {
+      const { selected, dragging, positionAbsolute, measured, resizing, style, width, height, ...cleanNode } = node;
+      return cleanNode;
+    });
+  }
+  
+  // Clean edges - remove UI-specific properties if any
+  if (cleanData.edges && Array.isArray(cleanData.edges)) {
+    cleanData.edges = cleanData.edges.map(edge => {
+      const { selected, markerEnd, markerStart, style, ...cleanEdge } = edge;
+      return cleanEdge;
+    });
+  }
+  
+  return cleanData;
+};
 
-  // Helper method to clean workflow data from UI-specific properties
-  _cleanWorkflowData(workflowData) {
-    const cleanData = { ...workflowData };
+// Helper method to remove MongoDB-specific fields that shouldn't be saved
+const removeMongoFields = (data) => {
+  const { _id, __v, createdAt, updatedAt, ...cleanData } = data;
+  return cleanData;
+};
+
+// Create workflow
+export const createWorkflow = async (workflowData, userId) => {
+  try {
+    // Clean workflow data from UI-specific properties
+    const cleanData = cleanWorkflowData(workflowData);
     
-    // Clean nodes - remove UI-specific properties
-    if (cleanData.nodes && Array.isArray(cleanData.nodes)) {
-      cleanData.nodes = cleanData.nodes.map(node => {
-        const { selected, dragging, positionAbsolute, measured, resizing, style, width, height, ...cleanNode } = node;
-        return cleanNode;
-      });
+    // Remove userId from validation data (it's added separately)
+    const { userId: _, ...validationData } = cleanData;
+    
+    // Validate workflow data (only for creation)
+    const validationResult = validateWorkflow(validationData);
+    if (validationResult.error) {
+      throw new ValidationError(validationResult.error.details[0].message);
+    }
+
+    const workflowDoc = new Workflow({
+      ...cleanData,
+      userId,
+      status: cleanData.status || 'Draft',
+      totalTriggers: 0,
+      totalCompletions: 0,
+      completionRate: '0.0%'
+    });
+
+    const savedWorkflow = await workflowDoc.save();
+    
+    logger.info(`Workflow created: ${savedWorkflow._id}`, { userId, workflowName: savedWorkflow.name });
+    
+    return {
+      id: savedWorkflow._id.toString(),
+      ...savedWorkflow.toObject()
+    };
+  } catch (error) {
+    logger.error('Error creating workflow:', error);
+    throw error;
+  }
+};
+
+// Get workflow
+export const getWorkflow = async (workflowId, userId) => {
+  try {
+    const workflow = await Workflow.findById(workflowId);
+    
+    if (!workflow) {
+      throw new NotFoundError('Workflow not found');
+    }
+
+    // Allow system user to access any workflow (for execution)
+    if (userId !== 'system' && workflow.userId !== userId) {
+      throw new ForbiddenError('Access denied');
+    }
+
+    const obj = workflow.toObject();
+    const triggers = obj.totalTriggers || 0;
+    const completions = obj.totalCompletions || 0;
+    const rate = triggers > 0 ? Math.min(100, (completions / triggers) * 100) : 0;
+    const clamped = `${rate.toFixed(1)}%`;
+    return {
+      id: workflow._id.toString(),
+      ...obj,
+      completionRate: clamped,
+    };
+  } catch (error) {
+    logger.error('Error getting workflow:', error);
+    throw error;
+  }
+};
+
+// Get workflow count (kept for compatibility but no limits enforced in open source)
+export const getWorkflowCount = async (userId) => {
+  try {
+    const count = await Workflow.countDocuments({ userId });
+    return count;
+  } catch (error) {
+    logger.error('Error getting workflow count:', error);
+    throw error;
+  }
+};
+
+// Update workflow
+export const updateWorkflow = async (workflowId, updateData, userId) => {
+  try {
+    const existingWorkflow = await Workflow.findById(workflowId);
+    
+    if (!existingWorkflow) {
+      throw new NotFoundError('Workflow not found');
     }
     
-    // Clean edges - remove UI-specific properties if any
-    if (cleanData.edges && Array.isArray(cleanData.edges)) {
-      cleanData.edges = cleanData.edges.map(edge => {
-        const { selected, markerEnd, markerStart, style, ...cleanEdge } = edge;
-        return cleanEdge;
-      });
+    if (existingWorkflow.userId !== userId) {
+      throw new ForbiddenError('Access denied');
     }
     
-    return cleanData;
+    // Clean update data from UI-specific properties
+    const cleanUpdateData = cleanWorkflowData(updateData);
+    
+    // Remove MongoDB-specific fields that shouldn't be updated
+    const finalUpdateData = removeMongoFields(cleanUpdateData);
+    
+    // Remove userId from update data if it's present (it shouldn't change)
+    const { userId: _, ...updateDataWithoutUserId } = finalUpdateData;
+
+    const updatedWorkflow = await Workflow.findByIdAndUpdate(
+      workflowId,
+      updateDataWithoutUserId,
+      { new: true, runValidators: true }
+    );
+    
+    logger.info(`Workflow updated: ${workflowId}`, { userId });
+    
+    return {
+      id: updatedWorkflow._id.toString(),
+      ...updatedWorkflow.toObject()
+    };
+  } catch (error) {
+    logger.error('Error updating workflow:', error);
+    throw error;
   }
+};
 
-  // Helper method to remove MongoDB-specific fields that shouldn't be saved
-  _removeMongoFields(data) {
-    const { _id, __v, createdAt, updatedAt, ...cleanData } = data;
-    return cleanData;
-  }
-
-  async createWorkflow(workflowData, userId) {
-    try {
-      // Clean workflow data from UI-specific properties
-      const cleanData = this._cleanWorkflowData(workflowData);
-      
-      // Remove userId from validation data (it's added separately)
-      const { userId: _, ...validationData } = cleanData;
-      
-      // Validate workflow data (only for creation)
-      const validationResult = validateWorkflow(validationData);
-      if (validationResult.error) {
-        throw new ValidationError(validationResult.error.details[0].message);
-      }
-
-      const workflowDoc = new Workflow({
-        ...cleanData,
-        userId,
-        status: cleanData.status || 'Draft',
-        totalTriggers: 0,
-        totalCompletions: 0,
-        completionRate: '0.0%'
-      });
-
-      const savedWorkflow = await workflowDoc.save();
-      
-      logger.info(`Workflow created: ${savedWorkflow._id}`, { userId, workflowName: savedWorkflow.name });
-      
-      return {
-        id: savedWorkflow._id.toString(),
-        ...savedWorkflow.toObject()
-      };
-    } catch (error) {
-      logger.error('Error creating workflow:', error);
-      throw error;
-    }
-  }
-
-  async getWorkflow(workflowId, userId) {
-    try {
-      const workflow = await Workflow.findById(workflowId);
-      
-      if (!workflow) {
-        throw new NotFoundError('Workflow not found');
-      }
-
-      // Allow system user to access any workflow (for execution)
-      if (userId !== 'system' && workflow.userId !== userId) {
-        throw new ForbiddenError('Access denied');
-      }
-
-      const obj = workflow.toObject();
-      const triggers = obj.totalTriggers || 0;
-      const completions = obj.totalCompletions || 0;
-      const rate = triggers > 0 ? Math.min(100, (completions / triggers) * 100) : 0;
-      const clamped = `${rate.toFixed(1)}%`;
-      return {
-        id: workflow._id.toString(),
-        ...obj,
-        completionRate: clamped,
-      };
-    } catch (error) {
-      logger.error('Error getting workflow:', error);
-      throw error;
-    }
-  }
-
-  async getWorkflowCount(userId) {
-    try {
-      const count = await Workflow.countDocuments({ userId });
-      return count;
-    } catch (error) {
-      logger.error('Error getting workflow count:', error);
-      throw error;
-    }
-  }
-
-  async updateWorkflow(workflowId, updateData, userId) {
-    try {
-      const existingWorkflow = await Workflow.findById(workflowId);
-      
-      if (!existingWorkflow) {
-        throw new NotFoundError('Workflow not found');
-      }
-      
-      if (existingWorkflow.userId !== userId) {
-        throw new ForbiddenError('Access denied');
-      }
-      
-      // Clean update data from UI-specific properties
-      const cleanUpdateData = this._cleanWorkflowData(updateData);
-      
-      // Remove MongoDB-specific fields that shouldn't be updated
-      const finalUpdateData = this._removeMongoFields(cleanUpdateData);
-      
-      // Remove userId from update data if it's present (it shouldn't change)
-      const { userId: _, ...updateDataWithoutUserId } = finalUpdateData;
-
-      const updatedWorkflow = await Workflow.findByIdAndUpdate(
-        workflowId,
-        updateDataWithoutUserId,
-        { new: true, runValidators: true }
-      );
-      
-      logger.info(`Workflow updated: ${workflowId}`, { userId });
-      
-      return {
-        id: updatedWorkflow._id.toString(),
-        ...updatedWorkflow.toObject()
-      };
-    } catch (error) {
-      logger.error('Error updating workflow:', error);
-      throw error;
-    }
-  }
-
-  async deleteWorkflow(workflowId, userId) {
+// Delete workflow
+export const deleteWorkflow = async (workflowId, userId) => {
     try {
       const workflow = await Workflow.findById(workflowId);
       
@@ -170,11 +173,11 @@ export class WorkflowService {
       logger.error('Error deleting workflow:', error);
       throw error;
     }
-  }
+};
 
-  // Note: getWorkflows recalculates completion rates to ensure consistency with getWorkflow
-  // This prevents discrepancies between list view and individual workflow view
-  async getWorkflows(userId, filters = {}) {
+// Note: getWorkflows recalculates completion rates to ensure consistency with getWorkflow
+// This prevents discrepancies between list view and individual workflow view
+export const getWorkflows = async (userId, filters = {}) => {
     try {
       let query = { userId };
       
@@ -207,10 +210,10 @@ export class WorkflowService {
       logger.error('Error getting workflows:', error);
       throw error;
     }
-  }
+};
 
-  // Note: getActiveWorkflows also recalculates completion rates for consistency
-  async getActiveWorkflows(siteId) {
+// Note: getActiveWorkflows also recalculates completion rates for consistency
+export const getActiveWorkflows = async (siteId) => {
     try {
       const workflows = await Workflow.find({
         siteId,
@@ -234,9 +237,10 @@ export class WorkflowService {
       logger.error('Error getting active workflows:', error);
       throw error;
     }
-  }
+};
 
-  async incrementTriggers(workflowId) {
+// Increment workflow triggers
+export const incrementTriggers = async (workflowId) => {
     try {
       if (!workflowId) {
         logger.warn('Attempted to increment triggers with no workflow ID');
@@ -264,39 +268,37 @@ export class WorkflowService {
     } catch (error) {
       logger.error('Error incrementing triggers:', error);
       // Don't throw error for analytics operations
-    }
   }
+};
 
-  async incrementCompletions(workflowId) {
-    try {
-      if (!workflowId) {
-        logger.warn('Attempted to increment completions with no workflow ID');
-        return;
-      }
-
-      const workflow = await Workflow.findById(workflowId);
-      
-      if (!workflow) {
-        logger.warn(`Attempted to increment completions for non-existent workflow: ${workflowId}`);
-        return;
-      }
-      
-      const newCompletions = (workflow.totalCompletions || 0) + 1;
-      const raw = workflow.totalTriggers > 0 ? (newCompletions / workflow.totalTriggers) * 100 : 0;
-      const clamped = Math.min(100, Math.max(0, raw));
-      const completionRate = `${clamped.toFixed(1)}%`;
-      
-      await Workflow.findByIdAndUpdate(workflowId, {
-        totalCompletions: newCompletions,
-        completionRate
-      });
-      
-      logger.debug(`Workflow completions incremented: ${workflowId} (${newCompletions})`);
-    } catch (error) {
-      logger.error('Error incrementing completions:', error);
-      // Don't throw error for analytics operations
+// Increment workflow completions
+export const incrementCompletions = async (workflowId) => {
+  try {
+    if (!workflowId) {
+      logger.warn('Attempted to increment completions with no workflow ID');
+      return;
     }
-  }
-}
 
-export const workflowService = new WorkflowService();
+    const workflow = await Workflow.findById(workflowId);
+    
+    if (!workflow) {
+      logger.warn(`Attempted to increment completions for non-existent workflow: ${workflowId}`);
+      return;
+    }
+    
+    const newCompletions = (workflow.totalCompletions || 0) + 1;
+    const raw = workflow.totalTriggers > 0 ? (newCompletions / workflow.totalTriggers) * 100 : 0;
+    const clamped = Math.min(100, Math.max(0, raw));
+    const completionRate = `${clamped.toFixed(1)}%`;
+    
+    await Workflow.findByIdAndUpdate(workflowId, {
+      totalCompletions: newCompletions,
+      completionRate
+    });
+    
+    logger.debug(`Workflow completions incremented: ${workflowId} (${newCompletions})`);
+  } catch (error) {
+    logger.error('Error incrementing completions:', error);
+    // Don't throw error for analytics operations
+  }
+};

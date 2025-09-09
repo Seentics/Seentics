@@ -5,12 +5,12 @@ import { Code, User, Zap, Terminal, Eye, Database, Cpu, ArrowRight } from 'lucid
 
 export default function Developers() {
   return (
-    <section id="developers" className="py-12 sm:py-16 md:py-24 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/20 dark:to-indigo-950/10">
+    <section id="developers" className="py-12 sm:py-16 md:py-24 bg-gradient-to-br from-slate-50 via-slate-100/30 to-slate-200/20 dark:from-slate-950 dark:via-slate-900/20 dark:to-slate-800/10">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="text-center mb-10 sm:mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Code className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-slate-900 dark:bg-white rounded-2xl flex items-center justify-center shadow-lg">
+              <Code className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white dark:text-slate-900" />
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 dark:text-white">Identify users & track custom events</h2>
           </div>
@@ -52,7 +52,7 @@ export default function Developers() {
                 </pre>
               </div>
               <div className="mt-3 sm:mt-4 flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                <Database className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                <Database className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                 <span>The identification is used by server-side workflow actions and attached to analytics events for richer insights.</span>
               </div>
             </CardContent>
@@ -170,7 +170,7 @@ function onPurchaseCompleted(order) {
 
         {/* Call-to-Action Section */}
         <div className="mt-10 sm:mt-12 md:mt-16 text-center">
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 dark:bg-white rounded-2xl text-white dark:text-slate-900 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <span className="text-base sm:text-lg md:text-xl font-semibold">Ready to integrate?</span>
             <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform duration-300" />
           </div>

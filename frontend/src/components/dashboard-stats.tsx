@@ -88,8 +88,8 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
+      <div className="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="p-6">
               <div className="h-4 w-24 bg-muted rounded animate-pulse mb-2" />
@@ -103,8 +103,8 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
   if (!siteId) {
     return (
-      <div className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
+      <div className="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
           {stats.map((stat, index) => (
             <div key={index} className="p-6">
               <div className="flex items-center justify-between pb-2.5">
@@ -164,10 +164,10 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
     ];
 
         return (
-      <div className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
+      <div className="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
           {demoStats.map((stat, index) => (
-            <div key={stat.title} className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-6">
+            <div key={stat.title} className="group cursor-default hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors p-6">
               <div className="flex items-center justify-between pb-2.5">
                 <div className="text-sm font-semibold text-foreground/90 truncate pr-2">{stat.title}</div>
                 <stat.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
@@ -190,10 +190,10 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
   }
 
     return (
-    <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
+    <div className="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
         {stats.map((stat, index) => (
-          <div key={stat.title} className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-4 sm:p-6 lg:p-8">
+          <div key={stat.title} className="group cursor-default hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between pb-2 sm:pb-2.5">
               <div className="text-xs sm:text-sm font-semibold text-foreground/90 truncate pr-1 sm:pr-2">{stat.title}</div>
               <stat.icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors flex-shrink-0" />

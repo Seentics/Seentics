@@ -1,10 +1,9 @@
 import { Workflow } from '../models/Workflow.js';
-import { analyticsService } from '../services/analyticsService.js';
+import * as analyticsService from '../services/analyticsService.js';
 import { logger } from '../utils/logger.js';
 
-class WorkflowStatsController {
-  // Get workflow overview stats
-  async getWorkflowStats(req, res, next) {
+// Get workflow overview stats
+export const getWorkflowStats = async (req, res, next) => {
     try {
       const workflowId = req.params.id;
       const analytics = await analyticsService.getWorkflowAnalytics(workflowId);
@@ -17,10 +16,10 @@ class WorkflowStatsController {
       logger.error('Error getting workflow stats:', error);
       next(error);
     }
-  }
+};
 
-  // Get node-wise performance breakdown
-  async getNodePerformance(req, res, next) {
+// Get node-wise performance breakdown
+export const getNodePerformance = async (req, res, next) => {
     try {
       const workflowId = req.params.id;
       const workflow = await Workflow.findById(workflowId).lean();
@@ -69,10 +68,10 @@ class WorkflowStatsController {
       logger.error('Error getting node performance:', error);
       next(error);
     }
-  }
+};
 
-  // Get workflow summary for dashboard
-  async getWorkflowSummary(req, res, next) {
+// Get workflow summary for dashboard
+export const getWorkflowSummary = async (req, res, next) => {
     try {
       const { siteId } = req.query;
       
@@ -139,10 +138,10 @@ class WorkflowStatsController {
       logger.error('Error getting workflow summary:', error);
       next(error);
     }
-  }
+};
 
-  // Reset workflow analytics (for testing/debugging)
-  async resetWorkflowStats(req, res, next) {
+// Reset workflow analytics (for testing/debugging)
+export const resetWorkflowStats = async (req, res, next) => {
     try {
       const workflowId = req.params.id;
       
@@ -170,7 +169,4 @@ class WorkflowStatsController {
       logger.error('Error resetting workflow stats:', error);
       next(error);
     }
-  }
-}
-
-export const workflowStatsController = new WorkflowStatsController();
+};
