@@ -1,6 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
 import { Bot } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -9,8 +8,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
           <div className="sm:col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center">
-                <Bot className="h-4 w-4 md:h-6 md:w-6 text-white dark:text-slate-900" />
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-600 dark:bg-blue-600 rounded-xl flex items-center justify-center">
+                <Bot className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Seentics</span>
             </div>

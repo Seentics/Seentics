@@ -79,7 +79,7 @@ export default function ProblemStatement() {
                 <CardContent className="p-6 flex flex-col h-full">
                   
                   {/* Icon */}
-                  <div className="flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6">
+                  <div className=" flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-500 rounded-xl mb-6">
                     <feature.icon className="h-8 w-8 text-slate-900 dark:text-white" />
                   </div>
                   

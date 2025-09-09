@@ -35,7 +35,7 @@ export default function Hero() {
             </span>
 
             <span className="block mb-6">
-              Automate <span className="text-purple-600 dark:text-purple-500">everything</span>
+              Automate <span className="">everything</span>
             </span>
 
             <span className="block text-3xl sm:text-4xl lg:text-5xl font-bold text-green-600 dark:text-green-400">

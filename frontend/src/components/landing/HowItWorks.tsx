@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Code, BarChart3, TrendingUp, ArrowRight, CheckCircle, Play, Rocket, Clock, Users } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle, Clock, Code, Play, Rocket, TrendingUp, Users } from 'lucide-react';
+import { Button } from '../ui/button';
 
 const steps = [
   {
@@ -79,7 +79,7 @@ export default function HowItWorks() {
                 <CardHeader className="text-center pb-6">
                   
                   {/* Step Number */}
-                  <div className="w-12 h-12 bg-slate-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-slate-900 font-bold text-lg mx-auto mb-6">
+                  <div className="w-12 h-12 bg-blue-600 dark:bg-blue-600 rounded-full flex items-center justify-center text-white  font-bold text-lg mx-auto mb-6">
                     {step.step}
                   </div>
                   
@@ -124,11 +124,11 @@ export default function HowItWorks() {
         
         {/* Bottom CTA */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-900 hover:bg-slate-800 rounded-lg text-white font-semibold mb-6 group transition-colors duration-300 cursor-pointer">
+          <Button className="mb-4">
             <Rocket className="w-5 h-5" />
             <span>Get Started Now</span>
             <Play className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-          </div>
+          </Button>
           
           {/* Trust Indicators */}
           <div className="flex items-center justify-center gap-8 text-sm text-slate-500 dark:text-slate-400">

@@ -1,15 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { GithubIcon, GoogleIcon } from '@/components/icons';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bot, Loader2, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { GoogleIcon, GithubIcon } from '@/components/icons';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { initiateGoogleOAuth, initiateGitHubOAuth } from '@/lib/oauth';
+import { initiateGitHubOAuth, initiateGoogleOAuth } from '@/lib/oauth';
+import { AlertCircle, ArrowLeft, Bot, Eye, EyeOff, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -220,7 +220,7 @@ export default function SignInPage() {
 
           <Button
             type="submit"
-            className="w-full h-11 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900"
+            className="w-full"
             disabled={isLoading}
           >
             {isLoading ? (

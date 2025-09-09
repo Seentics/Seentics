@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { Bot, Play, ArrowRight, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/stores/useAuthStore';
+import { Bot } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LandingHeader() {
   const { user, isAuthenticated } = useAuth();
@@ -14,8 +14,8 @@ export default function LandingHeader() {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center">
-              <Bot className="h-6 w-6 text-white dark:text-slate-900" />
+            <div className="w-10 h-10 bg-blue-600 dark:bg-blue-600 rounded-xl flex items-center justify-center">
+              <Bot className="h-6 w-6 text-white" />
             </div>
           </div>
           <span className="text-xl font-bold text-slate-900 dark:text-white">Seentics</span>
