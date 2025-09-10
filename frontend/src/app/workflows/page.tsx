@@ -28,7 +28,7 @@ export default function WorkflowsLanding() {
                 Create behavior‑driven flows that react to page views, clicks, scroll depth, time on page, and more. Show banners, modals, run A/B splits, send webhooks, or emails — all without writing backend code.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <Link href="/login"><Button className="bg-blue-600 hover:bg-blue-700">Build a workflow</Button></Link>
+                <Link href="/signup"><Button className="bg-blue-600 hover:bg-blue-700">Build a workflow</Button></Link>
                 <Link href="/docs"><Button variant="outline">Read the docs</Button></Link>
               </div>
               <div className="mt-6 flex items-center justify-center gap-4 text-xs md:text-sm text-slate-500 dark:text-slate-400">
@@ -139,7 +139,7 @@ export default function WorkflowsLanding() {
           <section className="space-y-6 md:space-y-8 mb-12 md:mb-16">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Popular templates</h2>
-              <Link href="/login"><Button variant="outline">Start from a template</Button></Link>
+              <Link href="/signup"><Button variant="outline">Start from a template</Button></Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
               <Card className="bg-card hover:shadow-md transition-shadow">
@@ -207,7 +207,7 @@ export default function WorkflowsLanding() {
           <section className="text-center py-10 md:py-12 border-t border-slate-200 dark:border-slate-800">
             <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">Ready to build your first workflow?</h3>
             <p className="text-slate-600 dark:text-slate-300 mb-4">Use templates or start from scratch. Track results in real-time.</p>
-            <Link href="/login"><Button className="bg-blue-600 hover:bg-blue-700">Get started</Button></Link>
+            <Link href="/signup"><Button className="bg-blue-600 hover:bg-blue-700">Get started</Button></Link>
           </section>
         </div>
       </main>

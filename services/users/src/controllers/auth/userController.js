@@ -1,18 +1,13 @@
 import { User } from '../../models/User.js';
-import { Subscription } from '../../models/Subscription.js';
 import { verifyToken } from '../../utils/jwt.js';
 
-class UserController {
-  // Get current user
-  async getCurrentUser(req, res) {
+// Get current user
+export const getCurrentUser = async (req, res) => {
     try {
-      const subscription = await Subscription.findOne({ userId: req.userId });
-
       res.json({
         success: true,
         data: {
-          user: req.user.toJSON(),
-          subscription: subscription?.toJSON()
+          user: req.user.toJSON()
         }
       });
     } catch (error) {
@@ -22,10 +17,10 @@ class UserController {
         error: error.message
       });
     }
-  }
+};
 
-  // Validate JWT token (for protected route validation)
-  async validateToken(req, res) {
+// Validate JWT token (for protected route validation)
+export const validateToken = async (req, res) => {
     try {
       const { token } = req.body;
       
@@ -75,7 +70,4 @@ class UserController {
         message: 'Internal server error'
       });
     }
-  }
-}
-
-export default new UserController();
+};

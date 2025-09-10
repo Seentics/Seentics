@@ -79,8 +79,8 @@ export default function TrustSection() {
       name: 'CCPA Ready',
       description: 'California Consumer Privacy Act compliance built-in',
       icon: Lock,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/20'
+      color: 'text-slate-600',
+      bgColor: 'bg-slate-100 dark:bg-slate-800'
     },
     {
       name: 'SOC 2 Type II',
@@ -226,8 +226,8 @@ export default function TrustSection() {
             </div>
 
             <div className="text-center">
-              <div className="mx-auto p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl mb-4 w-16 h-16 flex items-center justify-center">
-                <Shield className="h-8 w-8 text-blue-600" />
+              <div className="mx-auto p-3 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 w-16 h-16 flex items-center justify-center">
+                <Shield className="h-8 w-8 text-slate-600" />
               </div>
               <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Risk Mitigation
@@ -253,7 +253,7 @@ export default function TrustSection() {
 
         {/* CTA */}
         <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-800 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-green-50 to-slate-50 dark:from-green-950/20 dark:to-slate-950/20 border border-green-200 dark:border-green-800 rounded-2xl p-8">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
               Ready to Build Trust with Your Customers?
             </h3>

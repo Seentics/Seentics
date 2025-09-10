@@ -131,8 +131,8 @@ export default function ComplianceSection() {
                 <Card key={index} className="border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300">
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                        <Icon className="h-6 w-6 text-blue-600" />
+                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        <Icon className="h-6 w-6 text-slate-600" />
                       </div>
                       <CardTitle className="text-lg text-slate-900 dark:text-slate-100">
                         {control.title}
@@ -143,8 +143,8 @@ export default function ComplianceSection() {
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <div className="bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                      <p className="text-sm text-slate-800 dark:text-slate-200">
                         <strong>Benefit:</strong> {control.benefit}
                       </p>
                     </div>
@@ -180,8 +180,8 @@ export default function ComplianceSection() {
             </div>
 
             <div className="text-center">
-              <div className="mx-auto p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl mb-4 w-16 h-16 flex items-center justify-center">
-                <Globe className="h-8 w-8 text-blue-600" />
+              <div className="mx-auto p-3 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 w-16 h-16 flex items-center justify-center">
+                <Globe className="h-8 w-8 text-slate-600" />
               </div>
               <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Global Compliance
@@ -207,7 +207,7 @@ export default function ComplianceSection() {
 
         {/* CTA */}
         <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-800 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-green-50 to-slate-50 dark:from-green-950/20 dark:to-slate-950/20 border border-green-200 dark:border-green-800 rounded-2xl p-8">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
               Ready to Build Trust with Privacy-First Analytics?
             </h3>

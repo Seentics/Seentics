@@ -16,7 +16,7 @@ export default function WebsitesLayout({
   useEffect(() => {
     // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
-      router.push('/login');
+      router.push('/signin');
     }
   }, [user, isLoading, router]);
 

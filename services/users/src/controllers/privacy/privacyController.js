@@ -1,515 +1,364 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import PrivacyRequest from '../../models/PrivacyRequest.js';
 import PrivacySettings from '../../models/PrivacySettings.js';
 import { User } from '../../models/User.js';
 import { Website } from '../../models/Website.js';
-import { Subscription } from '../../models/Subscription.js';
-import crypto from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class PrivacyController {
-  // Get user's privacy settings
-  async getPrivacySettings(req, res) {
-    try {
-      // Validate user authentication
-      if (!req.user || !req.user._id) {
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required'
-        });
-      }
-
-      const userId = req.user._id;
-      
-      // Validate user ID format
-      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid user ID format'
-        });
-      }
-      
-      let settings = await PrivacySettings.findOne({ userId });
-      
-      // Create default settings if none exist
-      if (!settings) {
-        settings = new PrivacySettings({
-          userId,
-          gdprConsent: {
-            given: true,
-            givenAt: new Date(),
-            version: '1.0'
-          }
-        });
-        await settings.save();
-      }
-
-      res.json({
-        success: true,
-        data: { settings }
-      });
-    } catch (error) {
-      console.error('Privacy settings error:', error);
-      res.status(500).json({
+// Get user's privacy settings
+export const getPrivacySettings = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
         success: false,
-        message: 'Failed to get privacy settings',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        message: 'User authentication required'
       });
     }
-  }
 
-  // Update user's privacy settings
-  async updatePrivacySettings(req, res) {
-    try {
-      // Validate user authentication
-      if (!req.user || !req.user._id) {
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required'
-        });
-      }
+    const userId = req.user._id;
 
-      const userId = req.user._id;
-      
-      // Validate user ID format
-      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid user ID format'
-        });
-      }
-
-      // Validate request body
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request body'
-        });
-      }
-      const updates = req.body;
-
-      let settings = await PrivacySettings.findOne({ userId });
-      
-      if (!settings) {
-        settings = new PrivacySettings({ userId });
-      }
-
-      // Update settings
-      Object.keys(updates).forEach(key => {
-        if (settings.schema.paths[key]) {
-          settings[key] = updates[key];
-        }
+    // Validate user ID format
+    if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
       });
+    }
 
+    let settings = await PrivacySettings.findOne({ userId });
+
+    if (!settings) {
+      settings = new PrivacySettings({ userId });
       await settings.save();
+    }
 
-      res.json({
-        success: true,
-        message: 'Privacy settings updated successfully',
-        data: { settings }
-      });
-    } catch (error) {
-      res.status(500).json({
+    res.json({
+      success: true,
+      data: {
+        settings: settings.toJSON()
+      }
+    });
+  } catch (error) {
+    console.error('Privacy settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get privacy settings',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Update user's privacy settings
+export const updatePrivacySettings = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
         success: false,
-        message: 'Failed to update privacy settings',
-        error: error.message
+        message: 'User authentication required'
       });
     }
-  }
 
-  // Create a privacy request (export, deletion, correction)
-  async createPrivacyRequest(req, res) {
-    try {
-      // Validate user authentication
-      if (!req.user || !req.user._id) {
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required'
-        });
-      }
+    const userId = req.user._id;
 
-      const userId = req.user._id;
-      
-      // Validate user ID format
-      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid user ID format'
-        });
-      }
-
-      // Validate request body
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request body'
-        });
-      }
-
-      const { type, reason, details, requestedData } = req.body;
-
-      // Validate required fields
-      if (!type || typeof type !== 'string') {
-        return res.status(400).json({
-          success: false,
-          message: 'Request type is required and must be a string'
-        });
-      }
-
-      // Validate request type
-      if (!['export', 'deletion', 'correction', 'portability'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request type. Must be one of: export, deletion, correction, portability'
-        });
-      }
-
-      // Validate reason for deletion requests
-      if (type === 'deletion' && (!reason || typeof reason !== 'string' || reason.trim().length < 10)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Reason is required for deletion requests and must be at least 10 characters'
-        });
-      }
-
-      // Validate details for correction requests
-      if (type === 'correction' && (!details || typeof details !== 'string' || details.trim().length < 10)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Details are required for correction requests and must be at least 10 characters'
-        });
-      }
-
-      // Check for existing pending requests of the same type
-      const existingRequest = await PrivacyRequest.findOne({
-        userId,
-        type,
-        status: { $in: ['pending', 'processing'] }
-      });
-
-      if (existingRequest) {
-        return res.status(400).json({
-          success: false,
-          message: `You already have a ${type} request in progress`
-        });
-      }
-
-      // Create new privacy request
-      const privacyRequest = new PrivacyRequest({
-        userId,
-        type,
-        reason,
-        details,
-        requestedData: requestedData || {
-          profile: true,
-          analytics: true,
-          workflows: true,
-          subscriptions: true
-        }
-      });
-
-      await privacyRequest.save();
-
-      // Start processing based on type
-      if (type === 'export') {
-        // Process export immediately
-        this.processDataExport(privacyRequest._id);
-      }
-
-      res.json({
-        success: true,
-        message: `${type} request submitted successfully`,
-        data: { request: privacyRequest }
-      });
-    } catch (error) {
-      res.status(500).json({
+    // Validate user ID format
+    if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to create privacy request',
-        error: error.message
+        message: 'Invalid user ID format'
       });
     }
-  }
 
-  // Get user's privacy requests
-  async getPrivacyRequests(req, res) {
-    try {
-      const userId = req.user._id;
-      const { status, type } = req.query;
-
-      const filter = { userId };
-      if (status) filter.status = status;
-      if (type) filter.type = type;
-
-      const requests = await PrivacyRequest.find(filter)
-        .sort({ createdAt: -1 })
-        .limit(50);
-
-      res.json({
-        success: true,
-        data: { requests }
-      });
-    } catch (error) {
-      res.status(500).json({
+    // Validate request body
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to get privacy requests',
-        error: error.message
+        message: 'Invalid request body'
       });
     }
-  }
+    const updates = req.body;
 
-  // Process data export
-  async processDataExport(requestId) {
-    try {
-      const request = await PrivacyRequest.findById(requestId);
-      if (!request) return;
+    let settings = await PrivacySettings.findOne({ userId });
 
-      await request.updateStatus('processing', 'Collecting user data...');
-
-      const userId = request.userId;
-      const requestedData = request.requestedData;
-
-      // Collect data from all services
-      const exportData = {
-        userId: userId.toString(),
-        exportedAt: new Date().toISOString(),
-        requestId: requestId.toString(),
-        data: {}
-      };
-
-      // User profile data
-      if (requestedData.profile) {
-        const user = await User.findById(userId).select('-password -refreshToken');
-        const websites = await Website.find({ userId });
-        const subscription = await Subscription.findOne({ userId });
-        
-        exportData.data.profile = {
-          user: user ? user.toJSON() : null,
-          websites: websites || [],
-          subscription: subscription || null
-        };
-      }
-
-      // Analytics data (would need to call analytics service)
-      if (requestedData.analytics) {
-        exportData.data.analytics = {
-          note: 'Analytics data would be collected from analytics service',
-          placeholder: 'Real implementation would call analytics service API'
-        };
-      }
-
-      // Workflow data (would need to call workflows service)
-      if (requestedData.workflows) {
-        exportData.data.workflows = {
-          note: 'Workflow data would be collected from workflows service',
-          placeholder: 'Real implementation would call workflows service API'
-        };
-      }
-
-      // Generate download URL
-      const filename = `seentics-data-export-${userId}-${Date.now()}.json`;
-      const exportDir = path.join(__dirname, '../../../exports');
-      
-      // Ensure exports directory exists
-      try {
-        await fs.mkdir(exportDir, { recursive: true });
-      } catch (error) {
-        // Directory might already exist
-      }
-
-      const filePath = path.join(exportDir, filename);
-      await fs.writeFile(filePath, JSON.stringify(exportData, null, 2));
-
-      // Update request with download URL
-      const downloadUrl = `/api/v1/user/privacy/download/${filename}`;
-      request.downloadUrl = downloadUrl;
-      await request.updateStatus('completed', 'Data export completed successfully');
-
-    } catch (error) {
-      console.error('Data export error:', error);
-      const request = await PrivacyRequest.findById(requestId);
-      if (request) {
-        await request.updateStatus('failed', `Export failed: ${error.message}`);
-      }
+    if (!settings) {
+      settings = new PrivacySettings({ userId });
     }
+
+    // Update settings
+    Object.keys(updates).forEach(key => {
+      if (settings.schema.paths[key]) {
+        settings[key] = updates[key];
+      }
+    });
+
+    await settings.save();
+
+    res.json({
+      success: true,
+      message: 'Privacy settings updated successfully',
+      data: {
+        settings: settings.toJSON()
+      }
+    });
+  } catch (error) {
+    console.error('Privacy settings update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update privacy settings',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
+};
 
-  // Download exported data
-  async downloadExport(req, res) {
-    try {
-      const { filename } = req.params;
-      const userId = req.user._id;
-
-      // Verify the file belongs to this user
-      const request = await PrivacyRequest.findOne({
-        userId,
-        downloadUrl: `/api/v1/user/privacy/download/${filename}`,
-        status: 'completed'
-      });
-
-      if (!request) {
-        return res.status(404).json({
-          success: false,
-          message: 'Export file not found or expired'
-        });
-      }
-
-      // Check if file has expired
-      if (request.expiresAt && new Date() > request.expiresAt) {
-        return res.status(410).json({
-          success: false,
-          message: 'Export file has expired'
-        });
-      }
-
-      const filePath = path.join(__dirname, '../../../exports', filename);
-      
-      // Check if file exists
-      try {
-        await fs.access(filePath);
-      } catch (error) {
-        return res.status(404).json({
-          success: false,
-          message: 'Export file not found'
-        });
-      }
-
-      res.download(filePath, `seentics-data-export-${userId}.json`);
-
-    } catch (error) {
-      res.status(500).json({
+// Submit a privacy request (data export, deletion, etc.)
+export const submitPrivacyRequest = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
         success: false,
-        message: 'Failed to download export',
-        error: error.message
+        message: 'User authentication required'
       });
     }
+
+    const userId = req.user._id;
+    const { type, details } = req.body;
+
+    // Validate request type
+    const validTypes = ['data_export', 'data_deletion', 'data_portability', 'opt_out'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request type'
+      });
+    }
+
+    // Check for existing pending request of same type
+    const existingRequest = await PrivacyRequest.findOne({
+      userId,
+      type,
+      status: 'pending'
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: 'A request of this type is already pending'
+      });
+    }
+
+    // Create new privacy request
+    const privacyRequest = new PrivacyRequest({
+      userId,
+      type,
+      details: details || '',
+      status: 'pending',
+      requestedAt: new Date()
+    });
+
+    await privacyRequest.save();
+
+    res.json({
+      success: true,
+      message: 'Privacy request submitted successfully',
+      data: {
+        request: privacyRequest.toJSON()
+      }
+    });
+  } catch (error) {
+    console.error('Privacy request submission error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit privacy request',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
+};
 
-  // Process data deletion request
-  async processDataDeletion(req, res) {
-    try {
-      const userId = req.user._id;
-      const { reason } = req.body;
+// Get user's privacy requests
+export const getPrivacyRequests = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
 
-      if (!reason) {
+    const userId = req.user._id;
+
+    const requests = await PrivacyRequest.find({ userId })
+      .sort({ requestedAt: -1 })
+      .limit(50);
+
+    res.json({
+      success: true,
+      data: {
+        requests: requests.map(req => req.toJSON())
+      }
+    });
+  } catch (error) {
+    console.error('Privacy requests retrieval error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get privacy requests',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Export user data (GDPR compliance)
+export const exportUserData = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
+
+    const userId = req.user._id;
+
+    // Gather all user data
+    const user = await User.findById(userId).select('-password -refreshToken');
+    const websites = await Website.find({ userId });
+    const privacySettings = await PrivacySettings.findOne({ userId });
+    const privacyRequests = await PrivacyRequest.find({ userId });
+
+    const userData = {
+      user: user ? user.toJSON() : null,
+      websites: websites.map(w => w.toJSON()),
+      privacySettings: privacySettings ? privacySettings.toJSON() : null,
+      privacyRequests: privacyRequests.map(r => r.toJSON()),
+      exportedAt: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message: 'User data exported successfully',
+      data: userData
+    });
+  } catch (error) {
+    console.error('User data export error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export user data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Delete user data (GDPR compliance)
+export const deleteUserData = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
+
+    const userId = req.user._id;
+    const { confirmPassword } = req.body;
+
+    // Verify password if user has one
+    const user = await User.findById(userId);
+    if (user.password) {
+      if (!confirmPassword) {
         return res.status(400).json({
           success: false,
-          message: 'Reason is required for data deletion'
+          message: 'Password confirmation required'
         });
       }
 
-      // Create deletion request
-      const deletionRequest = new PrivacyRequest({
-        userId,
-        type: 'deletion',
-        reason,
-        status: 'pending'
-      });
-
-      await deletionRequest.save();
-
-      // Start deletion process (in real implementation, this would be a background job)
-      this.processDataDeletionAsync(deletionRequest._id);
-
-      res.json({
-        success: true,
-        message: 'Data deletion request submitted successfully',
-        data: { request: deletionRequest }
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to process deletion request',
-        error: error.message
-      });
-    }
-  }
-
-  // Process data deletion asynchronously
-  async processDataDeletionAsync(requestId) {
-    try {
-      const request = await PrivacyRequest.findById(requestId);
-      if (!request) return;
-
-      await request.updateStatus('processing', 'Starting data deletion process...');
-
-      const userId = request.userId;
-
-      // Delete user data from all services
-      // 1. User service data
-      await User.findByIdAndUpdate(userId, { 
-        isActive: false,
-        email: `deleted_${Date.now()}@deleted.com`,
-        name: 'Deleted User',
-        avatar: null,
-        refreshToken: null
-      });
-
-      // 2. Website data
-      await Website.deleteMany({ userId });
-
-      // 3. Subscription data
-      await Subscription.deleteMany({ userId });
-
-      // 4. Privacy settings
-      await PrivacySettings.deleteOne({ userId });
-
-      // 5. Privacy requests (except this one)
-      await PrivacyRequest.deleteMany({ 
-        userId, 
-        _id: { $ne: requestId } 
-      });
-
-      // Note: In real implementation, you would also:
-      // - Call analytics service to delete user data
-      // - Call workflows service to delete user data
-      // - Send notifications to other services
-      // - Log the deletion for audit purposes
-
-      await request.updateStatus('completed', 'Data deletion completed successfully');
-
-    } catch (error) {
-      console.error('Data deletion error:', error);
-      const request = await PrivacyRequest.findById(requestId);
-      if (request) {
-        await request.updateStatus('failed', `Deletion failed: ${error.message}`);
+      const isMatch = await user.comparePassword(confirmPassword);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid password'
+        });
       }
     }
+
+    // Delete all user-related data
+    await Promise.all([
+      Website.deleteMany({ userId }),
+      PrivacySettings.deleteOne({ userId }),
+      PrivacyRequest.deleteMany({ userId }),
+      User.findByIdAndDelete(userId)
+    ]);
+
+    res.json({
+      success: true,
+      message: 'User data deleted successfully'
+    });
+  } catch (error) {
+    console.error('User data deletion error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
+};
 
-  // Get privacy compliance status
-  async getComplianceStatus(req, res) {
-    try {
-      const userId = req.user._id;
-      
-      const settings = await PrivacySettings.findOne({ userId });
-      const pendingRequests = await PrivacyRequest.countDocuments({
-        userId,
-        status: { $in: ['pending', 'processing'] }
-      });
-
-      const complianceStatus = {
-        gdprCompliant: settings?.gdprConsent?.given || false,
-        ccpaCompliant: !settings?.ccpaOptOut?.optedOut,
-        pendingRequests,
-        lastUpdated: settings?.updatedAt || new Date()
-      };
-
-      res.json({
-        success: true,
-        data: { complianceStatus }
-      });
-    } catch (error) {
-      res.status(500).json({
+// Download privacy data as file
+export const downloadPrivacyData = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
         success: false,
-        message: 'Failed to get compliance status',
-        error: error.message
+        message: 'User authentication required'
       });
     }
-  }
-}
 
-export default new PrivacyController();
+    const userId = req.user._id;
+
+    // Gather all user data
+    const user = await User.findById(userId).select('-password -refreshToken');
+    const websites = await Website.find({ userId });
+    const privacySettings = await PrivacySettings.findOne({ userId });
+    const privacyRequests = await PrivacyRequest.find({ userId });
+
+    const userData = {
+      user: user ? user.toJSON() : null,
+      websites: websites.map(w => w.toJSON()),
+      privacySettings: privacySettings ? privacySettings.toJSON() : null,
+      privacyRequests: privacyRequests.map(r => r.toJSON()),
+      exportedAt: new Date().toISOString()
+    };
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="privacy-data-${userId}-${Date.now()}.json"`);
+
+    res.json(userData);
+  } catch (error) {
+    console.error('Privacy data download error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download privacy data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+const privacyController = {
+  getPrivacySettings,
+  updatePrivacySettings,
+  submitPrivacyRequest,
+  getPrivacyRequests,
+  exportUserData,
+  deleteUserData,
+  downloadPrivacyData
+};
+
+export default privacyController;

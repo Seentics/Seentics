@@ -21,8 +21,8 @@ export default function Features() {
           {/* Analytics Features */}
           <Card className="border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300">
             <CardHeader className="text-center">
-              <div className="mx-auto p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl mb-4">
-                <BarChart3 className="h-8 w-8 text-blue-600" />
+              <div className="mx-auto p-3 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
+                <BarChart3 className="h-8 w-8 text-slate-600" />
               </div>
               <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
                 Advanced Analytics

@@ -1,8 +1,8 @@
 {
-  "name": "seentics-frontend",
+  "name": "analytics-platform-frontend",
   "version": "0.1.0",
   "private": false,
-  "description": "Frontend application for Seentics - Intelligent Website Automation Platform",
+  "description": "Frontend application for Open Source Analytics & Automation Platform",
   "keywords": [
     "nextjs",
     "react",
@@ -11,16 +11,16 @@
     "analytics",
     "website-tracking"
   ],
-  "author": "Seentics Team",
+  "author": "Open Source Community",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seentics/seentics.git",
+    "url": "https://github.com/yourusername/analytics-platform.git",
     "directory": "frontend"
   },
-  "homepage": "https://github.com/seentics/seentics#readme",
+  "homepage": "https://github.com/yourusername/analytics-platform#readme",
   "scripts": {
-    "dev": "next dev",
+    "dev": " next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -71,6 +71,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
+    "react-icons": "^5.5.0",
     "reactflow": "^11.11.3",
     "recharts": "^2.15.1",
     "sonner": "^2.0.6",
@@ -85,6 +86,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cpx2": "^8.0.0",
     "patch-package": "^8.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

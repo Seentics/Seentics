@@ -153,7 +153,7 @@ export default function ImageGallery({ items = defaultItems }: ImageGalleryProps
               className={cn(
                 "w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300",
                 currentIndex === index
-                  ? "bg-blue-600 dark:bg-blue-400 scale-125"
+                  ? "bg-slate-900 dark:bg-white scale-125"
                   : "bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500"
               )}
             />

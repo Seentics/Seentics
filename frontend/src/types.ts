@@ -18,37 +18,8 @@ export type User = {
     getOAuthProvider?: () => string
   }
   
-  export type Subscription = {
-    userId: string
-    lemonSqueezyId: string
-    orderId: string
-    productId: string
-    plan: string
-    status: string
-    trialEndsAt: string | null
-    renewsAt: string | null
-    endsAt: string | null
-    limits: {
-      websites: number
-      workflows: number
-      monthlyEvents: number
-      aiOptimizations: number
-    }
-    usage: {
-      websites: number
-      workflows: number
-      monthlyEvents: number
-      aiOptimizations: number
-    }
-    _id: string
-    createdAt: string
-    updatedAt: string
-    __v: number
-  }
-  
   export type AuthState = {
   user: User | null
-  subscription: Subscription | null
   access_token: string | null
   refresh_token: string | null
   isAuthenticated: boolean
@@ -56,7 +27,6 @@ export type User = {
   isLoading: boolean
   setAuth: (data: {
     user: User
-    subscription: Subscription
     access_token: string
     refresh_token: string
     rememberMe?: boolean

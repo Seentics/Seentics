@@ -22,7 +22,7 @@ export function useAuthGuard() {
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated || !user) {
-        router.push('/login');
+        router.push('/signin');
         return;
       }
 
@@ -39,7 +39,7 @@ export function useAuthGuard() {
   const refreshToken = useCallback(async () => {
     if (!refresh_token) {
       logout();
-      router.push('/login');
+      router.push('/signin');
       return;
     }
 
@@ -63,10 +63,10 @@ export function useAuthGuard() {
     } catch (error) {
       console.error('Token refresh failed:', error);
       logout();
-      router.push('/login');
+      router.push('/signin');
       toast({
         title: "Session Expired",
-        description: "Please log in again to continue.",
+        description: "Please sign in again to continue.",
         variant: "destructive",
       });
     } finally {
@@ -100,7 +100,7 @@ export function useAuthGuard() {
 }
 
 // Hook for protecting specific components
-export function useRequireAuth(redirectTo = '/login') {
+export function useRequireAuth(redirectTo = '/signin') {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
 

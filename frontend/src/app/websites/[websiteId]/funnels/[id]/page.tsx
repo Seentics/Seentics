@@ -1,23 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
-import { 
-  useFunnels,
-  useFunnelAnalytics,
-  useDetailedFunnelAnalytics,
-  useUpdateFunnel,
-  useDeleteFunnel,
-  type Funnel,
-  type FunnelAnalytics
-} from '@/lib/analytics-api';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Edit, Play, Pause, Trash2, Target, CircleCheckBig, Percent, Activity, ArrowLeft, TrendingUp, TrendingDown, Clock, Users, AlertCircle } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,30 +12,28 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  useDeleteFunnel,
+  useDetailedFunnelAnalytics,
+  useFunnelAnalytics,
+  useFunnels,
+  useUpdateFunnel
+} from '@/lib/analytics-api';
+import { Activity, AlertCircle, ArrowLeft, CircleCheckBig, Clock, Edit, Loader2, Percent, Target, TrendingDown, TrendingUp, Users } from 'lucide-react';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/stores/useAuthStore';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsKeys } from '@/lib/analytics-api';
+import { useAuth } from '@/stores/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Import funnel components
-import { EnhancedFunnelChart } from '@/components/analytics/EnhancedFunnelChart';
-import { StepByStepAnalysis } from '@/components/analytics/StepByStepAnalysis';
 import { CohortAnalysis } from '@/components/analytics/CohortAnalysis';
+import { EnhancedFunnelChart } from '@/components/analytics/EnhancedFunnelChart';
 import { FunnelComparison } from '@/components/analytics/FunnelComparison';
+import { StepByStepAnalysis } from '@/components/analytics/StepByStepAnalysis';
 
 // Helper function to format time with proper precision
 function formatTime(seconds: number): string {

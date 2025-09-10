@@ -8,8 +8,8 @@ export default function VisualFunnels() {
     {
       title: "User adds to cart",
       description: "Visitor adds items but hasn't purchased yet",
-      color: "bg-blue-100 text-blue-700 border-blue-200",
-      darkColor: "dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+      color: "bg-slate-100 text-slate-700 border-slate-200",
+      darkColor: "dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
     },
     {
       title: "Exit intent detected", 
@@ -33,7 +33,7 @@ export default function VisualFunnels() {
 
   const results = [
     { label: "Recovery Rate", value: "15-25%", icon: TrendingUp, color: "text-green-600" },
-    { label: "Revenue Boost", value: "8-12%", icon: ShoppingCart, color: "text-blue-600" },
+    { label: "Revenue Boost", value: "8-12%", icon: ShoppingCart, color: "text-slate-600" },
     { label: "Setup Time", value: "5 min", icon: Clock, color: "text-purple-600" }
   ];
 
@@ -44,7 +44,7 @@ export default function VisualFunnels() {
           
           {/* Header */}
           <div className="text-center mb-16">
-            <Badge className="mb-6 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+            <Badge className="mb-6 px-4 py-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700">
               <GitBranch className="h-4 w-4 mr-2" />
               Visual Funnel Builder
             </Badge>
@@ -66,8 +66,8 @@ export default function VisualFunnels() {
               </h3>
               
               <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <span className="font-medium text-blue-700 dark:text-blue-300">Trigger</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Trigger</span>
                 </div>
                 
                 <ArrowRight className="h-5 w-5 text-slate-400" />
@@ -164,11 +164,11 @@ export default function VisualFunnels() {
               </div>
 
               {/* Pro Tip */}
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950/30 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="h-5 w-5 text-slate-600 dark:text-slate-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="text-sm text-slate-800 dark:text-slate-200">
                       <strong>Pro tip:</strong> Test different discount amounts (5% vs 10%) 
                       to find what works best for your audience.
                     </p>

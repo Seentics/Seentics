@@ -1,7 +1,7 @@
 {
-  "name": "seentics-user-service",
+  "name": "analytics-platform-user-service",
   "version": "1.0.0",
-  "description": "User management microservice for Seentics platform",
+  "description": "User management microservice for Open Source Analytics & Automation Platform",
   "main": "src/server.js",
   "type": "module",
   "keywords": [
@@ -9,16 +9,16 @@
     "user-management",
     "authentication",
     "oauth",
-    "seentics"
+    "analytics-platform"
   ],
-  "author": "Seentics Team",
+  "author": "Open Source Community",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seentics/seentics.git",
+    "url": "https://github.com/yourusername/analytics-platform.git",
     "directory": "services/users"
   },
-  "homepage": "https://github.com/seentics/seentics#readme",
+  "homepage": "https://github.com/yourusername/analytics-platform#readme",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",

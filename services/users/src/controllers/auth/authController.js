@@ -1,11 +1,9 @@
 import { User } from '../../models/User.js';
-import { Subscription } from '../../models/Subscription.js';
 import { generateTokens, verifyToken, generateTokenPayload } from '../../utils/jwt.js';
 import { getGoogleUserInfo, getGithubUserInfo } from '../../utils/oauth.js';
 
-class AuthController {
-  // Register
-  async register(req, res) {
+// Register
+export const register = async (req, res) => {
     try {
       const { email, password, name } = req.body;
 
@@ -28,20 +26,8 @@ class AuthController {
 
       await user.save();
 
-      // Create default subscription
-      const subscription = new Subscription({
-        userId: user._id,
-        lemonSqueezyId: `free_${user._id}`,
-        orderId: `free_${user._id}`,
-        productId: 'free',
-        plan: 'free',
-        status: 'active'
-      });
-
-      await subscription.save();
-
       // Generate tokens
-      const payload = generateTokenPayload(user, subscription);
+      const payload = generateTokenPayload(user);
       const { accessToken, refreshToken } = generateTokens(payload);
 
       // Save refresh token
@@ -53,7 +39,6 @@ class AuthController {
         message: 'User created successfully',
         data: {
           user: user.toJSON(),
-          subscription: subscription.toJSON(),
           tokens: {
             accessToken,
             refreshToken
@@ -67,10 +52,10 @@ class AuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Login
-  async login(req, res) {
+// Login
+export const login = async (req, res) => {
     try {
       const { email, password } = req.body;
 
@@ -100,11 +85,8 @@ class AuthController {
         });
       }
 
-      // Get subscription
-      const subscription = await Subscription.findOne({ userId: user._id });
-
       // Generate tokens
-      const payload = generateTokenPayload(user, subscription);
+      const payload = generateTokenPayload(user);
       const { accessToken, refreshToken } = generateTokens(payload);
 
       // Save refresh token and update login tracking
@@ -116,7 +98,6 @@ class AuthController {
         message: 'Login successful',
         data: {
           user: user.toJSON(),
-          subscription: subscription?.toJSON(),
           tokens: {
             accessToken,
             refreshToken
@@ -130,10 +111,10 @@ class AuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Refresh token
-  async refreshToken(req, res) {
+// Refresh token
+export const refreshToken = async (req, res) => {
     try {
       const { refreshToken } = req.body;
 
@@ -156,11 +137,8 @@ class AuthController {
         });
       }
 
-      // Get subscription
-      const subscription = await Subscription.findOne({ userId: user._id });
-
       // Generate new tokens
-      const payload = generateTokenPayload(user, subscription);
+      const payload = generateTokenPayload(user);
       const tokens = generateTokens(payload);
 
       // Update refresh token
@@ -181,10 +159,10 @@ class AuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Logout
-  async logout(req, res) {
+// Logout
+export const logout = async (req, res) => {
     try {
       // Clear refresh token
       req.user.refreshToken = null;
@@ -201,18 +179,15 @@ class AuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Get current user
-  async getCurrentUser(req, res) {
+// Get current user
+export const getCurrentUser = async (req, res) => {
     try {
-      const subscription = await Subscription.findOne({ userId: req.userId });
-
       res.json({
         success: true,
         data: {
-          user: req.user.toJSON(),
-          subscription: subscription?.toJSON()
+          user: req.user.toJSON()
         }
       });
     } catch (error) {
@@ -222,10 +197,10 @@ class AuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Validate JWT token
-  async validateToken(req, res) {
+// Validate JWT token
+export const validateToken = async (req, res) => {
     try {
       const { token } = req.body;
       
@@ -275,7 +250,4 @@ class AuthController {
         message: 'Internal server error'
       });
     }
-  }
-}
-
-export default new AuthController();
+};

@@ -101,21 +101,6 @@ func main() {
 		proxyTo(w, r, os.Getenv("ANALYTICS_SERVICE_URL"))
 	})
 
-	// Workflows routes without v1 - route to workflows service
-	mux.HandleFunc("/api/workflows/", func(w http.ResponseWriter, r *http.Request) {
-		proxyTo(w, r, os.Getenv("WORKFLOW_SERVICE_URL"))
-	})
-
-	// Funnel events routes - route to workflows service
-	mux.HandleFunc("/api/funnel-events/", func(w http.ResponseWriter, r *http.Request) {
-		proxyTo(w, r, os.Getenv("WORKFLOW_SERVICE_URL"))
-	})
-
-	// Admin service routes
-	mux.HandleFunc("/api/v1/admin/", func(w http.ResponseWriter, r *http.Request) {
-		proxyTo(w, r, os.Getenv("ADMIN_SERVICE_URL"))
-	})
-
 	// Privacy routes - route to appropriate services based on GDPR requirements
 	mux.HandleFunc("/api/v1/privacy/", func(w http.ResponseWriter, r *http.Request) {
 		// Route privacy requests based on the specific endpoint

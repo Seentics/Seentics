@@ -1,11 +1,9 @@
 import { Website } from '../../models/Website.js';
-import { Subscription } from '../../models/Subscription.js';
 import CacheService from './cacheService.js';
 import crypto from 'crypto';
 
-class WebsiteManagementController {
-  // Get all websites for user
-  async getAllWebsites(req, res) {
+// Get all websites for user
+export const getAllWebsites = async (req, res) => {
     try {
       const websites = await Website.find({ 
         userId: req.userId,
@@ -25,10 +23,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Get single website
-  async getWebsite(req, res) {
+// Get single website
+export const getWebsite = async (req, res) => {
     try {
       const website = await Website.findOne({
         _id: req.params.id,
@@ -56,10 +54,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Create new website
-  async createWebsite(req, res) {
+// Create new website
+export const createWebsite = async (req, res) => {
     try {
       const { name, url } = req.body;
 
@@ -95,9 +93,6 @@ class WebsiteManagementController {
 
       await website.save();
 
-      // Increment usage
-      await req.subscription.incrementUsage('websites');
-
       res.status(201).json({
         success: true,
         message: 'Website created successfully',
@@ -112,10 +107,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Update website
-  async updateWebsite(req, res) {
+// Update website
+export const updateWebsite = async (req, res) => {
     try {
       const { name, url } = req.body;
       
@@ -176,10 +171,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Delete website
-  async deleteWebsite(req, res) {
+// Delete website
+export const deleteWebsite = async (req, res) => {
     try {
       const website = await Website.findOne({
         _id: req.params.id,
@@ -198,19 +193,15 @@ class WebsiteManagementController {
       website.isActive = false;
       await website.save();
 
-      // Decrement usage
-      const subscription = await Subscription.findOne({ userId: req.userId });
-      if (subscription && subscription.usage.websites > 0) {
-        subscription.usage.websites -= 1;
-        await subscription.save();
-      }
-
       // Invalidate website cache after deletion
       await CacheService.invalidateWebsiteCache(website._id);
 
       res.json({
         success: true,
-        message: 'Website deleted successfully'
+        message: 'Website deleted successfully',
+        data: {
+          id: website._id
+        }
       });
     } catch (error) {
       res.status(500).json({
@@ -219,10 +210,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Update website settings
-  async updateWebsiteSettings(req, res) {
+// Update website settings
+export const updateWebsiteSettings = async (req, res) => {
     try {
       const { trackingEnabled, dataRetentionDays, allowedOrigins } = req.body;
       
@@ -271,10 +262,10 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
+};
 
-  // Validate website ID and domain match
-  async validateWebsite(req, res) {
+// Validate website ID and domain match
+export const validateWebsite = async (req, res) => {
     try {
       // Accept both websiteId and siteId for flexibility
       const { websiteId, siteId, domain } = req.body;
@@ -371,7 +362,4 @@ class WebsiteManagementController {
         error: error.message
       });
     }
-  }
-}
-
-export default new WebsiteManagementController();
+};

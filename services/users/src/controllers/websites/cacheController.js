@@ -1,6 +1,5 @@
-class CacheController {
-    // Clear cache when user is updated
-    async clearUserCache(req, res) {
+// Clear cache when user is updated
+export const clearUserCache = async (req, res) => {
       try {
         const { userId } = req.params;
         
@@ -18,10 +17,10 @@ class CacheController {
           message: 'Failed to clear user cache'
         });
       }
-    }
-  
-    // Clear cache when website is updated
-    async clearWebsiteCache(req, res) {
+};
+
+// Clear cache when website is updated
+export const clearWebsiteCache = async (req, res) => {
       try {
         const { websiteId } = req.params;
         
@@ -38,10 +37,10 @@ class CacheController {
           message: 'Failed to clear website cache'
         });
       }
-    }
-  
-    // Clear token cache (for logout)
-    async clearTokenCache(req, res) {
+};
+
+// Clear token cache (for logout)
+export const clearTokenCache = async (req, res) => {
       try {
         const { token } = req.body;
         
@@ -65,7 +64,4 @@ class CacheController {
           message: 'Failed to clear token cache'
         });
       }
-    }
-  }
-  
-  export default new CacheController();
+};

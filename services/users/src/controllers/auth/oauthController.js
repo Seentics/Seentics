@@ -1,12 +1,10 @@
 import { User } from '../../models/User.js';
-import { Subscription } from '../../models/Subscription.js';
 import { generateTokens, generateTokenPayload } from '../../utils/jwt.js';
 import { getGoogleUserInfo, getGithubUserInfo } from '../../utils/oauth.js';
 import { config } from '../../config/config.js';
 
-class OAuthController {
-  // Google OAuth
-  async googleAuth(req, res) {
+// Google OAuth
+export const googleAuth = async (req, res) => {
     try {
       const { code } = req.body;
 
@@ -42,35 +40,19 @@ class OAuthController {
         });
       }
 
-      // Create subscription if user is new
-      let subscription = await Subscription.findOne({ userId: user._id });
-      if (!subscription) {
-        subscription = new Subscription({
-          userId: user._id,
-          lemonSqueezyId: `free_${user._id}`,
-          orderId: `free_${user._id}`,
-          productId: 'free',
-          plan: 'free',
-          status: 'active'
-        });
-        await subscription.save();
-      }
-
       // Generate tokens
-      const payload = generateTokenPayload(user, subscription);
+      const payload = generateTokenPayload(user);
       const { accessToken, refreshToken } = generateTokens(payload);
 
       // Save refresh token and update login tracking
       user.refreshToken = refreshToken;
       await user.updateLoginTracking();
 
-
       res.json({
         success: true,
         message: 'Google OAuth successful',
         data: {
           user: user.toJSON(),
-          subscription: subscription?.toJSON(),
           tokens: {
             accessToken,
             refreshToken
@@ -85,10 +67,10 @@ class OAuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // GitHub OAuth
-  async githubAuth(req, res) {
+// GitHub OAuth
+export const githubAuth = async (req, res) => {
     try {
       const { code } = req.body;
 
@@ -124,35 +106,19 @@ class OAuthController {
         });
       }
 
-      // Create subscription if user is new
-      let subscription = await Subscription.findOne({ userId: user._id });
-      if (!subscription) {
-        subscription = new Subscription({
-          userId: user._id,
-          lemonSqueezyId: `free_${user._id}`,
-          orderId: `free_${user._id}`,
-          productId: 'free',
-          plan: 'free',
-          status: 'active'
-        });
-        await subscription.save();
-      }
-
       // Generate tokens
-      const payload = generateTokenPayload(user, subscription);
+      const payload = generateTokenPayload(user);
       const { accessToken, refreshToken } = generateTokens(payload);
 
       // Save refresh token and update login tracking
       user.refreshToken = refreshToken;
       await user.updateLoginTracking();
 
-
       res.json({
         success: true,
         message: 'GitHub OAuth successful',
         data: {
           user: user.toJSON(),
-          subscription: subscription?.toJSON(),
           tokens: {
             accessToken,
             refreshToken
@@ -167,10 +133,10 @@ class OAuthController {
         error: error.message
       });
     }
-  }
+};
 
-  // Health check for OAuth configuration
-  async healthCheck(req, res) {
+// Health check for OAuth configuration
+export const healthCheck = async (req, res) => {
     try {
       const health = {
         google: {
@@ -204,7 +170,4 @@ class OAuthController {
         error: error.message
       });
     }
-  }
-}
-
-export default new OAuthController();
+};

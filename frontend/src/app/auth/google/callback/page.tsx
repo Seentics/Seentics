@@ -115,10 +115,10 @@ function GoogleCallbackContent() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/signin')}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
             >
-              Back to Login
+              Back to Sign In
             </button>
           </CardContent>
         </Card>

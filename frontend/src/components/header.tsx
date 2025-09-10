@@ -1,32 +1,30 @@
 'use client'
 
-import React, { useEffect, useState, Suspense } from 'react'
-import Link from 'next/link'
-import { useRouter, usePathname, useSearchParams, useParams } from 'next/navigation'
-import { 
-  Menu, 
-  User, 
-  ChevronLeft,
-  ChevronRight,
-  Moon,
-  Sun,
-  LogOut,
-  Settings,
-  HelpCircle
-} from 'lucide-react'
-import { useLayoutStore } from '@/stores/useLayoutStore'
-import { SiteSelector } from './site-selector'
-import { useAuth } from '@/stores/useAuthStore'
-import { useToast } from '@/hooks/use-toast'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/stores/useAuthStore'
+import { useLayoutStore } from '@/stores/useLayoutStore'
+import {
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  LogOut,
+  Menu,
+  Settings,
+  User
+} from 'lucide-react'
+import Link from 'next/link'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect } from 'react'
+import { SiteSelector } from './site-selector'
 
 function HeaderContent() {
   const { 
@@ -90,8 +88,8 @@ function HeaderContent() {
   const handleLogout = () => {
     // Clear auth state
     logout();
-    // Redirect to login
-    router.push('/login');
+    // Redirect to signin
+    router.push('/signin');
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
@@ -105,7 +103,7 @@ function HeaderContent() {
           {/* Mobile Menu Button */}
           <button
             onClick={toggleMobileMenu}
-            className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200"
+            className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -113,7 +111,7 @@ function HeaderContent() {
           {/* Desktop Sidebar Toggle */}
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
             title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {isSidebarOpen ? (
@@ -146,11 +144,11 @@ function HeaderContent() {
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                className="flex items-center space-x-3 h-auto px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200 shadow-sm"
+                className="flex items-center space-x-3 h-auto px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-colors shadow-sm"
               >
                 <Avatar className="h-8 w-8 ring-2 ring-gray-100 dark:ring-gray-700">
                   <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-medium">
+                  <AvatarFallback className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium">
                     {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
@@ -167,9 +165,9 @@ function HeaderContent() {
             <PopoverContent className="w-72 p-0" align="end">
               <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
                 <div className="flex items-center space-x-3">
-                  <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-gray-700">
+                  <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-slate-700">
                     <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
+                    <AvatarFallback className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-lg">
                       {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
                     </AvatarFallback>
                   </Avatar>
@@ -189,7 +187,7 @@ function HeaderContent() {
                 <Link href={`/websites/${siteId}/support`}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start h-10 px-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300"
+                    className="w-full justify-start h-10 px-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300"
                   >
                     <HelpCircle className="h-4 w-4 mr-3 text-gray-600 dark:text-gray-400" />
                     Support

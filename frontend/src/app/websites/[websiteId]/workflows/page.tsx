@@ -1,18 +1,15 @@
-
 'use client';
-import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
-import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { WorkflowsTable } from '@/components/workflows-table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useQuery } from '@tanstack/react-query';
-import { getSubscription, checkPermission } from '@/lib/subscription-api';
-import { useAuth } from '@/stores/useAuthStore';
-import { getWorkflows, type Workflow } from '@/lib/workflow-api';
+import { WorkflowsTable } from '@/components/workflows-table';
 import { useToast } from '@/hooks/use-toast';
-import ContextualUpgradeBanner from '@/components/contextual-upgrade-banner';
-import { FunnelInsights } from '@/components/workflows/FunnelInsights';
+import { getWorkflows, type Workflow } from '@/lib/workflow-api';
+import { useAuth } from '@/stores/useAuthStore';
+import { useQuery } from '@tanstack/react-query';
+import { PlusCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+
  
  
 export default function WorkflowsPage() {
@@ -27,13 +24,9 @@ export default function WorkflowsPage() {
     enabled: !!user && !!siteId,
   });
 
-  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
-    queryKey: ['subscription', user?._id],
-    queryFn: () => getSubscription(),
-    enabled: !!user,
-  });
-
-  const { allowed: canAddWorkflow, planName } = checkPermission('workflows', workflows?.length || 0, subscription);
+  // In open source version, all features are unlimited
+  const canAddWorkflow = true;
+  const planName = 'Open Source';
 
   // Derived metrics for stats cards
   const totalWorkflows = workflows?.length || 0;
@@ -100,25 +93,7 @@ export default function WorkflowsPage() {
         </div>
       </div>
       
-      {/* Usage Summary Banner */}
-      {subscription && (
-        <div className="mb-6 space-y-4">
-          <ContextualUpgradeBanner
-            type="workflows"
-            current={workflows?.length || 0}
-            limit={(() => {
-                          const plans = {
-              free: 5,
-              standard: 50,
-              pro: 200,
-            };
-              return plans[subscription.plan] || 5;
-            })()}
-            plan={subscription.plan || 'free'}
-            className="mb-4"
-          />
-        </div>
-      )}
+      {/* Open Source Version - No Limits */}
 
       {/* Key Metrics - Unified Cards Container (analytics-style) */}
       <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">

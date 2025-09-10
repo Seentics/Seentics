@@ -10,10 +10,10 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link href="/login">
+        <Link href="/signin">
           <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-white/80 dark:hover:bg-slate-800/80">
             <ArrowLeft className="h-4 w-4" />
-            Back to Login
+            Back to Sign In
           </Button>
         </Link>
       </div>
@@ -298,9 +298,9 @@ export default function PrivacyPolicyPage() {
                 View Terms of Service
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/signin">
               <Button>
-                Back to Login
+                Back to Sign In
               </Button>
             </Link>
           </div>

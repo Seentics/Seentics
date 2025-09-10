@@ -7,11 +7,9 @@ import { Button } from '@/components/ui/button';
 import { FunnelsTable } from '@/components/funnels-table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
-import { getSubscription, checkPermission } from '@/lib/subscription-api';
 import { useAuth } from '@/stores/useAuthStore';
 import { useFunnels } from '@/lib/analytics-api';
 import { useToast } from '@/hooks/use-toast';
-import ContextualUpgradeBanner from '@/components/contextual-upgrade-banner';
 import Link from 'next/link';
 
 interface FunnelsPageProps {
@@ -27,14 +25,9 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
   
   const { data: funnels = [], isLoading: isLoadingFunnels } = useFunnels(websiteId);
 
-  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
-    queryKey: ['subscription', user?._id],
-    queryFn: () => getSubscription(),
-    enabled: !!user,
-  });
-
-  // For funnels, we'll check against a similar limit structure
-  const { allowed: canAddFunnel, planName } = checkPermission('workflows', funnels?.length || 0, subscription);
+  // In open source version, all features are unlimited
+  const canAddFunnel = true;
+  const planName = 'Open Source';
 
   // Real metrics from actual funnel data
   const totalFunnels = funnels?.length || 0;
@@ -145,25 +138,7 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
         </div>
       </div>
       
-      {/* Usage Summary Banner */}
-      {subscription && (
-        <div className="mb-6 space-y-4">
-          <ContextualUpgradeBanner
-            type="workflows"
-            current={funnels?.length || 0}
-            limit={(() => {
-                          const plans = {
-              free: 5,
-              standard: 50,
-              pro: 200,
-            };
-              return plans[subscription.plan] || 5;
-            })()}
-            plan={subscription.plan || 'free'}
-            className="mb-4"
-          />
-        </div>
-      )}
+      {/* Open Source Version - No Limits */}
 
       {/* Key Metrics - Unified Cards Container (analytics-style) */}
       <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">

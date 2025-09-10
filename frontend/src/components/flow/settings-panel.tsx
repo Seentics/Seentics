@@ -60,7 +60,7 @@ const LocalStorageForm: React.FC<{
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-blue-500" />
+                <Info className="h-4 w-4 text-slate-500" />
                 <Label className="text-sm font-medium">Include Data from localStorage</Label>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -506,13 +506,13 @@ const NodeSettingsForm: React.FC<{
               Set value range constraints for the funnel event (e.g., cart value, time spent).
             </p>
             
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-700 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-xs text-blue-800 dark:text-blue-200">
+                <Info className="h-4 w-4 text-slate-600 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-slate-800 dark:text-slate-200">
                   <p className="font-medium mb-1">Funnel-Only Trigger Active</p>
                   <p>This workflow will ONLY trigger when the specified funnel event occurs. It will not respond to other page interactions or events.</p>
-                  <p className="mt-1 text-blue-700 dark:text-blue-300">
+                  <p className="mt-1 text-slate-700 dark:text-slate-300">
                     <strong>Event:</strong> {settings.eventType} | 
                     <strong>Funnel:</strong> {funnels.find(f => f.id === settings.funnelId)?.name || 'Unknown'} | 
                     <strong>Step:</strong> {settings.stepIndex || 'Any'}
@@ -899,7 +899,7 @@ const NodeSettingsForm: React.FC<{
                 </div>
               </RadioGroup>
               {!settings.displayMode && (
-                <p className="text-xs text-blue-600 dark:text-blue-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Mode automatically set to "Simple" for better compatibility
                 </p>
               )}

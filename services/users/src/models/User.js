@@ -61,6 +61,16 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
     default: null
+  },
+  
+  // Email verification
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpires: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true,
@@ -136,6 +146,34 @@ userSchema.statics.findByOAuthId = function(provider, oauthId) {
     query.githubId = oauthId;
   }
   return this.findOne(query);
+};
+
+// Generate email verification token
+userSchema.methods.generateEmailVerificationToken = function() {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  this.emailVerificationToken = token;
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  
+  return token;
+};
+
+// Verify email with token
+userSchema.methods.verifyEmail = function(token) {
+  if (!this.emailVerificationToken || this.emailVerificationToken !== token) {
+    return false;
+  }
+  
+  if (this.emailVerificationExpires < Date.now()) {
+    return false;
+  }
+  
+  this.isEmailVerified = true;
+  this.emailVerificationToken = null;
+  this.emailVerificationExpires = null;
+  
+  return true;
 };
 
 // Static method to find or create OAuth user

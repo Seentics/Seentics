@@ -19,9 +19,9 @@ const results = [
     metric: "15-25%",
     label: "Cart recovery rate",
     description: "Automatically recover 15-25% of abandoned carts with smart workflows",
-    color: "from-blue-500 to-indigo-600",
-    bgColor: "from-blue-50 to-indigo-50",
-    darkBgColor: "from-blue-950/20 to-indigo-950/10"
+    color: "from-slate-500 to-slate-600",
+    bgColor: "from-slate-50 to-slate-100",
+    darkBgColor: "from-slate-950/20 to-slate-900/10"
   },
   {
     icon: Users,
@@ -46,9 +46,9 @@ const results = [
     metric: "500+",
     label: "Businesses trust us",
     description: "Join hundreds of companies already using Seentics",
-    color: "from-indigo-500 to-blue-600",
-    bgColor: "from-indigo-50 to-blue-50",
-    darkBgColor: "from-indigo-950/20 to-blue-950/10"
+    color: "from-slate-500 to-slate-600",
+    bgColor: "from-slate-50 to-slate-100",
+    darkBgColor: "from-slate-950/20 to-slate-900/10"
   },
   {
     icon: BarChart3,
@@ -93,23 +93,23 @@ const testimonials = [
 
 export default function ResultsShowcase() {
   return (
-    <section className="py-16 sm:py-20 md:py-24 lg:py-32 bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/20 dark:to-indigo-950/10 relative overflow-hidden">
+    <section className="py-16 sm:py-20 md:py-24 lg:py-32 bg-gradient-to-br from-slate-50 via-slate-100/20 to-slate-200/20 dark:from-slate-950 dark:via-slate-900/20 dark:to-slate-800/10 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-indigo-200/20 dark:from-blue-800/10 dark:to-indigo-800/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-slate-200/20 to-slate-300/20 dark:from-slate-800/10 dark:to-slate-700/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-emerald-200/20 dark:from-green-800/10 dark:to-emerald-800/10 rounded-full blur-3xl"></div>
       </div>
       
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Enhanced Header */}
         <div className="text-center mb-12 sm:mb-16 md:mb-20 lg:mb-24">
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-full text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-4 sm:mb-6">
+          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-4 sm:mb-6">
             <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Proven Results</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 text-slate-900 dark:text-white">
             Results That{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+            <span className="text-slate-600 dark:text-slate-400">
               Speak for Themselves
             </span>
           </h2>
@@ -151,7 +151,7 @@ export default function ResultsShowcase() {
         <div className="text-center mb-12 sm:mb-16 md:mb-20">
           <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 md:mb-12 text-slate-900 dark:text-white">
             What Our Customers{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            <span className="text-slate-600 dark:text-slate-400">
               Actually Say
             </span>
           </h3>
@@ -178,7 +178,7 @@ export default function ResultsShowcase() {
                 </blockquote>
                 
                 <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-xl shadow-lg">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-900 dark:bg-white rounded-2xl flex items-center justify-center text-white dark:text-slate-900 font-bold text-sm sm:text-lg md:text-xl shadow-lg">
                     {testimonial.avatar}
                   </div>
                   <div>
@@ -197,7 +197,7 @@ export default function ResultsShowcase() {
         
         {/* Enhanced CTA Section */}
         <div className="text-center">
-          <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 sm:p-10 md:p-12 max-w-5xl mx-auto text-white shadow-2xl">
+          <div className="relative overflow-hidden bg-slate-900 dark:bg-slate-800 rounded-3xl p-8 sm:p-10 md:p-12 max-w-5xl mx-auto text-white shadow-2xl">
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 left-0 w-24 sm:w-32 h-24 sm:h-32 border-2 border-white rounded-full"></div>
@@ -215,11 +215,11 @@ export default function ResultsShowcase() {
                 <span className="font-semibold">30 days</span>
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                <button className="group px-8 sm:px-10 py-4 sm:py-5 bg-white text-blue-600 font-bold rounded-2xl hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center gap-3 w-full sm:w-auto">
+                <button className="group px-8 sm:px-10 py-4 sm:py-5 bg-white text-slate-900 font-bold rounded-2xl hover:bg-slate-50 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center gap-3 w-full sm:w-auto">
                   <span>Start Free Trial</span>
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </button>
-                <button className="px-8 sm:px-10 py-4 sm:py-5 border-2 sm:border-3 border-white text-white font-bold rounded-2xl hover:bg-white hover:text-blue-600 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 w-full sm:w-auto">
+                <button className="px-8 sm:px-10 py-4 sm:py-5 border-2 sm:border-3 border-white text-white font-bold rounded-2xl hover:bg-white hover:text-slate-900 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 w-full sm:w-auto">
                   Schedule Demo
                 </button>
               </div>

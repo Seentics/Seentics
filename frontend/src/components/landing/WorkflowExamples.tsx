@@ -65,8 +65,8 @@ export default function WorkflowExamples() {
         {/* Legend */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-            <span className="inline-flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-xs sm:text-sm font-medium">
-              <span className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-blue-500" /> Trigger
+            <span className="inline-flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-full text-xs sm:text-sm font-medium">
+              <span className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-slate-500" /> Trigger
             </span>
             <span className="inline-flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1 md:py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full text-xs sm:text-sm font-medium">
               <span className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-green-500" /> Condition

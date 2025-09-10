@@ -1,8 +1,7 @@
 import Queue from 'bull';
 import { redisClient } from '../config/redis.js';
-import { executionService } from './executionService.js';
-import { initializeDLQ } from './dlqService.js';
-import { analyticsService } from './analyticsService.js';
+import * as executionService from './executionService.js';
+import * as analyticsService from './analyticsService.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/config.js';
 
@@ -76,8 +75,7 @@ export async function initializeQueues() {
     });
 
     logger.info('Queues initialized successfully');
-    // Ensure DLQ is ready
-    initializeDLQ();
+    // DLQ removed - using direct logging for failed operations
   } catch (error) {
     logger.error('Failed to initialize queues:', error);
     throw error;

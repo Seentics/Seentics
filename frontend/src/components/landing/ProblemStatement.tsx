@@ -1,8 +1,7 @@
 'use client';
 
-import { BarChart3, Zap, Target, ArrowRight, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { BarChart3, CheckCircle, Target, Zap } from 'lucide-react';
 
 export default function ProblemStatement() {
   const features = [
@@ -64,7 +63,7 @@ export default function ProblemStatement() {
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
               Everything You Need
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mt-2">
+              <span className="block text-slate-600 dark:text-slate-400 mt-2">
                 In One Simple Platform
               </span>
             </h2>
@@ -80,8 +79,8 @@ export default function ProblemStatement() {
                 <CardContent className="p-6 flex flex-col h-full">
                   
                   {/* Icon */}
-                  <div className="flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-xl mb-6">
-                    <feature.icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  <div className=" flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-500 rounded-xl mb-6">
+                    <feature.icon className="h-8 w-8 text-slate-900 dark:text-white" />
                   </div>
                   
                   {/* Title */}
@@ -90,7 +89,7 @@ export default function ProblemStatement() {
                   </h3>
                   
                   {/* Subtitle */}
-                  <p className="text-blue-600 dark:text-blue-400 font-semibold mb-4">
+                  <p className="text-slate-600 dark:text-slate-400 font-semibold mb-4">
                     {feature.subtitle}
                   </p>
                   
@@ -118,7 +117,7 @@ export default function ProblemStatement() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {feature.technical.map((tech, techIndex) => (
-                        <span key={techIndex} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium">
+                        <span key={techIndex} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-md font-medium">
                           {tech}
                         </span>
                       ))}
@@ -131,17 +130,17 @@ export default function ProblemStatement() {
           </div>
 
           {/* CTA Section */}
-          {/* <div className="text-center bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-12">
+          {/* <div className="text-center bg-slate-900 dark:bg-slate-800 rounded-2xl p-12">
             <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to Boost Your Conversions?
             </h3>
             
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-100 mb-8 max-w-2xl mx-auto">
               Join 500+ businesses using Seentics to increase conversions by <span className="font-bold text-white">23% on average</span>
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="gap-3 px-8 py-4 bg-white text-blue-600 hover:bg-slate-100 font-semibold">
+              <Button size="lg" className="gap-3 px-8 py-4 bg-white text-slate-900 hover:bg-slate-100 font-semibold">
                 Get Started Free
                 <ArrowRight className="h-5 w-5" />
               </Button>
@@ -152,7 +151,7 @@ export default function ProblemStatement() {
               </Button>
             </div>
             
-            <div className="flex items-center justify-center gap-6 mt-6 text-sm text-blue-100">
+            <div className="flex items-center justify-center gap-6 mt-6 text-sm text-slate-100">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
                 <span>No credit card required</span>

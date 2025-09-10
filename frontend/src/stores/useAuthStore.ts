@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AuthState, User, Subscription } from '@/types';
+import type { AuthState, User } from '@/types';
 
 export const useAuth = create<AuthState>()(
   persist(
@@ -13,10 +13,10 @@ export const useAuth = create<AuthState>()(
       rememberMe: false,
       isLoading: true, // Start with loading true until persisted state loads
 
-      setAuth: ({ user, subscription, access_token, refresh_token, rememberMe = false }) =>
+      setAuth: ({ user, access_token, refresh_token, rememberMe = false }) =>
         set(() => ({
           user,
-          subscription,
+          // subscription, // Removed: Commercial subscription functionality
           access_token,
           refresh_token,
           isAuthenticated: true,
@@ -56,7 +56,7 @@ export const useAuth = create<AuthState>()(
       logout: () =>
         set(() => ({
           user: null,
-          subscription: null,
+          // subscription: null, // Removed: Commercial subscription functionality
           access_token: null,
           refresh_token: null,
           isAuthenticated: false,
@@ -67,7 +67,7 @@ export const useAuth = create<AuthState>()(
       resetAuth: () =>
         set(() => ({
           user: null,
-          subscription: null,
+          // subscription: null, // Removed: Commercial subscription functionality
           access_token: null,
           refresh_token: null,
           isAuthenticated: false,
@@ -105,7 +105,7 @@ export const useAuth = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        subscription: state.subscription,
+        // subscription: state.subscription, // Removed: Commercial subscription functionality
         access_token: state.access_token,
         refresh_token: state.refresh_token,
         isAuthenticated: state.isAuthenticated,
