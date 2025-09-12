@@ -140,9 +140,9 @@
             }
           }
 
-          // Fetch from API - Use public endpoint for funnel tracking
+          // Fetch from API - Use analytics service public endpoint for funnel tracking
           const apiUrl = `${apiHost}/api/v1/funnels/active?website_id=${siteId}`;
-          if (DEBUG) console.log('🔍 Seentics: Fetching funnels from public endpoint:', apiUrl);
+          if (DEBUG) console.log('🔍 Seentics: Fetching funnels from analytics service:', apiUrl);
           
           // For public funnel tracking, we don't need authentication
           // This endpoint is designed for tracker scripts on public websites
@@ -160,8 +160,8 @@
 
           if (response.ok) {
             const data = await response.json();
-            // Handle both direct array response and wrapped response
-            const funnels = Array.isArray(data) ? data : (data.funnels || data.data || []);
+            // Handle null response (no funnels), direct array response, and wrapped response
+            const funnels = data === null ? [] : (Array.isArray(data) ? data : (data && data.funnels ? data.funnels : (data && data.data ? data.data : [])));
             
             if (DEBUG) console.log('🔍 Seentics: API Response:', { status: response.status, data });
             if (DEBUG) console.log('🔍 Seentics: Extracted funnels:', funnels);
@@ -192,6 +192,9 @@
           }
         } catch (error) {
           console.warn('🔍 Seentics: Error loading funnel definitions:', error);
+          // Initialize with empty array on error to prevent null reference
+          activeFunnels.clear();
+          initializeFunnels([]);
         }
       }
 

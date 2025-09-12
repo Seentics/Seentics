@@ -33,7 +33,7 @@ func (s *FunnelService) CreateFunnel(ctx context.Context, req *models.CreateFunn
 		Name:        req.Name,
 		Description: req.Description,
 		WebsiteID:   req.WebsiteID,
-		UserID:      &req.UserID,
+		UserID:      req.UserID,
 		Steps:       req.Steps,
 		IsActive:    req.IsActive,
 	}

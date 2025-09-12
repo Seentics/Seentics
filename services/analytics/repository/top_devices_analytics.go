@@ -28,7 +28,7 @@ func (td *TopDevicesAnalytics) GetTopDevices(ctx context.Context, websiteID stri
 			GROUP BY session_id
 		)
 		SELECT 
-			COALESCE(e.device_type, 'unknown') as device,
+			COALESCE(e.device, 'unknown') as device,
 			COUNT(*) as views,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COALESCE(
@@ -40,7 +40,7 @@ func (td *TopDevicesAnalytics) GetTopDevices(ctx context.Context, websiteID stri
 		WHERE e.website_id = $1 
 		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
 		AND e.event_type = 'pageview'
-		GROUP BY e.device_type
+		GROUP BY e.device
 		ORDER BY unique_visitors DESC
 		LIMIT $3`
 

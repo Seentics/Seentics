@@ -333,9 +333,9 @@
       async function loadAdditionalTrackers() {
         try {
           await Promise.all([
-            loadResource('/styles/tracker-styles.css', 'link'),
-            loadResource('/workflow-tracker.js'),
-            loadResource('/funnel-tracker.js')
+            loadResource('/trackers/styles/tracker-styles.css', 'link'),
+            loadResource('/trackers/workflow-tracker.js'),
+            loadResource('/trackers/funnel-tracker.js')
           ]);
 
           if (win.seentics?.workflowTracker) {

@@ -75,7 +75,7 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 			GROUP BY session_id
 		)
 		SELECT 
-			e.page_url as page,
+			e.page as page,
 			COUNT(*) as views,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COALESCE(
@@ -84,8 +84,8 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 			) as bounce_rate,
 			COALESCE(AVG(e.time_on_page), 0) as avg_time,
 			COALESCE(
-				(COUNT(*) FILTER (WHERE e.page_url = (
-					SELECT e2.page_url 
+				(COUNT(*) FILTER (WHERE e.page = (
+					SELECT e2.page 
 					FROM events e2 
 					WHERE e2.session_id = e.session_id 
 					AND e2.event_type = 'pageview' 
@@ -98,8 +98,8 @@ func (tp *TopPagesAnalytics) GetTopPages(ctx context.Context, websiteID string, 
 		WHERE e.website_id = $1 
 		AND e.timestamp >= NOW() - INTERVAL '1 day' * $2
 		AND e.event_type = 'pageview'
-		AND e.page_url IS NOT NULL
-		GROUP BY e.page_url
+		AND e.page IS NOT NULL
+		GROUP BY e.page
 		ORDER BY views DESC
 		LIMIT $3`
 
@@ -288,7 +288,7 @@ func (tp *TopPagesAnalytics) GetTopPagesWithTimeBucket(ctx context.Context, webs
 			GROUP BY session_id
 		)
 		SELECT 
-			e.page_url as page,
+			e.page as page,
 			COUNT(*) as views,
 			COUNT(DISTINCT e.visitor_id) as unique_visitors,
 			COALESCE(
@@ -297,8 +297,8 @@ func (tp *TopPagesAnalytics) GetTopPagesWithTimeBucket(ctx context.Context, webs
 			) as bounce_rate,
 			COALESCE(AVG(e.time_on_page), 0) as avg_time,
 			COALESCE(
-				(COUNT(*) FILTER (WHERE e.page_url = (
-					SELECT e2.page_url 
+				(COUNT(*) FILTER (WHERE e.page = (
+					SELECT e2.page 
 					FROM events e2 
 					WHERE e2.session_id = e.session_id 
 					AND e2.event_type = 'pageview' 
@@ -311,8 +311,8 @@ func (tp *TopPagesAnalytics) GetTopPagesWithTimeBucket(ctx context.Context, webs
 		WHERE e.website_id = $1 
 		AND e.timestamp >= time_bucket('1 day', NOW()) - INTERVAL '1 day' * $2
 		AND e.event_type = 'pageview'
-		AND e.page_url IS NOT NULL
-		GROUP BY e.page_url
+		AND e.page IS NOT NULL
+		GROUP BY e.page
 		ORDER BY views DESC
 		LIMIT $3`
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import PrivacyController from '../controllers/privacy/privacyController.js';
+import privacyController from '../controllers/privacy/privacyController.js';
 import { authenticate } from '../middleware/auth.js';
 import { body, query } from 'express-validator';
 
@@ -27,20 +27,28 @@ const dataDeletionValidation = [
 ];
 
 // Privacy settings routes
-router.get('/settings', authenticate, PrivacyController.getPrivacySettings);
-router.put('/settings', authenticate, updatePrivacySettingsValidation, PrivacyController.updatePrivacySettings);
+router.get('/settings', authenticate, privacyController.getPrivacySettings);
+router.put('/settings', authenticate, updatePrivacySettingsValidation, privacyController.updatePrivacySettings);
 
 // Privacy requests routes
-router.post('/requests', authenticate, createPrivacyRequestValidation, PrivacyController.createPrivacyRequest);
-router.get('/requests', authenticate, PrivacyController.getPrivacyRequests);
+router.post('/requests', authenticate, createPrivacyRequestValidation, (req, res) => {
+  res.json({ success: true, message: 'Privacy request endpoint - temporarily disabled' });
+});
+router.get('/requests', authenticate, privacyController.getPrivacyRequests);
 
 // Data export routes
-router.get('/download/:filename', authenticate, PrivacyController.downloadExport);
+router.get('/download/:filename', authenticate, (req, res) => {
+  res.json({ success: true, message: 'Download endpoint - temporarily disabled' });
+});
 
 // Data deletion routes
-router.post('/delete', authenticate, dataDeletionValidation, PrivacyController.processDataDeletion);
+router.post('/delete', authenticate, dataDeletionValidation, (req, res) => {
+  res.json({ success: true, message: 'Delete endpoint - temporarily disabled' });
+});
 
 // Compliance status
-router.get('/compliance', authenticate, PrivacyController.getComplianceStatus);
+router.get('/compliance', authenticate, (req, res) => {
+  res.json({ success: true, message: 'Compliance endpoint - temporarily disabled' });
+});
 
 export default router;

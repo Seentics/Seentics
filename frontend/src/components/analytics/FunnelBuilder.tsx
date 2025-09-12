@@ -85,9 +85,9 @@ export function FunnelBuilder({ websiteId, existingFunnel, onSave, onCancel }: F
 
     const hasEmptySteps = steps.some(step => 
       !step.name.trim() || 
-      (step.type === 'page' && !step.condition.page) ||
-      (step.type === 'event' && !step.condition.event) ||
-      (step.type === 'custom' && !step.condition.custom)
+      (step.type === 'page' && (!step.condition.page || step.condition.page.trim() === '')) ||
+      (step.type === 'event' && (!step.condition.event || step.condition.event.trim() === '')) ||
+      (step.type === 'custom' && (!step.condition.custom || step.condition.custom.trim() === ''))
     );
 
     if (hasEmptySteps) {

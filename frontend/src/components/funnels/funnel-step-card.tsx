@@ -13,7 +13,11 @@ interface FunnelStep {
   name: string;
   type: 'page' | 'event' | 'custom';
   order: number;
-  selector?: string;
+  condition: {
+    page?: string;
+    event?: string;
+    custom?: string;
+  };
   description?: string;
 }
 
@@ -136,15 +140,20 @@ export function FunnelStepCard({
           <p className="text-xs text-gray-500 mt-1">{getTypeDescription()}</p>
         </div>
 
-        {/* Selector/Path */}
+        {/* Condition Input */}
         <div>
-          <Label htmlFor={`step-selector-${step.id}`} className="text-sm font-medium">
+          <Label htmlFor={`step-condition-${step.id}`} className="text-sm font-medium">
             {step.type === 'page' ? 'Page Path' : step.type === 'event' ? 'CSS Selector' : 'Event Name'}
           </Label>
           <Input
-            id={`step-selector-${step.id}`}
-            value={step.selector || ''}
-            onChange={(e) => onUpdate({ selector: e.target.value })}
+            id={`step-condition-${step.id}`}
+            value={step.condition?.[step.type] || ''}
+            onChange={(e) => onUpdate({ 
+              condition: { 
+                ...step.condition, 
+                [step.type]: e.target.value 
+              } 
+            })}
             placeholder={getSuggestions()[0] || ''}
             className="mt-1"
           />
@@ -154,7 +163,12 @@ export function FunnelStepCard({
                 key={suggestion}
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdate({ selector: suggestion })}
+                onClick={() => onUpdate({ 
+                  condition: { 
+                    ...step.condition, 
+                    [step.type]: suggestion 
+                  } 
+                })}
                 className="text-xs h-6"
               >
                 {suggestion}

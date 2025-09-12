@@ -57,8 +57,8 @@ func (r *EventRepository) Create(ctx context.Context, event *models.Event) error
 	defer cancel()
 
 	query := `INSERT INTO events (
-		id, website_id, visitor_id, session_id, event_type, page_url, referrer, user_agent, ip_address,
-		country, city, browser, device_type, os, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+		id, website_id, visitor_id, session_id, event_type, page, referrer, user_agent, ip_address,
+		country, city, browser, device, os, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
 		time_on_page, properties, timestamp, created_at
 	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`
 
@@ -177,8 +177,8 @@ func (r *EventRepository) copyBatch(ctx context.Context, events []models.Event) 
 func (r *EventRepository) regularBatch(ctx context.Context, events []models.Event) (*BatchResult, error) {
 	batch := &pgx.Batch{}
 	query := `INSERT INTO events (
-		id, website_id, visitor_id, session_id, event_type, page_url, referrer, user_agent, ip_address,
-		country, city, browser, device_type, os, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+		id, website_id, visitor_id, session_id, event_type, page, referrer, user_agent, ip_address,
+		country, city, browser, device, os, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
 		time_on_page, properties, timestamp, created_at
 	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`
 

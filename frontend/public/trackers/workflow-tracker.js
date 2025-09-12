@@ -22,7 +22,7 @@
     URL_PATH: 'URL Path',
     TRAFFIC_SOURCE: 'Traffic Source',
     NEW_VS_RETURNING: 'New vs Returning',
-    DEVICE: 'Device'
+    DEVICE: 'Device Type'
   };
 
   const FREQUENCY_TYPES = {
@@ -43,7 +43,12 @@
   };
 
   const generateId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-  const isMobile = () => /Mobi|Android/i.test(navigator.userAgent);
+  const getDeviceType = () => {
+    const userAgent = navigator.userAgent;
+    if (/iPad|Android(?=.*Mobile)|PlayBook|Silk/i.test(userAgent)) return 'Tablet';
+    if (/Mobi|Android/i.test(userAgent)) return 'Mobile';
+    return 'Desktop';
+  };
   const throttle = (fn, delay) => {
     let last = 0;
     return (...args) => {
@@ -158,8 +163,11 @@
     },
 
     _setupTriggers() {
-      // Page view trigger
+      // Page view trigger - initial page load
       this._checkTrigger(TRIGGERS.PAGE_VIEW);
+      
+      // Setup page navigation detection for SPA routing
+      this._setupPageNavigation();
       
       // Time spent triggers
       this.activeWorkflows.forEach(workflow => {
@@ -199,6 +207,35 @@
       document.addEventListener('seentics:funnel-event', (e) => {
         this._checkTrigger(TRIGGERS.FUNNEL, e.detail);
       });
+    },
+
+    _setupPageNavigation() {
+      let currentUrl = window.location.pathname;
+      
+      const onRouteChange = () => {
+        const newUrl = window.location.pathname;
+        if (newUrl !== currentUrl) {
+          currentUrl = newUrl;
+          // Trigger page view workflows on navigation
+          this._checkTrigger(TRIGGERS.PAGE_VIEW);
+        }
+      };
+
+      // SPA navigation detection
+      const originalPushState = history.pushState;
+      const originalReplaceState = history.replaceState;
+
+      history.pushState = function (...args) {
+        originalPushState.apply(this, args);
+        onRouteChange();
+      };
+
+      history.replaceState = function (...args) {
+        originalReplaceState.apply(this, args);
+        onRouteChange();
+      };
+
+      window.addEventListener('popstate', onRouteChange);
     },
 
     _getNodes(workflow, type) {
@@ -357,10 +394,40 @@
         case CONDITIONS.NEW_VS_RETURNING:
           return settings.visitorType === (this.isReturningVisitor ? 'returning' : 'new');
         case CONDITIONS.DEVICE:
-          return settings.deviceType === (isMobile() ? 'Mobile' : 'Desktop');
+          return this._evaluateDeviceCondition(settings);
         default:
           return true;
       }
+    },
+
+    _evaluateDeviceCondition(settings) {
+      const currentDevice = getDeviceType();
+      
+      // Check basic device type match
+      if (settings.deviceType && settings.deviceType !== 'Any' && settings.deviceType !== currentDevice) {
+        return false;
+      }
+      
+      // Check screen size constraints if specified
+      if (settings.minScreenWidth && window.screen.width < settings.minScreenWidth) {
+        return false;
+      }
+      if (settings.maxScreenWidth && window.screen.width > settings.maxScreenWidth) {
+        return false;
+      }
+      
+      // Check touch support if specified
+      if (settings.touchSupport) {
+        const hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (settings.touchSupport === 'touch' && !hasTouchSupport) {
+          return false;
+        }
+        if (settings.touchSupport === 'no-touch' && hasTouchSupport) {
+          return false;
+        }
+      }
+      
+      return true;
     },
 
     async _executeAction(node, workflow) {

@@ -68,7 +68,7 @@ type CreateFunnelRequest struct {
 	Name        string      `json:"name" binding:"required"`
 	Description *string     `json:"description"`
 	WebsiteID   string      `json:"website_id" binding:"required"`
-	UserID      string      `json:"user_id" binding:"required"`
+	UserID      *string     `json:"user_id,omitempty"`
 	Steps       FunnelSteps `json:"steps" binding:"required"`
 	IsActive    bool        `json:"is_active"`
 }

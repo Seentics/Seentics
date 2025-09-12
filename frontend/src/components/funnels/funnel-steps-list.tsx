@@ -10,7 +10,11 @@ interface FunnelStep {
   name: string;
   type: 'page' | 'event' | 'custom';
   order: number;
-  selector?: string;
+  condition: {
+    page?: string;
+    event?: string;
+    custom?: string;
+  };
   description?: string;
 }
 

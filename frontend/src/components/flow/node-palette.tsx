@@ -117,7 +117,7 @@ const nodeTypes: { name: string; nodes: Omit<PaletteNode, 'title'>[]; icon: Luci
         difficulty: 'Beginner'
       },
       { 
-        name: 'Device', 
+        name: 'Device Type', 
         iconName: 'Smartphone', 
         type: 'Condition', 
         color: 'hsl(var(--chart-2))',

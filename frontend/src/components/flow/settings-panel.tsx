@@ -158,8 +158,8 @@ const NodeSettingsForm: React.FC<{
         <div className="space-y-2">
           <Label className="text-sm font-medium">Action Frequency</Label>
           <Select
-            value={settings.displayFrequency || 'once_per_session'}
-            onValueChange={(value) => handleSettingChange('displayFrequency', value)}
+            value={settings.frequency || 'once_per_session'}
+            onValueChange={(value) => handleSettingChange('frequency', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select frequency" />
@@ -171,9 +171,9 @@ const NodeSettingsForm: React.FC<{
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            {settings.displayFrequency === 'every_trigger' && 'Executes every time the workflow triggers'}
-            {(settings.displayFrequency === 'once_per_session' || !settings.displayFrequency) && 'Executes once per browser session (recommended)'}
-            {settings.displayFrequency === 'once_ever' && 'Executes once per user permanently'}
+            {settings.frequency === 'every_trigger' && 'Executes every time the workflow triggers'}
+            {(settings.frequency === 'once_per_session' || !settings.frequency) && 'Executes once per browser session (recommended)'}
+            {settings.frequency === 'once_ever' && 'Executes once per user permanently'}
           </p>
         </div>
         <Separator />

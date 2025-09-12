@@ -981,8 +981,7 @@ export async function createFunnel(websiteId: string, funnelData: Omit<Funnel, '
   try {
     const response = await api.post(`/funnels/`, {
       ...funnelData,
-      website_id: websiteId,
-      user_id: funnelData.user_id
+      website_id: websiteId
     });
     // Handle both direct object response and wrapped response
     if (response.data && response.data.funnel) {
