@@ -31,15 +31,15 @@ export default function Hero() {
           {/* Clean, powerful headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-[0.9] mb-8 text-slate-900 dark:text-white">
             <span className="block mb-6">
-              Track <span className="">visitors</span>,
+              Track <span className="text-blue-500">visitors</span>,
             </span>
 
             <span className="block mb-6">
-              Automate <span className="">everything</span>
+              Automate <span className="text-purple-500">everything</span>
             </span>
 
             <span className="block text-3xl sm:text-4xl lg:text-5xl font-bold text-green-600 dark:text-green-400">
-              popups, emails & beyond
+              popups, webhook & beyond
             </span>
           </h1>
 
