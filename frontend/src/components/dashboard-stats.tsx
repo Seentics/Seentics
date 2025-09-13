@@ -82,7 +82,7 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-slate-950 rounded-lg shadow-sm">
+      <div className=" rounded-lg shadow-sm">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="p-6">
@@ -97,7 +97,7 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
   if (!siteId) {
     return (
-      <div className="bg-white dark:bg-slate-950 rounded-lg border-none dark:border dark:border-slate-700 shadow-sm">
+      <div className="rounded-lg border-none dark:border dark:border-slate-700 shadow-sm">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
           {stats.map((stat, index) => (
             <div key={index} className="p-6">
@@ -119,7 +119,7 @@ export function DashboardStats({ siteId }: DashboardStatsProps) {
 
 
   return (
-    <div className="bg-white dark:bg-slate-950  dark:border dark:border-slate-700 shadow-md">
+    <div className="bg-white dark:bg-transparent dark:border dark:border-slate-700 shadow-md">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-slate-200 dark:divide-slate-700">
         {stats.map((stat, index) => (
           <div key={stat.title} className="group cursor-default hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors p-4 sm:p-6 lg:p-8">

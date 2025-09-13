@@ -1,7 +1,5 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Globe, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 
 interface TopCountriesChartProps {
@@ -140,12 +138,12 @@ export default function TopCountriesChart({ data, isLoading, onViewMore }: TopCo
       'Argentina': 'AR',
       'Chile': 'CL'
     };
-    
+
     // Try exact match first
     if (countryMap[countryName]) {
       return countryMap[countryName];
     }
-    
+
     // Try partial match for common variations
     const lowerCountry = countryName.toLowerCase();
     for (const [key, value] of Object.entries(countryMap)) {
@@ -153,7 +151,7 @@ export default function TopCountriesChart({ data, isLoading, onViewMore }: TopCo
         return value;
       }
     }
-    
+
     // Default fallback
     return 'UN';
   };
@@ -164,7 +162,7 @@ export default function TopCountriesChart({ data, isLoading, onViewMore }: TopCo
     const totalVisitors = data.top_countries.reduce((sum, c) => sum + c.visitors, 0);
     const percentage = totalVisitors > 0 ? Math.round((item.visitors / totalVisitors) * 100) : 0;
     const countryCode = getCountryCode(item.country);
-    
+
     return {
       country: item.country,
       countryCode: countryCode,
@@ -208,12 +206,12 @@ export default function TopCountriesChart({ data, isLoading, onViewMore }: TopCo
     );
   }
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
+    <div className="">
+      <div className="">
         {/* Top Countries List */}
         <div className="space-y-3">
           {countryData.slice(0, 5).map((item, index) => (
-            <div key={item.country} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <div key={item.country} className="flex items-center justify-between border-b p-3">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3">
                   <div className="relative w-8  rounded overflow-hidden shadow-sm border border-gray-200 dark:border-gray-600">
@@ -254,11 +252,11 @@ export default function TopCountriesChart({ data, isLoading, onViewMore }: TopCo
                   <p className="text-xs text-muted-foreground">{item.percentage}%</p>
                 </div>
                 <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${item.percentage}%`, 
-                      backgroundColor: item.color 
+                    style={{
+                      width: `${item.percentage}%`,
+                      backgroundColor: item.color
                     }}
                   />
                 </div>

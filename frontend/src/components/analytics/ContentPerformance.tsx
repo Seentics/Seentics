@@ -104,7 +104,7 @@ export function ContentPerformance({
             <div className="space-y-3">
               {topReferrers?.top_referrers && topReferrers.top_referrers.length > 0 ? (
                 topReferrers.top_referrers.map((ref: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div key={index} className="flex items-center justify-between p-3 border-b">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 overflow-hidden">
                         <Image

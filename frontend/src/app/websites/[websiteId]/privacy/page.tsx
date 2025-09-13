@@ -51,6 +51,7 @@ export default function PrivacySettingsPage() {
       try {
         const response = await privacyAPI.getPrivacySettings();
         if (response.success && response.data.settings) {
+          //@ts-ignore
           setPrivacySettings(response.data.settings);
         }
       } catch (error) {
@@ -141,9 +142,9 @@ export default function PrivacySettingsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            {/* <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
-              <Shield className="h-5 w-5 text-blue-600" />
-            </div> */}
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+              <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Privacy & Compliance
@@ -155,7 +156,7 @@ export default function PrivacySettingsPage() {
           </div>
 
           {/* Compliance Status */}
-          <Card className="border-green-200 dark:border-green-800 bg-green-200 dark:bg-green-950/20">
+          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -178,8 +179,8 @@ export default function PrivacySettingsPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-4 bg-slate-100 dark:bg-slate-900">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-200 dark:bg-slate-800 p-1">
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="rights">Data Rights</TabsTrigger>
@@ -369,7 +370,7 @@ export default function PrivacySettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Cookie className="h-5 w-5 text-blue-600" />
+                  <Cookie className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Cookie Consent Management
                 </CardTitle>
               </CardHeader>

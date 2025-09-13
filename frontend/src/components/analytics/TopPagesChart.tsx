@@ -269,7 +269,7 @@ export const TopPagesChart: React.FC<TopPagesChartProps> = ({ data, isLoading, o
     return (
       <div className="flex items-center justify-center text-muted-foreground py-6">
         <div className="text-center">
-          <div className="w-16  mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <div className="w-16  mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center p-2">
             <FileText className="w-8 h-8 text-gray-400" />
           </div>
           <p className="text-sm font-medium">No page data available</p>
@@ -299,10 +299,7 @@ export const TopPagesChart: React.FC<TopPagesChartProps> = ({ data, isLoading, o
           return (
             <div
               key={index}
-              className={`flex items-center justify-between p-2  border-b transition-all hover:shadow-md ${isHomepage
-                ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border-blue-200 dark:border-blue-800'
-                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                }`}
+              className={`flex items-center justify-between p-2  border-b transition-all`}
             >
               <div className="flex items-center space-x-4 flex-1 min-w-0">
                 <div className="flex-shrink-0">

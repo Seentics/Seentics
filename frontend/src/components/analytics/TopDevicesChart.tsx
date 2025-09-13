@@ -1,7 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Smartphone, Monitor, Tablet, TrendingUp } from 'lucide-react';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
 import Image from 'next/image';
 
 interface TopDevicesChartProps {
@@ -21,10 +20,10 @@ export default function TopDevicesChart({ data, isLoading, onViewMore }: TopDevi
   // Use real data if available, otherwise show empty state
   const deviceData = data?.top_devices?.map((item, index) => {
     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-    
+
     const totalVisitors = data.top_devices.reduce((sum, d) => sum + d.visitors, 0);
     const percentage = totalVisitors > 0 ? Math.round((item.visitors / totalVisitors) * 100) : 0;
-    
+
     return {
       device: item.device,
       visitors: item.visitors,
@@ -38,11 +37,11 @@ export default function TopDevicesChart({ data, isLoading, onViewMore }: TopDevi
   // Helper function to get appropriate image for device
   const getDeviceImage = (device: string) => {
     const lowerDevice = device.toLowerCase();
-    
+
     if (lowerDevice.includes('mobile') || lowerDevice.includes('phone')) return '/images/phone.png';
     if (lowerDevice.includes('tablet')) return '/images/tablet.png';
     if (lowerDevice.includes('desktop') || lowerDevice.includes('pc')) return '/images/monitor.png';
-    
+
     return '/images/monitor.png'; // Default fallback
   };
 
@@ -85,7 +84,7 @@ export default function TopDevicesChart({ data, isLoading, onViewMore }: TopDevi
         <div className="space-y-3">
           {deviceData.map((item, index) => {
             return (
-              <div key={item.device} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div key={item.device} className="flex items-center justify-between p-3 border-b">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg overflow-hidden" style={{ backgroundColor: `${item.color}20` }}>
                     <Image
@@ -119,11 +118,11 @@ export default function TopDevicesChart({ data, isLoading, onViewMore }: TopDevi
                 <div className="text-right">
                   <p className="text-sm font-semibold">{(item.visitors || 0).toLocaleString()}</p>
                   <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
-                    <div 
+                    <div
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${item.percentage}%`, 
-                        backgroundColor: item.color 
+                      style={{
+                        width: `${item.percentage}%`,
+                        backgroundColor: item.color
                       }}
                     />
                   </div>
@@ -133,7 +132,7 @@ export default function TopDevicesChart({ data, isLoading, onViewMore }: TopDevi
           })}
         </div>
 
-                {/* Device Distribution Chart */}
+        {/* Device Distribution Chart */}
         {/* <div className="h-64 mt-6">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

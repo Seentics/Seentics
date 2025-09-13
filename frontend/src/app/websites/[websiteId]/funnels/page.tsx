@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FunnelsTable } from '@/components/funnels-table';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/stores/useAuthStore';
-import { useFunnels } from '@/lib/analytics-api';
 import { useToast } from '@/hooks/use-toast';
+import { useFunnels } from '@/lib/analytics-api';
+import { useAuth } from '@/stores/useAuthStore';
+import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface FunnelsPageProps {
   params: {
@@ -22,7 +20,7 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
   const { websiteId } = params;
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const { data: funnels = [], isLoading: isLoadingFunnels } = useFunnels(websiteId);
 
   // In open source version, all features are unlimited
@@ -32,7 +30,7 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
   // Real metrics from actual funnel data
   const totalFunnels = funnels?.length || 0;
   const activeFunnelsCount = Array.isArray(funnels) ? funnels.filter(f => f.is_active).length : 0;
-  
+
   // Calculate real metrics from funnel analytics
   const [overviewStats, setOverviewStats] = useState({
     totalVisitors: 0,
@@ -112,7 +110,7 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
             <p>You've reached the funnel limit for the {planName} plan. Please upgrade to add more.</p>
           </TooltipContent>
         )}
-         {!websiteId && (
+        {!websiteId && (
           <TooltipContent>
             <p>Please select a site to create a funnel.</p>
           </TooltipContent>
@@ -120,7 +118,7 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
       </Tooltip>
     </TooltipProvider>
   );
-  
+
   return (
     <div className="space-y-6">
       {/* Header Section with Actions */}
@@ -134,14 +132,13 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <CreateFunnelButton />
+          <CreateFunnelButton />
         </div>
       </div>
-      
-      {/* Open Source Version - No Limits */}
+
 
       {/* Key Metrics - Unified Cards Container (analytics-style) */}
-      <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">
+      <div className="bg-white dark:bg-transparent  dark:border border-gray-200 dark:border-gray-800 shadow-lg">
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
           {/* Total Funnels */}
           <div className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-6">
@@ -204,13 +201,13 @@ export default function FunnelsPage({ params }: FunnelsPageProps) {
           </div>
         </div>
       </div>
-      
+
       {/* Main Funnels Table - Core Data */}
       <div>
         <FunnelsTable siteId={websiteId} />
       </div>
 
-   
+
     </div>
   );
 }

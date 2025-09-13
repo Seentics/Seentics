@@ -342,10 +342,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     transformedCustomEvents.unique_events = transformedCustomEvents.top_events.length;
   }
 
-  // Force refresh custom events data
-  const { refetch: refetchCustomEvents, data: customEventsData } = useCustomEvents(websiteId, dateRange);
 
-  // Debug logging for audience insights data
 
   const handleModalOpen = (type: string) => {
     setModalType(type);

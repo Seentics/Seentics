@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import TopCountriesChart from './TopCountriesChart';
-import { TopBrowsersChart } from './TopBrowsersChart';
-import TopDevicesChart from './TopDevicesChart';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import Image from 'next/image';
+import { useState } from 'react';
+import { TopBrowsersChart } from './TopBrowsersChart';
+import TopCountriesChart from './TopCountriesChart';
+import TopDevicesChart from './TopDevicesChart';
 
 
 interface CountryStat {
@@ -68,55 +67,55 @@ interface AudienceInsightsProps {
   className?: string;
 }
 
-export function AudienceInsights({ 
-  topCountries, 
-  topBrowsers, 
-  topDevices, 
+export function AudienceInsights({
+  topCountries,
+  topBrowsers,
+  topDevices,
   topOS,
-  countriesLoading = false, 
-  browsersLoading = false, 
-  devicesLoading = false, 
+  countriesLoading = false,
+  browsersLoading = false,
+  devicesLoading = false,
   osLoading = false,
   isDemo = false,
   onViewMore,
-  className = '' 
+  className = ''
 }: AudienceInsightsProps) {
   const [audienceTab, setAudienceTab] = useState<string>('countries');
 
   // Helper function to get appropriate image for browser
   const getBrowserImage = (browser: string) => {
     const lowerBrowser = browser.toLowerCase();
-    
+
     if (lowerBrowser.includes('chrome')) return '/images/chrome.png';
     if (lowerBrowser.includes('firefox')) return '/images/firefox.png';
     if (lowerBrowser.includes('safari')) return '/images/safari.png';
     if (lowerBrowser.includes('edge') || lowerBrowser.includes('explorer')) return '/images/explorer.png';
     if (lowerBrowser.includes('opera')) return '/images/opera.png';
-    
+
     return '/images/chrome.png'; // Default fallback
   };
 
   // Helper function to get appropriate image for device
   const getDeviceImage = (device: string) => {
     const lowerDevice = device.toLowerCase();
-    
+
     if (lowerDevice.includes('mobile') || lowerDevice.includes('phone')) return '/images/phone.png';
     if (lowerDevice.includes('tablet')) return '/images/tablet.png';
     if (lowerDevice.includes('desktop') || lowerDevice.includes('pc')) return '/images/monitor.png';
-    
+
     return '/images/monitor.png'; // Default fallback
   };
 
   // Helper function to get appropriate image for OS
   const getOSImage = (os: string) => {
     const lowerOS = os.toLowerCase();
-    
+
     if (lowerOS.includes('windows')) return '/images/windows.png';
     if (lowerOS.includes('mac') || lowerOS.includes('macos')) return '/images/apple.png';
     if (lowerOS.includes('android')) return '/images/android.png';
     if (lowerOS.includes('linux')) return '/images/linux.png';
     if (lowerOS.includes('ios')) return '/images/phone.png';
-    
+
     return '/images/monitor.png'; // Default fallback
   };
 
@@ -136,68 +135,33 @@ export function AudienceInsights({
           </TabsList>
         </Tabs>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0">
+      <CardContent className="">
         <div className="mt-0 max-h-[32rem] overflow-y-auto">
           {audienceTab === 'countries' && (
-            <TopCountriesChart 
-              data={topCountries} 
-              isLoading={countriesLoading} 
-              onViewMore={() => onViewMore?.('countries')} 
+            <TopCountriesChart
+              data={topCountries}
+              isLoading={countriesLoading}
+              onViewMore={() => onViewMore?.('countries')}
             />
           )}
           {audienceTab === 'browsers' && (
-            <TopBrowsersChart 
-              data={topBrowsers} 
-              isLoading={browsersLoading} 
-              onViewMore={() => onViewMore?.('browsers')} 
+            <TopBrowsersChart
+              data={topBrowsers}
+              isLoading={browsersLoading}
+              onViewMore={() => onViewMore?.('browsers')}
             />
           )}
           {audienceTab === 'devices' && (
-            <TopDevicesChart 
-              data={topDevices} 
-              isLoading={devicesLoading} 
-              onViewMore={() => onViewMore?.('devices')} 
+            <TopDevicesChart
+              data={topDevices}
+              isLoading={devicesLoading}
+              onViewMore={() => onViewMore?.('devices')}
             />
           )}
-          
+
           {audienceTab === 'os' && (
             <div className="space-y-4">
-              {isDemo ? (
-                <>
-                  {/* Demo OS List */}
-                  <div className="space-y-2">
-                    {[
-                      { name: 'Windows', value: 45, color: '#0078D4' },
-                      { name: 'macOS', value: 32, color: '#000000' },
-                      { name: 'iOS', value: 15, color: '#007AFF' },
-                      { name: 'Android', value: 8, color: '#3DDC84' }
-                    ].map((os, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 flex items-center justify-center overflow-hidden">
-                            <Image
-                              src={getOSImage(os.name)}
-                              alt={os.name}
-                              width={20}
-                              height={20}
-                              className="object-contain"
-                              onError={(e) => {
-                                // Fallback to colored dot if image fails to load
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                            <div className="hidden w-3 h-3 rounded-full" style={{ backgroundColor: os.color }}></div>
-                          </div>
-                          <span className="text-sm font-medium">{os.name}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{os.value}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : topOS?.top_os && topOS.top_os.length > 0 ? (
+              {topOS?.top_os && topOS.top_os.length > 0 ? (
                 <>
                   {/* Real OS List */}
                   <div className="space-y-2">
@@ -206,7 +170,7 @@ export function AudienceInsights({
                       const totalVisitors = topOS.top_os.reduce((sum: number, o: any) => sum + (o.visitors || 0), 0);
                       const percentage = totalVisitors > 0 ? Math.round(((os.visitors || 0) / totalVisitors) * 100) : 0;
                       return (
-                        <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-3 border-b">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 flex items-center justify-center overflow-hidden">
                               <Image

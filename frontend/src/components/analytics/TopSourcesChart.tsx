@@ -126,7 +126,7 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
         <div className="space-y-3">
           {sourceData.slice(0, 5).map((item) => {
             return (
-              <div key={item.source} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div key={item.source} className="flex items-center justify-between p-3 border-b">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg overflow-hidden" style={{ backgroundColor: `${item.color}20` }}>
