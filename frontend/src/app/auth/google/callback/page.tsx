@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import api from '@/lib/api';
 
 function GoogleCallbackContent() {
@@ -48,7 +48,6 @@ function GoogleCallbackContent() {
           
           setAuth({
             user,
-            subscription,
             access_token: tokens.accessToken,
             refresh_token: tokens.refreshToken,
           });
@@ -86,7 +85,7 @@ function GoogleCallbackContent() {
         <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
           <CardHeader className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
-              <Bot className="size-10 text-primary" />
+              <Logo size="xl" />
             </div>
             <CardTitle className="font-headline text-2xl">Authenticating with Google</CardTitle>
           </CardHeader>
@@ -105,7 +104,7 @@ function GoogleCallbackContent() {
         <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
           <CardHeader className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
-              <Bot className="size-10 text-primary" />
+              <Logo size="xl" />
             </div>
             <CardTitle className="font-headline text-2xl">Authentication Failed</CardTitle>
           </CardHeader>

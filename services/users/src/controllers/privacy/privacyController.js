@@ -126,10 +126,10 @@ export const submitPrivacyRequest = async (req, res) => {
     }
 
     const userId = req.user._id;
-    const { type, details } = req.body;
+    const { type, details, reason } = req.body;
 
-    // Validate request type
-    const validTypes = ['data_export', 'data_deletion', 'data_portability', 'opt_out'];
+    // Validate request type - support both formats
+    const validTypes = ['data_export', 'data_deletion', 'data_portability', 'opt_out', 'export', 'deletion', 'correction', 'portability'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
@@ -155,7 +155,7 @@ export const submitPrivacyRequest = async (req, res) => {
     const privacyRequest = new PrivacyRequest({
       userId,
       type,
-      details: details || '',
+      details: details || reason || '',
       status: 'pending',
       requestedAt: new Date()
     });
@@ -239,6 +239,44 @@ export const exportUserData = async (req, res) => {
       exportedAt: new Date().toISOString()
     };
 
+    // Fetch analytics data from Analytics Service
+    let analyticsData = null;
+    try {
+      const analyticsResponse = await fetch(`${process.env.ANALYTICS_SERVICE_URL}/api/v1/privacy/export/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.GLOBAL_API_KEY
+        }
+      });
+
+      if (analyticsResponse.ok) {
+        const analyticsResult = await analyticsResponse.json();
+        if (analyticsResult.success) {
+          analyticsData = analyticsResult.data;
+          console.log('Analytics data fetched successfully for user:', userId);
+        } else {
+          console.error('Analytics service returned error:', analyticsResult.message);
+        }
+      } else {
+        const errorText = await analyticsResponse.text();
+        console.error('Failed to fetch analytics data:', errorText);
+      }
+    } catch (analyticsError) {
+      console.error('Analytics service export error:', analyticsError);
+      // Continue with export even if analytics service is unavailable
+    }
+
+    // Include analytics data in the export
+    if (analyticsData) {
+      userData.analytics = analyticsData;
+    } else {
+      userData.analytics = {
+        message: "Analytics data could not be retrieved",
+        reason: "Analytics service unavailable or no data found"
+      };
+    }
+
     res.json({
       success: true,
       message: 'User data exported successfully',
@@ -287,13 +325,40 @@ export const deleteUserData = async (req, res) => {
       }
     }
 
-    // Delete all user-related data
+    // Get all websites for this user before deleting user data
+    const userWebsites = await Website.find({ userId });
+
+    // Delete all user-related data from User Service
     await Promise.all([
       Website.deleteMany({ userId }),
       PrivacySettings.deleteOne({ userId }),
       PrivacyRequest.deleteMany({ userId }),
       User.findByIdAndDelete(userId)
     ]);
+    
+    // Delete analytics data for each website from Analytics Service
+    for (const website of userWebsites) {
+      try {
+        const analyticsResponse = await fetch(`${process.env.ANALYTICS_SERVICE_URL}/api/v1/privacy/delete/website/${website._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.GLOBAL_API_KEY
+          }
+        });
+
+        if (!analyticsResponse.ok) {
+          const errorText = await analyticsResponse.text();
+          console.error(`Failed to delete analytics data for website ${website._id}:`, errorText);
+          // Continue with deletion even if analytics deletion fails
+        } else {
+          console.log(`Analytics data deleted successfully for website: ${website._id}`);
+        }
+      } catch (analyticsError) {
+        console.error(`Analytics service deletion error for website ${website._id}:`, analyticsError);
+        // Continue with deletion even if analytics service is unavailable
+      }
+    }
 
     res.json({
       success: true,

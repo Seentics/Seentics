@@ -2,24 +2,95 @@ package privacy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"time"
 )
 
-// GetUserWebsites gets all websites owned by a user (would call user service)
-func (r *PrivacyRepository) GetUserWebsites(userID string) ([]string, error) {
-	// In a real implementation, this would make an HTTP call to the user service
-	// For now, we'll simulate by querying a websites table if it exists
-	// or return a placeholder for testing
+// Website represents a website from the user service
+type Website struct {
+	ID     string `json:"_id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
+	UserID string `json:"userId"`
+}
 
-	// Try to query websites table (this might not exist in analytics service)
-	query := `SELECT id FROM websites WHERE user_id = $1`
+// UserServiceResponse represents the response from user service
+type UserServiceResponse struct {
+	Success bool      `json:"success"`
+	Data    []Website `json:"data"`
+}
 
-	rows, err := r.db.Query(context.Background(), query, userID)
+// GetUserWebsitesFromUserService gets all websites owned by a user from the user service
+func (r *PrivacyRepository) GetUserWebsitesFromUserService(userID string) ([]string, error) {
+	// Make HTTP call to user service to get websites
+	userServiceURL := os.Getenv("USER_SERVICE_URL")
+	if userServiceURL == "" {
+		userServiceURL = "http://user-service:3001" // Default fallback
+	}
+
+	url := fmt.Sprintf("%s/api/internal/users/%s/websites", userServiceURL, userID)
+	
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		// If the table doesn't exist, return empty slice (this is expected in microservices)
-		// In production, you would make an HTTP call to the user service
-		return []string{}, nil
+		return []string{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add API key for internal service communication
+	apiKey := os.Getenv("GLOBAL_API_KEY")
+	if apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Failed to call user service for user %s: %v\n", userID, err)
+		// Fallback to analytics data method
+		return r.getWebsitesFromAnalyticsData(userID)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("User service returned status %d for user %s\n", resp.StatusCode, userID)
+		// Fallback to analytics data method
+		return r.getWebsitesFromAnalyticsData(userID)
+	}
+
+	var response UserServiceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Printf("Failed to decode user service response for user %s: %v\n", userID, err)
+		// Fallback to analytics data method
+		return r.getWebsitesFromAnalyticsData(userID)
+	}
+
+	if !response.Success {
+		fmt.Printf("User service returned error for user %s\n", userID)
+		// Fallback to analytics data method
+		return r.getWebsitesFromAnalyticsData(userID)
+	}
+
+	// Extract website IDs
+	var websiteIDs []string
+	for _, website := range response.Data {
+		websiteIDs = append(websiteIDs, website.ID)
+	}
+
+	fmt.Printf("Retrieved %d websites from user service for user %s: %v\n", len(websiteIDs), userID, websiteIDs)
+	return websiteIDs, nil
+}
+
+// getWebsitesFromAnalyticsData is a fallback method to get websites from analytics data
+func (r *PrivacyRepository) getWebsitesFromAnalyticsData(userID string) ([]string, error) {
+	fmt.Printf("Using fallback method to get websites from analytics data for user %s\n", userID)
+	
+	query := `SELECT DISTINCT website_id FROM events WHERE visitor_id = $1 OR session_id LIKE $2`
+
+	rows, err := r.db.Query(context.Background(), query, userID, userID+"%")
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to query user websites: %w", err)
 	}
 	defer rows.Close()
 
@@ -27,12 +98,18 @@ func (r *PrivacyRepository) GetUserWebsites(userID string) ([]string, error) {
 	for rows.Next() {
 		var websiteID string
 		if err := rows.Scan(&websiteID); err != nil {
-			return nil, fmt.Errorf("failed to scan website ID: %w", err)
+			continue // Skip invalid entries
 		}
 		websiteIDs = append(websiteIDs, websiteID)
 	}
 
 	return websiteIDs, nil
+}
+
+// GetUserWebsites gets all websites owned by a user (legacy method)
+func (r *PrivacyRepository) GetUserWebsites(userID string) ([]string, error) {
+	// Use the new method
+	return r.GetUserWebsitesFromUserService(userID)
 }
 
 // LogPrivacyOperation logs privacy operations for audit purposes

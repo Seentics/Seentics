@@ -180,7 +180,7 @@ export default function PrivacySettingsPage() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-200 dark:bg-slate-800">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="rights">Data Rights</TabsTrigger>

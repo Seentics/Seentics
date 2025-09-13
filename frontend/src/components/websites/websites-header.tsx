@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Bot, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '../theme-toggle';
 
 interface WebsitesHeaderProps {
@@ -13,9 +14,8 @@ export function WebsitesHeader({ onCreateWebsite }: WebsitesHeaderProps) {
   return (
     <div className='border-b '>
       <header className="flex items-center justify-between p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 max-w-7xl mx-auto">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Bot className="size-8 text-primary" />
-          <h1 className="font-headline text-2xl font-bold">Seentics</h1>
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <Logo size="lg" showText={true} textClassName="font-headline text-2xl font-bold" />
         </Link>
 
         {/* <nav className="flex items-center gap-4">

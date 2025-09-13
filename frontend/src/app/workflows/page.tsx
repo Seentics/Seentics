@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Bot, Rocket, Split, Target, MousePointerClick, Eye, Timer, MousePointer, GitBranch, Code2, Webhook, Mail, ChevronRight } from 'lucide-react';
+import { Workflow, Zap, Target, ArrowRight, CheckCircle, Users, BarChart3, Clock, Star } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ export default function WorkflowsLanding() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16">
             <Card className="bg-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Bot className="h-5 w-5 text-blue-600" /> What are Workflows?</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Logo size="sm" /> What are Workflows?</CardTitle>
                 <CardDescription>Event-driven automations for your website</CardDescription>
               </CardHeader>
               <CardContent className="text-slate-600 dark:text-slate-300 text-sm md:text-base">

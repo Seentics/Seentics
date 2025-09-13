@@ -120,10 +120,21 @@ class PrivacyAPI {
     }
   }
 
-  // Download exported data
-  async downloadExport(filename: string): Promise<Blob> {
+  // Export user data (JSON response)
+  async exportUserData(): Promise<{ success: boolean; data: any }> {
     try {
-      const response = await api.get(`/user/privacy/download/${filename}`, {
+      const response = await api.get('/user/privacy/export');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to export user data:', error);
+      throw error;
+    }
+  }
+
+  // Download exported data as file
+  async downloadExport(): Promise<Blob> {
+    try {
+      const response = await api.get('/user/privacy/download', {
         responseType: 'blob'
       });
       return response.data;
@@ -134,9 +145,13 @@ class PrivacyAPI {
   }
 
   // Process data deletion
-  async processDataDeletion(reason: string): Promise<{ success: boolean; data: { request: PrivacyRequest } }> {
+  async processDataDeletion(reason: string, confirmPassword?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await api.post('/user/privacy/delete', { reason });
+      const payload: any = { reason };
+      if (confirmPassword) {
+        payload.confirmPassword = confirmPassword;
+      }
+      const response = await api.post('/user/privacy/delete', payload);
       return response.data;
     } catch (error) {
       console.error('Failed to process data deletion:', error);

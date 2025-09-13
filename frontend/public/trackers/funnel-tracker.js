@@ -236,6 +236,8 @@
         if (DEBUG) console.log('🔍 Seentics: Monitoring page changes for:', currentUrl);
         if (DEBUG) console.log('🔍 Seentics: Active funnels count:', activeFunnels.size);
         
+        let anyFunnelMatched = false;
+        
         activeFunnels.forEach((funnelState, funnelId) => {
           if (!funnelState.steps) {
             if (DEBUG) console.log('🔍 Seentics: No steps for funnel:', funnelId);
@@ -257,16 +259,24 @@
                 console.log(`🎯 Seentics: Page match for funnel ${funnelId}, step ${index + 1}: ${step.name}`);
                 updateFunnelProgress(funnelId, index + 1, step);
                 foundMatch = true;
+                anyFunnelMatched = true;
               }
             }
           });
           
-          // Handle dropoff
-          if (!foundMatch && funnelState.currentStep > 0) {
-            if (DEBUG) console.log(`🔍 Seentics: No match found, queueing dropoff for funnel ${funnelId}`);
+          // Only handle dropoff if user was actively in this funnel and moved to a non-funnel page
+          // AND if they've been in the funnel for more than just the initial page load
+          if (!foundMatch && funnelState.currentStep > 0 && funnelState.startedAt && 
+              (new Date() - new Date(funnelState.startedAt)) > 5000) { // 5 second minimum engagement
+            if (DEBUG) console.log(`🔍 Seentics: User dropped off from funnel ${funnelId} after meaningful engagement`);
             queueDropoffEvent(funnelId, funnelState);
           }
         });
+        
+        // Only log if there was actually a funnel match
+        if (DEBUG && !anyFunnelMatched) {
+          console.log('🔍 Seentics: No funnel matches found for current page, no API calls needed');
+        }
       }
 
       function queueDropoffEvent(funnelId, funnelState) {
@@ -374,8 +384,12 @@
         const eventsToSend = [...funnelEventQueue];
         funnelEventQueue = [];
         
+        if (DEBUG) console.log(`🔍 Seentics: Sending ${eventsToSend.length} funnel events to API`);
+        
         try {
           const sendEvent = async (event) => {
+            if (DEBUG) console.log('🔍 Seentics: Sending funnel event:', event);
+            
             if (navigator.sendBeacon) {
               const blob = new Blob([JSON.stringify(event)], { type: 'application/json' });
               if (!navigator.sendBeacon(FUNNEL_API_ENDPOINT, blob)) {
@@ -399,6 +413,7 @@
           };
 
           await Promise.all(eventsToSend.map(sendEvent));
+          if (DEBUG) console.log('🔍 Seentics: Successfully sent all funnel events');
         } catch (error) {
           console.error('🔍 Seentics: Error sending funnel events:', error);
           funnelEventQueue.unshift(...eventsToSend);
@@ -487,6 +502,12 @@
         
         if (DEBUG) console.log(`🔍 Seentics: Route change detected: ${currentUrl} -> ${newUrl}`);
         currentUrl = newUrl;
+        
+        // Only monitor page changes if we have active funnels
+        if (activeFunnels.size === 0) {
+          if (DEBUG) console.log('🔍 Seentics: No active funnels, skipping page monitoring');
+          return;
+        }
         
         // Give React time to render the new page
         setTimeout(() => {

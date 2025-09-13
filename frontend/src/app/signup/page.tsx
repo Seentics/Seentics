@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { initiateGitHubOAuth, initiateGoogleOAuth } from '@/lib/oauth';
-import { AlertCircle, ArrowLeft, Bot, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -23,6 +26,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,37 +74,32 @@ export default function SignUpPage() {
       setError(null);
       setIsLoading(true);
 
-      const response = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-        }),
+      const response = await api.post('/user/auth/register', {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      setSuccess('Account created successfully! Please check your email to verify your account.');
       toast({
-        title: "Account Created",
-        description: "Please check your email to verify your account.",
+        title: "Account Created Successfully",
+        description: "Welcome to Seentics! Redirecting to sign in...",
         variant: "default",
       });
 
+      // Clear form
       setFormData({
         name: '',
         email: '',
         password: '',
         confirmPassword: ''
       });
+
+      // Redirect to signin page after a brief delay
+      setTimeout(() => {
+        router.push('/signin');
+      }, 1500);
 
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -168,9 +167,7 @@ export default function SignUpPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-slate-900 dark:bg-white rounded-2xl">
-              <Bot className="h-8 w-8 text-white dark:text-slate-900" />
-            </div>
+            <Logo size="xl" className="w-14 h-14 rounded-2xl" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Create account</h1>
           <p className="text-slate-600 dark:text-slate-400">Get started with Seentics</p>

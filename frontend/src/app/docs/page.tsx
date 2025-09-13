@@ -1,10 +1,11 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bot, Code, Workflow, BarChart, Settings, LifeBuoy, Zap, User, Filter } from 'lucide-react';
+import { Bot, Code, Workflow, BarChart, Settings, LifeBuoy, Zap, User, Filter, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
+import { Logo } from '@/components/ui/logo';
 
 const docsSections = [
   {
@@ -47,9 +48,8 @@ export default function DocsPage() {
     <div className="flex flex-col min-h-screen bg-background">
        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <Bot className="size-8 text-primary" />
-              <h1 className="font-headline text-2xl font-bold">Seentics Docs</h1>
+            <Link href="/" className="flex items-center">
+              <Logo size="lg" showText={true} textClassName="font-headline text-2xl font-bold" />
             </Link>
           <Button asChild>
             <Link href="/">Go to Home</Link>
