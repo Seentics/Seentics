@@ -1,7 +1,6 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Search, ExternalLink, Users, TrendingUp, Globe, Mail, Share2, LinkIcon } from 'lucide-react';
+import { ExternalLink, LinkIcon, Mail, Search, Share2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface TopSourcesChartProps {
@@ -127,7 +126,7 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
         <div className="space-y-3">
           {sourceData.slice(0, 5).map((item) => {
             return (
-              <div key={item.source} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div key={item.source} className="flex items-center justify-between p-3 border-b">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg overflow-hidden" style={{ backgroundColor: `${item.color}20` }}>
@@ -169,11 +168,11 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
                     <p className="text-xs text-muted-foreground">{item.percentage}%</p>
                   </div>
                   <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${item.percentage}%`, 
-                        backgroundColor: item.color 
+                      style={{
+                        width: `${item.percentage}%`,
+                        backgroundColor: item.color
                       }}
                     />
                   </div>

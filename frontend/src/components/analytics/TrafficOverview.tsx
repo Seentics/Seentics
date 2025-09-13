@@ -1,10 +1,10 @@
 'use client';
 
-import React, { ReactNode, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReactNode, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TrafficChart } from './TrafficChart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Legend } from 'recharts';
 
 interface DailyStat {
   date: string;
@@ -38,7 +38,7 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
   const [trafficTab, setTrafficTab] = useState<string>('chart');
 
   return (
-    <Card className={`bg-card border-0 shadow-sm mb-6 ${className}`}>
+    <Card className={`bg-card border-0 shadow-md mb-6 rounded-none ${className}`}>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
           <CardTitle className="text-base sm:text-lg font-medium text-foreground">Traffic Overview</CardTitle>
@@ -62,7 +62,7 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
           {trafficTab === 'table' && (
             <div className="space-y-2">
               {dailyStats?.daily_stats?.slice(0, 7).map((day: DailyStat, index: number) => (
-                <div key={index} className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                <div key={index} className="flex justify-between items-center p-2 bg-muted/30 ">
                   <span className="text-sm text-foreground">{new Date(day.date).toLocaleDateString()}</span>
                   <div className="flex gap-4 text-sm">
                     <span className="text-muted-foreground">Views: {day.views}</span>
@@ -78,18 +78,18 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={hourlyStats?.hourly_stats?.slice(0, 24) || []} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="hour_label" 
+                    <XAxis
+                      dataKey="hour_label"
                       tick={{ fontSize: 10 }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip 
+                    <Tooltip
                       content={({ active, payload }: any) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload as HourlyStat;
@@ -110,26 +110,26 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
                         return null;
                       }}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="unique" 
+                    <Area
+                      type="monotone"
+                      dataKey="unique"
                       stackId="1"
-                      stroke="#3B82F6" 
-                      fill="#3B82F6" 
+                      stroke="#3B82F6"
+                      fill="#3B82F6"
                       fillOpacity={0.6}
                       name="Visitors"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="views" 
+                    <Area
+                      type="monotone"
+                      dataKey="views"
                       stackId="1"
-                      stroke="#10B981" 
-                      fill="#10B981" 
+                      stroke="#10B981"
+                      fill="#10B981"
                       fillOpacity={0.4}
                       name="Page Views"
                     />
-                    <Legend 
-                      verticalAlign="bottom" 
+                    <Legend
+                      verticalAlign="bottom"
                       height={36}
                       formatter={(value, entry: any) => (
                         <span style={{ color: entry.color }} className="text-sm">
@@ -140,7 +140,7 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              
+
               {/* Summary Stats */}
               <div className="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">

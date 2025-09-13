@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowUpRight, ArrowDownRight, Minus, Users, Eye, Clock, TrendingDown, ChevronRight, Activity, Wifi } from 'lucide-react';
-import { formatNumber, formatDuration, formatPercentage } from '@/lib/analytics-api';
+import { formatDuration, formatNumber, formatPercentage } from '@/lib/analytics-api';
+import { ArrowDownRight, ArrowUpRight, ChevronRight, Clock, Eye, Minus, TrendingDown, Users, Wifi } from 'lucide-react';
+import React from 'react';
 
 interface SummaryCardsProps {
   data: any;
@@ -111,7 +111,7 @@ const SummaryCard = ({
 export const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
   if (!data) {
     return (
-      <div className="bg-white dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="bg-white dark:bg-transparent  border border-gray-200 dark:border-gray-800 shadow-md">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="p-6">
@@ -174,7 +174,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
   ];
 
   return (
-    <div className="bg-white dark:bg-transparent rounded-xl dark:border dark:border-gray-800 shadow-lg">
+    <div className="bg-white dark:bg-transparent  dark:border dark:border-gray-800 shadow-lg">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-200 dark:divide-gray-800">
         {cards.map((card, index) => (
           <SummaryCard key={index} {...card} />

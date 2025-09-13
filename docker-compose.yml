@@ -8,7 +8,7 @@ services:
       - API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
       - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:3001}
       - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:3002}
-      - WORKFLOW_SERVICE_URL=${WORKFLOW_SERVICE_URL:-http://workflows-service:8083}
+      - WORKFLOW_SERVICE_URL=${WORKFLOW_SERVICE_URL:-http://workflows-service:3003}
       - REDIS_URL=redis://redis:6379
       - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}
     depends_on:
@@ -23,11 +23,12 @@ services:
     build: ./services/users
     container_name: user-service
     ports:
-      - "3003:3001"
+      - "3001:3001"
     env_file: .env
     environment:
       - PORT=3001
-      - MONGODB_URI=${USER_MONGODB_URI:-mongodb://mongodb:27017/seentics_users}
+      - MONGODB_URI=mongodb://mongodb:27017/seentics_users
+      - USER_MONGODB_URI=mongodb://mongodb:27017/seentics_users
       - USER_JWT_SECRET=${USER_JWT_SECRET:-change_me}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -85,12 +86,13 @@ services:
     build: ./services/workflows
     container_name: workflows-service
     ports:
-      - "3004:8083"
+      - "3003:3003"
     env_file: .env
     environment:
-      - PORT=8083
-      - MONGODB_URI=${WORKFLOW_MONGODB_URI:-mongodb://mongodb:27017/seentics_workflows}
-      - REDIS_URL=${REDIS_URL:-redis:6379}
+      - PORT=3003
+      - MONGODB_URI=mongodb://mongodb:27017/seentics_workflows
+      - WORKFLOW_MONGODB_URI=mongodb://mongodb:27017/seentics_workflows
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${WORKFLOW_JWT_SECRET:-change_me}
       - API_GATEWAY_URL=${API_GATEWAY_URL:-http://api-gateway:8080}
       - GLOBAL_API_KEY=${GLOBAL_API_KEY:-your-secure-api-key-here}

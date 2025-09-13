@@ -5,7 +5,7 @@ dotenv.config();
 export const config = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.USER_SERVICE_PORT || process.env.PORT || 3001,
-  MONGODB_URI: process.env.USER_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/seentics_users',
+  MONGODB_URI: process.env.USER_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://mongodb:27017/seentics_users',
   
   // JWT Configuration
   JWT_SECRET: process.env.USER_JWT_SECRET || process.env.JWT_SECRET || 'your-super-secret-jwt-key',

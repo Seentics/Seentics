@@ -1,22 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { format, subDays } from 'date-fns';
-import { 
-  type Workflow, 
-  type WorkflowActivitySummary, 
-  type WorkflowFunnelData,
-  type WorkflowAnalytics,
-  type NodeStats,
-  workflowChartConfig,
-  getWorkflowStats,
-  getWorkflowNodeStats
-} from '@/lib/workflow-api';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Edit, Play, Pause, Trash2, Target, CircleCheckBig, Percent, Activity } from 'lucide-react';
+import { CustomNode } from '@/components/flow/custom-node';
+import { Badge } from '@/components/ui/badge';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,35 +10,32 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { RealtimeActivityFeed } from '@/components/workflows/RealtimeActivityFeed';
-import { FunnelChart } from '@/components/workflows/funnel-chart';
-import ReactFlow, { 
-  Controls, 
-  Background, 
-  BackgroundVariant, 
+  getWorkflowNodeStats,
+  getWorkflowStats,
+  type NodeStats,
+  type Workflow,
+  type WorkflowActivitySummary,
+  type WorkflowAnalytics,
+  type WorkflowFunnelData
+} from '@/lib/workflow-api';
+import { Activity, CircleCheckBig, Edit, Loader2, Percent, Target } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import ReactFlow, {
+  Background,
+  BackgroundVariant,
+  Controls,
   MiniMap,
   Panel,
-  NodeTypes,
   ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { CustomNode, CustomNodeData } from '@/components/flow/custom-node';
 
 interface WorkflowDetailProps {
   workflow: Workflow;
@@ -86,7 +68,7 @@ export function WorkflowDetail({
   useEffect(() => {
     const loadAnalytics = async () => {
       if (isDemo) return; // Skip API calls for demo mode
-      
+
       try {
         setIsLoadingStats(true);
         const [stats, nodes] = await Promise.all([
@@ -193,13 +175,13 @@ export function WorkflowDetail({
 
       outgoing.forEach((edge, idx) => {
         const targetId = edge.target;
-        const edgeLabel = (edge as any).label || ((edge as any).data && (edge as any).data.label) || (['A','B','C'][idx] || `Branch ${idx+1}`);
+        const edgeLabel = (edge as any).label || ((edge as any).data && (edge as any).data.label) || (['A', 'B', 'C'][idx] || `Branch ${idx + 1}`);
         const reachable = getReachableActions(targetId);
         // For demo, generate sample counts
         const count = isDemo ? Math.floor(Math.random() * 1000) + 100 : 0;
         branches.push({ label: String(edgeLabel), count, percent: 0 });
       });
-      
+
       const total = branches.reduce((s, b) => s + b.count, 0) || 1;
       branches.forEach(b => { b.percent = Math.round((b.count / total) * 1000) / 10; });
       results.push({ splitNodeId: split.id, splitTitle: split.data?.title || 'Branch Split', branches });
@@ -208,7 +190,6 @@ export function WorkflowDetail({
     return results;
   };
 
-  const branchAnalytics = computeBranchAnalytics();
 
   const handleStatusChange = async (newStatus: 'Active' | 'Paused') => {
     if (onStatusChange) {
@@ -240,11 +221,11 @@ export function WorkflowDetail({
   const overallRuns = isDemo ? (workflow.totalTriggers || 0) : (workflowStats?.totalRuns || 0);
   const successfulRuns = isDemo ? (workflow.totalCompletions || 0) : (workflowStats?.successfulRuns || 0);
   const failedRuns = isDemo ? 0 : (workflowStats?.failedRuns || 0);
-  const completionRateValue = isDemo 
-    ? (parseFloat(workflow.completionRate) || 0) 
+  const completionRateValue = isDemo
+    ? (parseFloat(workflow.completionRate) || 0)
     : (workflowStats?.conversionRate ? parseFloat(workflowStats.conversionRate.replace('%', '')) : 0);
-  const successRateValue = isDemo 
-    ? (parseFloat(workflow.completionRate) || 0) 
+  const successRateValue = isDemo
+    ? (parseFloat(workflow.completionRate) || 0)
     : (workflowStats?.successRate ? parseFloat(workflowStats.successRate.replace('%', '')) : 0);
 
   const stats = [
@@ -320,66 +301,65 @@ export function WorkflowDetail({
       {/* Main Performance Overview */}
       <Card className="bg-gradient-to-br from-card to-card/50 shadow-lg border-0">
         <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold">Performance Overview</CardTitle>
-            <CardDescription>Real-time analytics and performance metrics</CardDescription>
+          <CardTitle className="text-xl font-semibold">Performance Overview</CardTitle>
+          <CardDescription>Real-time analytics and performance metrics</CardDescription>
         </CardHeader>
         <CardContent>
-            {isLoadingStats && !isDemo ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-3 text-base text-muted-foreground">Loading analytics...</span>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Primary Stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stats.map((stat) => (
-                        <div key={stat.name} className={`relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-${stat.color}-50 to-${stat.color}-100 dark:from-${stat.color}-950/20 dark:to-${stat.color}-900/20 border border-${stat.color}-200 dark:border-${stat.color}-800`}>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className={`text-sm font-medium text-${stat.color}-700 dark:text-${stat.color}-300`}>{stat.name}</p>
-                                    <p className={`text-2xl font-bold text-${stat.color}-900 dark:text-${stat.color}-100 mt-1`}>{stat.value}</p>
-                                </div>
-                                <div className={`p-3 bg-${stat.color}-200 dark:bg-${stat.color}-800 rounded-lg`}>
-                                    <stat.icon className={`h-6 w-6 text-${stat.color}-700 dark:text-${stat.color}-300`} />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Additional Stats */}
-                {!isDemo && workflowStats && (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                      {additionalStats.map((stat) => (
-                          <div key={stat.name} className="p-4 rounded-lg bg-secondary/30 border border-border/50">
-                              <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
-                              <p className={`text-lg font-semibold mt-1 text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
-                          </div>
-                      ))}
-                  </div>
-                )}
-
-                {/* Insights */}
-                {!isDemo && workflowStats?.insights && workflowStats.insights.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Insights</h4>
-                    <div className="space-y-2">
-                      {workflowStats.insights.map((insight, index) => (
-                        <div key={index} className={`p-4 rounded-lg border-l-4 ${
-                          insight.type === 'success' ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500 text-green-800 dark:text-green-200' :
-                          insight.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-l-yellow-500 text-yellow-800 dark:text-yellow-200' :
-                          insight.type === 'error' ? 'bg-red-50 dark:bg-red-950/20 border-l-red-500 text-red-800 dark:text-red-200' :
-                          'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500 text-blue-800 dark:text-blue-200'
-                        }`}>
-                          <p className="text-sm font-medium">{insight.message}</p>
-                        </div>
-                      ))}
+          {isLoadingStats && !isDemo ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-base text-muted-foreground">Loading analytics...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Primary Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 border-none shadow-md">
+                {stats.map((stat) => (
+                  <div key={stat.name} className={`relative overflow-hidden  p-6 border`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium text-${stat.color}-700 dark:text-${stat.color}-300`}>{stat.name}</p>
+                        <p className={`text-2xl font-bold text-${stat.color}-900 dark:text-${stat.color}-100 mt-1`}>{stat.value}</p>
+                      </div>
+                      <div className={`p-3 bg-${stat.color}-200 dark:bg-${stat.color}-800 rounded-lg`}>
+                        <stat.icon className={`h-6 w-6 text-${stat.color}-700 dark:text-${stat.color}-300`} />
+                      </div>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
-            )}
+
+              {/* Additional Stats */}
+              {/* {!isDemo && workflowStats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {additionalStats.map((stat) => (
+                    <div key={stat.name} className="p-4 rounded-lg bg-secondary/30 border border-border/50">
+                      <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
+                      <p className={`text-lg font-semibold mt-1 text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )} */}
+
+              {/* Insights */}
+              {!isDemo && workflowStats?.insights && workflowStats.insights.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Insights</h4>
+                  <div className="space-y-2">
+                    {workflowStats.insights.map((insight, index) => (
+                      <div key={index} className={`p-4 rounded-lg border-l-4 ${insight.type === 'success' ? 'bg-green-50 dark:bg-green-950/20 border-l-green-500 text-green-800 dark:text-green-200' :
+                        insight.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-l-yellow-500 text-yellow-800 dark:text-yellow-200' :
+                          insight.type === 'error' ? 'bg-red-50 dark:bg-red-950/20 border-l-red-500 text-red-800 dark:text-red-200' :
+                            'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500 text-blue-800 dark:text-blue-200'
+                        }`}>
+                        <p className="text-sm font-medium">{insight.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -483,18 +463,17 @@ export function WorkflowDetail({
                           {node.nodeType}
                         </Badge>
                         {node.successRate && (
-                          <Badge variant="outline" className={`text-xs ${
-                            parseFloat(node.successRate.replace('%', '')) >= 90 ? 'border-green-500 text-green-700' :
+                          <Badge variant="outline" className={`text-xs ${parseFloat(node.successRate.replace('%', '')) >= 90 ? 'border-green-500 text-green-700' :
                             parseFloat(node.successRate.replace('%', '')) >= 70 ? 'border-yellow-500 text-yellow-700' :
-                            'border-red-500 text-red-700'
-                          }`}>
+                              'border-red-500 text-red-700'
+                            }`}>
                             {node.successRate} success rate
                           </Badge>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="grid ">
                     {node.triggers !== undefined && (
                       <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -552,26 +531,24 @@ export function WorkflowDetail({
               {workflowStats.insights.map((insight, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg border ${
-                    insight.type === 'success'
-                      ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
-                      : insight.type === 'warning'
+                  className={`p-4 rounded-lg border ${insight.type === 'success'
+                    ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+                    : insight.type === 'warning'
                       ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800'
                       : insight.type === 'error'
-                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
-                      : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
-                  }`}
+                        ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
+                        : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
+                    }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-1 rounded ${
-                      insight.type === 'success'
-                        ? 'bg-green-100 dark:bg-green-900/30'
-                        : insight.type === 'warning'
+                    <div className={`p-1 rounded ${insight.type === 'success'
+                      ? 'bg-green-100 dark:bg-green-900/30'
+                      : insight.type === 'warning'
                         ? 'bg-yellow-100 dark:bg-yellow-900/30'
                         : insight.type === 'error'
-                        ? 'bg-red-100 dark:bg-red-900/30'
-                        : 'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
+                          ? 'bg-red-100 dark:bg-red-900/30'
+                          : 'bg-blue-100 dark:bg-blue-900/30'
+                      }`}>
                       {insight.type === 'success' && (
                         <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -593,15 +570,14 @@ export function WorkflowDetail({
                         </svg>
                       )}
                     </div>
-                    <p className={`text-sm ${
-                      insight.type === 'success'
-                        ? 'text-green-700 dark:text-green-300'
-                        : insight.type === 'warning'
+                    <p className={`text-sm ${insight.type === 'success'
+                      ? 'text-green-700 dark:text-green-300'
+                      : insight.type === 'warning'
                         ? 'text-yellow-700 dark:text-yellow-300'
                         : insight.type === 'error'
-                        ? 'text-red-700 dark:text-red-300'
-                        : 'text-blue-700 dark:text-blue-300'
-                    }`}>
+                          ? 'text-red-700 dark:text-red-300'
+                          : 'text-blue-700 dark:text-blue-300'
+                      }`}>
                       {insight.message}
                     </p>
                   </div>
@@ -634,7 +610,7 @@ export function WorkflowDetail({
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <h4 className="font-medium text-amber-900 dark:text-amber-100 mb-3">Conditions</h4>
                 <div className="space-y-2">
@@ -652,7 +628,7 @@ export function WorkflowDetail({
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-lg border border-violet-200 dark:border-violet-800">
                 <h4 className="font-medium text-violet-900 dark:text-violet-100 mb-3">Actions</h4>
                 <div className="space-y-2">
@@ -735,7 +711,7 @@ export function WorkflowDetail({
                 </ReactFlow>
               </ReactFlowProvider>
             </div>
-            
+
             {/* Workflow Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">

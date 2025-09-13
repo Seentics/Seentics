@@ -1,17 +1,13 @@
 
 'use client';
-import Link from 'next/link';
-import { BarChart3, Bolt, PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DashboardStats } from '@/components/dashboard-stats';
-import { WorkflowsTable } from '@/components/workflows-table';
-import { useParams } from 'next/navigation';
-import { AnalyticsSummaryCard } from '@/components/analytics-summary-card';
-import { AnalyticsTable } from '@/components/analytics-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDailyStats, useHourlyStats } from '@/lib/analytics-api';
 import { TrafficOverview } from '@/components/analytics/TrafficOverview';
+import { DashboardStats } from '@/components/dashboard-stats';
+import { Button } from '@/components/ui/button';
+import { WorkflowsTable } from '@/components/workflows-table';
+import { useDailyStats, useHourlyStats } from '@/lib/analytics-api';
+import { BarChart3, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function DashboardPage() {
   const params = useParams();
@@ -21,7 +17,6 @@ export default function DashboardPage() {
   const { data: dailyStats, isLoading: loadingDaily } = useDailyStats(siteId || '', 30);
   const { data: hourlyStats, isLoading: loadingHourly } = useHourlyStats(siteId || '', 1); // Always 24 hours
 
-  // Remove realtime snapshot; show traffic overview instead
 
   return (
     <>
@@ -37,14 +32,14 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Button asChild size="sm" className="w-full sm:w-auto shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-shadow">
+            <Button asChild size="lg" className="w-full sm:w-auto shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-shadow">
               <Link href={`/websites/${siteId}/workflows/edit/new`}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Create Workflow</span>
                 <span className="sm:hidden">Create</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
               <Link href={`/websites/${siteId}/analytics`}>
                 <BarChart3 className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">View Analytics</span>
@@ -58,8 +53,8 @@ export default function DashboardPage() {
         <DashboardStats siteId={siteId} />
 
         {/* Content Grid */}
-        <div className="space-y-4 sm:space-y-6">
-          <TrafficOverview 
+        <div className="space-y-4 sm:space-y-6 ">
+          <TrafficOverview
             dailyStats={dailyStats}
             hourlyStats={hourlyStats}
             isLoading={!siteId || loadingDaily || loadingHourly}

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/stores/useAuthStore";
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import { FunnelHeader } from "@/components/funnels/funnel-header";
-import { FunnelStepsList } from "@/components/funnels/funnel-steps-list";
 import { FunnelPreview } from "@/components/funnels/funnel-preview";
+import { FunnelStepsList } from "@/components/funnels/funnel-steps-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,11 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
 import {
-  useFunnels,
   useCreateFunnel,
+  useFunnels,
   useUpdateFunnel,
-  type FunnelStep,
-  type Funnel,
+  type FunnelStep
 } from "@/lib/analytics-api";
 
 export default function FunnelEditPage() {
@@ -71,7 +70,7 @@ export default function FunnelEditPage() {
 
   // Update step
   const updateStep = useCallback((stepId: string, updates: Partial<FunnelStep>) => {
-    setSteps(prev => prev.map(step => 
+    setSteps(prev => prev.map(step =>
       step.id === stepId ? { ...step, ...updates } : step
     ));
   }, []);
@@ -94,7 +93,7 @@ export default function FunnelEditPage() {
       ) {
         return prev;
       }
-      
+
       const newSteps = [...prev];
       const targetIndex = direction === 'up' ? stepIndex - 1 : stepIndex + 1;
       [newSteps[stepIndex], newSteps[targetIndex]] = [newSteps[targetIndex], newSteps[stepIndex]];
@@ -115,7 +114,7 @@ export default function FunnelEditPage() {
 
     if (steps.length === 0) {
       toast({
-        title: "Validation Error", 
+        title: "Validation Error",
         description: "Please add at least one step to your funnel.",
         variant: "destructive",
       });
@@ -146,7 +145,7 @@ export default function FunnelEditPage() {
           funnelData
         });
         toast({
-          title: "Success", 
+          title: "Success",
           description: "Funnel updated successfully!",
         });
       }
@@ -176,20 +175,20 @@ export default function FunnelEditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       {/* Header */}
       <FunnelHeader
         websiteId={websiteId}
         funnelName={funnelName}
         onNameChange={setFunnelName}
         onSave={saveFunnel}
-        onPreview={() => {}} // TODO: Implement preview functionality
+        onPreview={() => { }} // TODO: Implement preview functionality
         isSaving={isSaving}
         isPreviewMode={false}
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="py-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Funnel Configuration */}
           <div className="lg:col-span-2 space-y-6">
@@ -209,7 +208,7 @@ export default function FunnelEditPage() {
                     className="mt-1"
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="funnel-description">Description (Optional)</Label>
                   <Textarea

@@ -1,39 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, HelpCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { 
-  useDashboardData, 
- 
-  useHourlyStats, 
-  useTopPages, 
-  useTopReferrers, 
-  useTopCountries, 
-  useTopBrowsers, 
-  useTopDevices, 
-  useTopOS,
-  useActivityTrends,
-  useDailyStats,
-  useCustomEvents,
-
-} from '@/lib/analytics-api';
-import { DetailedDataModal } from './components/DetailedDataModal';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AnalyticsGuide } from './components/AnalyticsGuide';
-import { SummaryCards } from './components/SummaryCards';
-import { TrafficOverview } from '@/components/analytics/TrafficOverview';
-import { ContentPerformance } from '@/components/analytics/ContentPerformance';
 import { AudienceInsights } from '@/components/analytics/AudienceInsights';
+import { ContentPerformance } from '@/components/analytics/ContentPerformance';
+import { TrafficOverview } from '@/components/analytics/TrafficOverview';
 import { UTMPerformanceChart } from '@/components/analytics/UTMPerformanceChart';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  useActivityTrends,
+  useCustomEvents,
+  useDailyStats,
+  useDashboardData,
+
+  useHourlyStats,
+  useTopBrowsers,
+  useTopCountries,
+  useTopDevices,
+  useTopOS,
+  useTopPages,
+  useTopReferrers,
+} from '@/lib/analytics-api';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { DetailedDataModal } from './components/DetailedDataModal';
 import { EventsDetails } from './components/EventsDetails';
+import { SummaryCards } from './components/SummaryCards';
 
 interface AnalyticsPageProps {
   params: {
@@ -45,8 +41,8 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   const { websiteId } = params;
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
   const [modalType, setModalType] = useState<string>('');
-  
-  
+
+
   // Filter state
   const [dateRange, setDateRange] = useState<number>(7);
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
@@ -57,15 +53,15 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   // Helper function to categorize referrers for better display
   const categorizeReferrer = (referrer: string): string => {
     if (!referrer || referrer === 'Direct') return 'Direct';
-    
+
     const lowerReferrer = referrer.toLowerCase();
-    
+
     // Search engines
     if (lowerReferrer.includes('google')) return 'Google';
     if (lowerReferrer.includes('bing')) return 'Bing';
     if (lowerReferrer.includes('yahoo')) return 'Yahoo';
     if (lowerReferrer.includes('duckduckgo')) return 'DuckDuckGo';
-    
+
     // Social media
     if (lowerReferrer.includes('facebook')) return 'Facebook';
     if (lowerReferrer.includes('twitter')) return 'Twitter';
@@ -74,7 +70,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     if (lowerReferrer.includes('youtube')) return 'YouTube';
     if (lowerReferrer.includes('instagram')) return 'Instagram';
     if (lowerReferrer.includes('reddit')) return 'Reddit';
-    
+
     // Tech platforms
     if (lowerReferrer.includes('medium')) return 'Medium';
     if (lowerReferrer.includes('stackoverflow')) return 'Stack Overflow';
@@ -82,22 +78,22 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     if (lowerReferrer.includes('hashnode')) return 'Hashnode';
     if (lowerReferrer.includes('producthunt')) return 'Product Hunt';
     if (lowerReferrer.includes('hackernews')) return 'Hacker News';
-    
+
     // Internal navigation
-            if (lowerReferrer.includes('localhost') || lowerReferrer.includes('127.0.0.1') || lowerReferrer.includes('internal')) {
+    if (lowerReferrer.includes('localhost') || lowerReferrer.includes('127.0.0.1') || lowerReferrer.includes('internal')) {
       return 'Internal Navigation';
     }
-    
+
     // For other domains, return the referrer as is (it should already be cleaned by backend)
     return referrer;
   };
 
   // Data hooks with dynamic date range - using real API data
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardData(websiteId, dateRange);
-  
-  
 
-  
+
+
+
   // Transform real API data to match component expectations
   const transformedDashboardData = dashboardData ? {
     // Core stats - direct mapping from backend
@@ -156,7 +152,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   const { data: topDevices, isLoading: devicesLoading, error: devicesError } = useTopDevices(websiteId, dateRange);
   const { data: topOS, isLoading: osLoading, error: osError } = useTopOS(websiteId, dateRange);
   const { data: dailyStats, isLoading: dailyLoading, error: dailyError } = useDailyStats(websiteId, dateRange);
-  
+
   // Note: trafficSummaryChart removed - use dailyStats for chart data instead
   const trafficSummaryChart = dailyStats; // Use daily stats for chart visualization
   const trafficChartLoading = dailyLoading;
@@ -186,7 +182,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       // Categorize referrer for better display
       const referrer = ref.referrer || 'Direct';
       const categorizedReferrer = categorizeReferrer(referrer);
-      
+
       return {
         referrer: categorizedReferrer,
         visitors: ref.unique || 0,
@@ -290,13 +286,13 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     const utmSource = urlParams.get('utm_source');
     const utmMedium = urlParams.get('utm_medium');
     const utmCampaign = urlParams.get('utm_campaign');
-    
+
     if (utmSource || utmMedium || utmCampaign) {
-      
+
       // If we have UTM parameters but no UTM data, create some sample data
-      if (transformedCustomEvents && (!transformedCustomEvents.utm_performance || 
-          Object.keys(transformedCustomEvents.utm_performance.sources || {}).length === 0)) {
-        
+      if (transformedCustomEvents && (!transformedCustomEvents.utm_performance ||
+        Object.keys(transformedCustomEvents.utm_performance.sources || {}).length === 0)) {
+
         // Create sample UTM data based on the actual parameters
         const sampleUTMData = {
           ...transformedCustomEvents,
@@ -323,20 +319,20 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
             total_mediums: 3
           }
         };
-        
+
         // Update the transformed data
         Object.assign(transformedCustomEvents, sampleUTMData);
       }
     }
   }, [transformedCustomEvents]);
-  
+
   // Add pageview data from dashboard data to custom events (but don't show in breakdown)
   if (dashboardData?.page_views && transformedCustomEvents) {
     // Update totals to include pageviews for the summary cards
     transformedCustomEvents.total_events += dashboardData.page_views;
     // Don't add pageviews to top_events since they're not custom events
   }
-  
+
   // CRITICAL FIX: Remove any pageview events from top_events
   if (transformedCustomEvents && transformedCustomEvents.top_events) {
     transformedCustomEvents.top_events = transformedCustomEvents.top_events.filter(
@@ -346,10 +342,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
     transformedCustomEvents.unique_events = transformedCustomEvents.top_events.length;
   }
 
-  // Force refresh custom events data
-  const { refetch: refetchCustomEvents, data: customEventsData } = useCustomEvents(websiteId, dateRange);
 
-  // Debug logging for audience insights data
 
   const handleModalOpen = (type: string) => {
     setModalType(type);
@@ -427,7 +420,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
             <p className="text-muted-foreground">Error loading analytics data</p>
           </div>
         </div>
-        
+
         <Card className="bg-card/50 border-destructive/20">
           <CardHeader>
             <CardTitle className="text-destructive">Failed to Load Analytics</CardTitle>
@@ -443,14 +436,14 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
                 <li>Invalid website ID or permissions</li>
               </ul>
               <div className="flex gap-3">
-                <Button 
-                  onClick={() => window.location.reload()} 
+                <Button
+                  onClick={() => window.location.reload()}
                   variant="outline"
                 >
                   Try Again
                 </Button>
-                <Button 
-                  onClick={() => window.history.back()} 
+                <Button
+                  onClick={() => window.history.back()}
                   variant="ghost"
                 >
                   Go Back
@@ -470,13 +463,13 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div className="space-y-1">
           <h1 className="font-headline text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Website performance insights</p>
+          <p className="text-sm text-muted-foreground">Website visitors & performance insights</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          
+
           {/* Date Range Filter */}
-          <Select  value={isCustomRange ? 'custom' : dateRange.toString()} onValueChange={handleDateRangeChange}>
+          <Select value={isCustomRange ? 'custom' : dateRange.toString()} onValueChange={handleDateRangeChange}>
             <SelectTrigger className="w-full sm:w-40 border">
               <SelectValue placeholder="Select range" />
             </SelectTrigger>
@@ -488,7 +481,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
               <SelectItem value="custom">Custom range</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {/* Custom Date Range Picker */}
           {isCustomRange && (
             <Popover>
@@ -514,26 +507,11 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
               </PopoverContent>
             </Popover>
           )}
-
-          {/* Analytics Guide */}
-          {/* <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 px-3 border-0 bg-muted/50">
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">Analytics Guide</DialogTitle>
-              </DialogHeader>
-              <AnalyticsGuide />
-            </DialogContent>
-          </Dialog> */}
         </div>
       </div>
 
       {/* Summary Cards */}
-      <SummaryCards 
+      <SummaryCards
         data={dashboardData || {
           total_visitors: 0,
           unique_visitors: 0,
@@ -544,9 +522,6 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
           comparison: {}
         }}
       />
-
-      {/* Debug Section - Remove in production */}
-
 
       {/* API Error Messages */}
       {(dashboardError || pagesError || referrersError || countriesError || browsersError || devicesError) && (
@@ -568,7 +543,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
       )}
 
       {/* Traffic Overview - Full Width */}
-      <TrafficOverview 
+      <TrafficOverview
         dailyStats={trafficSummaryChart || dailyStats}
         hourlyStats={hourlyStats}
         isLoading={dashboardLoading || dailyLoading || trafficChartLoading}
@@ -576,27 +551,27 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
 
       {/* 2 Cards in 2x2 Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-                 {/* Card 2: Top Pages & Sources */}
-         <ContentPerformance 
-           topPages={transformedTopPages}
-           topReferrers={transformedTopReferrers}
-           pagesLoading={pagesLoading}
-           referrersLoading={referrersLoading}
-           onViewMore={handleModalOpen}
-         />
+        {/* Card 2: Top Pages & Sources */}
+        <ContentPerformance
+          topPages={transformedTopPages}
+          topReferrers={transformedTopReferrers}
+          pagesLoading={pagesLoading}
+          referrersLoading={referrersLoading}
+          onViewMore={handleModalOpen}
+        />
 
-         {/* Card 3: Geographic & Device Data */}
-            <AudienceInsights 
-              topCountries={transformedTopCountries}
-              topBrowsers={transformedTopBrowsers}
-              topDevices={transformedTopDevices}
-              topOS={transformedTopOS}
-              countriesLoading={countriesLoading}
-              browsersLoading={browsersLoading}
-              devicesLoading={devicesLoading}
-              osLoading={osLoading}
-              onViewMore={handleModalOpen}
-            />
+        {/* Card 3: Geographic & Device Data */}
+        <AudienceInsights
+          topCountries={transformedTopCountries}
+          topBrowsers={transformedTopBrowsers}
+          topDevices={transformedTopDevices}
+          topOS={transformedTopOS}
+          countriesLoading={countriesLoading}
+          browsersLoading={browsersLoading}
+          devicesLoading={devicesLoading}
+          osLoading={osLoading}
+          onViewMore={handleModalOpen}
+        />
       </div>
 
 
@@ -622,7 +597,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <UTMPerformanceChart 
+            <UTMPerformanceChart
               data={transformedCustomEvents.utm_performance as any}
               isLoading={customEventsLoading}
               hideTabs={true}
@@ -642,9 +617,9 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <EventsDetails 
+            <EventsDetails
               items={(transformedCustomEvents.top_events as any[])
-                .filter(e => !['pageview','page_view','page_visible','page_hidden','exit_intent'].includes(e.event_type))}
+                .filter(e => !['pageview', 'page_view', 'page_visible', 'page_hidden', 'exit_intent'].includes(e.event_type))}
             />
           </CardContent>
         </Card>

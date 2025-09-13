@@ -1,41 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CookieConsentManager from '@/components/cookie-consent-manager';
+import DataRetentionManager from '@/components/data-retention-manager';
+import GDPRDataManager from '@/components/gdpr-data-manager';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Shield, 
-  Cookie, 
-  Database, 
-  User, 
-  Settings, 
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Lock,
-  Eye,
-  Download,
-  Trash2
-} from 'lucide-react';
-import { useAuth } from '@/stores/useAuthStore';
-import CookieConsentManager from '@/components/cookie-consent-manager';
-import GDPRDataManager from '@/components/gdpr-data-manager';
-import DataRetentionManager from '@/components/data-retention-manager';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { privacyAPI } from '@/lib/privacy-api';
+import { useAuth } from '@/stores/useAuthStore';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Cookie,
+  Download,
+  Settings,
+  Shield,
+  Trash2
+} from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function PrivacySettingsPage() {
   const params = useParams();
   const websiteId = params?.websiteId as string;
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [privacySettings, setPrivacySettings] = useState({
     analyticsTracking: true,
     marketingEmails: false,
@@ -52,10 +47,11 @@ export default function PrivacySettingsPage() {
   useEffect(() => {
     const loadPrivacySettings = async () => {
       if (!user) return;
-      
+
       try {
         const response = await privacyAPI.getPrivacySettings();
         if (response.success && response.data.settings) {
+          //@ts-ignore
           setPrivacySettings(response.data.settings);
         }
       } catch (error) {
@@ -76,11 +72,11 @@ export default function PrivacySettingsPage() {
   const handleSettingChange = async (setting: string, value: any) => {
     const newSettings = { ...privacySettings, [setting]: value };
     setPrivacySettings(newSettings);
-    
+
     try {
       // Save to backend API
       await privacyAPI.updatePrivacySettings({ [setting]: value });
-      
+
       toast({
         title: "Setting Updated",
         description: "Privacy setting has been updated successfully.",
@@ -142,15 +138,15 @@ export default function PrivacySettingsPage() {
 
   return (
     <div className="">
-      <div className="container mx-auto px-4 py-8">
+      <div className="">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
-              <Shield className="h-8 w-8 text-blue-600" />
+              <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Privacy & Compliance
               </h1>
               <p className="text-slate-600 dark:text-slate-400">
@@ -160,7 +156,7 @@ export default function PrivacySettingsPage() {
           </div>
 
           {/* Compliance Status */}
-          <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -183,7 +179,7 @@ export default function PrivacySettingsPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-slate-100 dark:bg-slate-900">
+        <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -237,24 +233,24 @@ export default function PrivacySettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => setShowCookieSettings(true)}
                     >
                       <Cookie className="h-4 w-4 mr-2" />
                       Manage Cookie Preferences
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => document.getElementById('data-rights-tab')?.click()}
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export My Data
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => document.getElementById('data-rights-tab')?.click()}
                     >
@@ -374,14 +370,14 @@ export default function PrivacySettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Cookie className="h-5 w-5 text-blue-600" />
+                  <Cookie className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Cookie Consent Management
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-slate-600 dark:text-slate-400">
-                    Manage your cookie preferences and consent settings. You can customize which types of cookies 
+                    Manage your cookie preferences and consent settings. You can customize which types of cookies
                     are allowed on your website.
                   </p>
                   <Button onClick={() => setShowCookieSettings(true)}>
@@ -395,9 +391,9 @@ export default function PrivacySettingsPage() {
 
           {/* Data Rights Tab */}
           <TabsContent value="rights" className="space-y-6">
-            <GDPRDataManager 
-              userId={user._id || user.id || 'unknown'} 
-              userEmail={user.email || 'unknown@example.com'} 
+            <GDPRDataManager
+              userId={user._id || user.id || 'unknown'}
+              userEmail={user.email || 'unknown@example.com'}
             />
           </TabsContent>
 
@@ -408,7 +404,7 @@ export default function PrivacySettingsPage() {
         </Tabs>
 
         {/* Cookie Settings Dialog */}
-        <CookieConsentManager 
+        <CookieConsentManager
           onConsentChange={handleCookieConsentChange}
           showBanner={false}
         />
