@@ -7,7 +7,7 @@ export const config = {
   port: process.env.PORT || 3003,
   
   mongodb: {
-    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/seentics-workflows',
+    uri: process.env.MONGODB_URI || 'mongodb://mongodb:27017/seentics-workflows',
     options: {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,

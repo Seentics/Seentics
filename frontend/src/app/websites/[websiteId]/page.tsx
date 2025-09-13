@@ -1,17 +1,13 @@
 
 'use client';
-import Link from 'next/link';
-import { BarChart3, Bolt, PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DashboardStats } from '@/components/dashboard-stats';
-import { WorkflowsTable } from '@/components/workflows-table';
-import { useParams } from 'next/navigation';
-import { AnalyticsSummaryCard } from '@/components/analytics-summary-card';
-import { AnalyticsTable } from '@/components/analytics-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDailyStats, useHourlyStats } from '@/lib/analytics-api';
 import { TrafficOverview } from '@/components/analytics/TrafficOverview';
+import { DashboardStats } from '@/components/dashboard-stats';
+import { Button } from '@/components/ui/button';
+import { WorkflowsTable } from '@/components/workflows-table';
+import { useDailyStats, useHourlyStats } from '@/lib/analytics-api';
+import { BarChart3, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function DashboardPage() {
   const params = useParams();
@@ -58,8 +54,8 @@ export default function DashboardPage() {
         <DashboardStats siteId={siteId} />
 
         {/* Content Grid */}
-        <div className="space-y-4 sm:space-y-6">
-          <TrafficOverview 
+        <div className="space-y-4 sm:space-y-6 ">
+          <TrafficOverview
             dailyStats={dailyStats}
             hourlyStats={hourlyStats}
             isLoading={!siteId || loadingDaily || loadingHourly}

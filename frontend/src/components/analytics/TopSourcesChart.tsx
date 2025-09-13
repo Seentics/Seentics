@@ -1,7 +1,6 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Search, ExternalLink, Users, TrendingUp, Globe, Mail, Share2, LinkIcon } from 'lucide-react';
+import { ExternalLink, LinkIcon, Mail, Search, Share2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface TopSourcesChartProps {
@@ -169,11 +168,11 @@ export default function TopSourcesChart({ data, isLoading, onViewMore }: TopSour
                     <p className="text-xs text-muted-foreground">{item.percentage}%</p>
                   </div>
                   <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${item.percentage}%`, 
-                        backgroundColor: item.color 
+                      style={{
+                        width: `${item.percentage}%`,
+                        backgroundColor: item.color
                       }}
                     />
                   </div>

@@ -1,84 +1,32 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { subDays } from 'date-fns';
 import Link from 'next/link';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Node,
-  Edge,
-  BackgroundVariant,
-  NodeTypes,
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import {
+  NodeTypes
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { format, subDays } from 'date-fns';
 
-import { 
-  getWorkflow, 
-  updateWorkflow, 
-  type Workflow, 
-  deleteWorkflow, 
-  getWorkflowSummary, 
-  type WorkflowActivitySummary, 
-  workflowChartConfig,
-  nodePerformanceChartConfig,
-  triggerTypeChartConfig,
-  actionTypeChartConfig,
-  hourlyChartConfig,
-  getWorkflowNodePerformance,
-  getWorkflowTriggerTypes,
-  getWorkflowActionTypes,
-  getWorkflowHourlyData,
-  type NodePerformance,
-  type TriggerTypeData,
-  type ActionTypeData,
-  type HourlyData,
-  getWorkflowFunnelData
-} from '@/lib/workflow-api';
-import type { WorkflowFunnelData } from '@/lib/workflow-api';
+import { CustomNode } from '@/components/flow/custom-node';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Edit, Play, Pause, Trash2, Target, CircleCheckBig, Percent, Activity } from 'lucide-react';
+import type { WorkflowFunnelData } from '@/lib/workflow-api';
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { CustomNode, CustomNodeData } from '@/components/flow/custom-node';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  deleteWorkflow,
+  getWorkflow,
+  getWorkflowFunnelData,
+  getWorkflowSummary,
+  updateWorkflow,
+  type Workflow,
+  type WorkflowActivitySummary
+} from '@/lib/workflow-api';
+import { Loader2 } from 'lucide-react';
 
 import { useAuth } from '@/stores/useAuthStore';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Import new chart components
-import { NodePerformanceChart } from '@/components/workflows/NodePerformanceChart';
-import { TriggerTypeChart } from '@/components/workflows/TriggerTypeChart';
-import { ActionTypeChart } from '@/components/workflows/ActionTypeChart';
-import { HourlyPerformanceChart } from '@/components/workflows/HourlyPerformanceChart';
-import { RealtimeActivityFeed } from '@/components/workflows/RealtimeActivityFeed';
-import { FunnelChart } from '@/components/workflows/funnel-chart';
 
 // Import shared component
 import { WorkflowDetail } from '@/components/workflow-detail';
@@ -95,7 +43,7 @@ export default function WorkflowDetailPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   // Debug logging
   console.log('WorkflowDetailPage - ID:', id);
   console.log('WorkflowDetailPage - WebsiteID:', websiteId);
@@ -123,12 +71,12 @@ export default function WorkflowDetailPage() {
 
   // Ensure workflow is properly handled
   const workflow = workflowData;
-  
+
   // Debug: Log workflow structure
   console.log('Workflow data:', workflow);
   console.log('Workflow nodes:', workflow?.nodes);
 
-   // Note: RealtimeActivityFeed now fetches its own data, so we don't need this query here
+  // Note: RealtimeActivityFeed now fetches its own data, so we don't need this query here
   // const { data: activityLogData, isLoading: isLoadingLog } = useQuery<ActivityLog[]>({
   //   queryKey: ['activityLog', id],
   //   queryFn: () => getWorkflowActivity(id),
@@ -172,10 +120,10 @@ export default function WorkflowDetailPage() {
   });
 
   // Ensure activitySummary is always an array
-  const activitySummary: any[] = Array.isArray(activitySummaryData) ? activitySummaryData as any[] : 
-                         (activitySummaryData as any)?.summary ? (activitySummaryData as any).summary : 
-                         (activitySummaryData as any)?.data ? (activitySummaryData as any).data : 
-                         [];
+  const activitySummary: any[] = Array.isArray(activitySummaryData) ? activitySummaryData as any[] :
+    (activitySummaryData as any)?.summary ? (activitySummaryData as any).summary :
+      (activitySummaryData as any)?.data ? (activitySummaryData as any).data :
+        [];
 
   const handleStatusChange = async (newStatus: 'Active' | 'Paused') => {
     if (!workflow || !user) return;
@@ -198,17 +146,17 @@ export default function WorkflowDetailPage() {
   };
 
   const handleDelete = async () => {
-     if (!workflow || !user) return;
+    if (!workflow || !user) return;
     try {
-        await deleteWorkflow(workflow.id);
-        toast({ title: "Workflow Deleted", description: `"${workflow.name}" has been deleted.`});
-        await queryClient.invalidateQueries({ queryKey: ['workflows', siteId] });
-        router.push(`/workflows${siteId ? `?siteId=${siteId}` : ''}`);
+      await deleteWorkflow(workflow.id);
+      toast({ title: "Workflow Deleted", description: `"${workflow.name}" has been deleted.` });
+      await queryClient.invalidateQueries({ queryKey: ['workflows', siteId] });
+      router.push(`/workflows${siteId ? `?siteId=${siteId}` : ''}`);
     } catch (error) {
-         toast({ title: "Error deleting workflow", description: "An unexpected error occurred.", variant: "destructive"});
+      toast({ title: "Error deleting workflow", description: "An unexpected error occurred.", variant: "destructive" });
     }
   };
-  
+
   const loading = isLoadingWorkflow || isLoadingSummary;
 
   if (loading) {
@@ -231,7 +179,7 @@ export default function WorkflowDetailPage() {
   }
 
   // Use the shared WorkflowDetail component
-      return (
+  return (
     <WorkflowDetail
       workflow={workflow}
       activitySummary={activitySummary}

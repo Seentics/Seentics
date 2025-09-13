@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -45,7 +45,7 @@ func InitializeSchema(db *pgxpool.Pool) error {
 
 	// Read schema file
 	schemaPath := filepath.Join("database", "schema.sql")
-	schemaBytes, err := ioutil.ReadFile(schemaPath)
+	schemaBytes, err := os.ReadFile(schemaPath)
 	if err != nil {
 		return fmt.Errorf("failed to read schema file: %w", err)
 	}

@@ -10,14 +10,14 @@ import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
- 
- 
+
+
 export default function WorkflowsPage() {
   const params = useParams();
   const siteId = params?.websiteId as string
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const { data: workflows = [], isLoading: isLoadingWorkflows } = useQuery<Workflow[]>({
     queryKey: ['workflows', user?._id, siteId],
     queryFn: () => getWorkflows(siteId!),
@@ -67,7 +67,7 @@ export default function WorkflowsPage() {
             <p>You've reached the workflow limit for the {planName} plan. Please upgrade to add more.</p>
           </TooltipContent>
         )}
-         {!siteId && (
+        {!siteId && (
           <TooltipContent>
             <p>Please select a site to create a workflow.</p>
           </TooltipContent>
@@ -75,7 +75,7 @@ export default function WorkflowsPage() {
       </Tooltip>
     </TooltipProvider>
   );
-  
+
   return (
     <div className="space-y-6">
       {/* Header Section with Actions */}
@@ -89,14 +89,12 @@ export default function WorkflowsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <CreateWorkflowButton />
+          <CreateWorkflowButton />
         </div>
       </div>
-      
-      {/* Open Source Version - No Limits */}
 
       {/* Key Metrics - Unified Cards Container (analytics-style) */}
-      <div className="bg-white dark:bg-transparent rounded-xl dark:border border-gray-200 dark:border-gray-800 shadow-lg">
+      <div className="bg-white dark:bg-transparent  dark:border border-gray-200 dark:border-gray-800 shadow-lg">
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800">
           {/* Total Workflows */}
           <div className="group cursor-default hover:bg-gradient-to-br hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 p-6">
@@ -159,13 +157,11 @@ export default function WorkflowsPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Main Workflows Table - Core Data */}
       <div>
         <WorkflowsTable siteId={siteId} />
       </div>
-
-      {/* Performance Insights - Key Analysis */}
 
     </div>
   );

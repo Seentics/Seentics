@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Image from 'next/image';
+import { useState } from 'react';
 import { TopPagesChart } from './TopPagesChart';
 import TopSourcesChart from './TopSourcesChart';
-import Image from 'next/image';
 
 interface PageStat {
   page_url: string;
@@ -40,21 +40,21 @@ interface ContentPerformanceProps {
   className?: string;
 }
 
-export function ContentPerformance({ 
-  topPages, 
-  topReferrers, 
-  pagesLoading = false, 
-  referrersLoading = false, 
+export function ContentPerformance({
+  topPages,
+  topReferrers,
+  pagesLoading = false,
+  referrersLoading = false,
   isDemo = false,
   onViewMore,
-  className = '' 
+  className = ''
 }: ContentPerformanceProps) {
   const [contentTab, setContentTab] = useState<string>('pages');
 
   // Helper function to get appropriate image for referrer
   const getReferrerImage = (referrer: string) => {
     const lowerReferrer = referrer.toLowerCase();
-    
+
     if (lowerReferrer.includes('google')) return '/images/search.png';
     if (lowerReferrer.includes('facebook')) return '/images/facebook.png';
     if (lowerReferrer.includes('twitter')) return '/images/twitter.png';
@@ -65,7 +65,7 @@ export function ContentPerformance({
     if (lowerReferrer.includes('pinterest')) return '/images/pinterest.png';
     if (lowerReferrer.includes('whatsapp')) return '/images/whatsapp.png';
     if (lowerReferrer.includes('telegram')) return '/images/telegram.png';
-    
+
     return '/images/link.png';
   };
 
@@ -84,20 +84,20 @@ export function ContentPerformance({
           </TabsList>
         </Tabs>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0">
+      <CardContent className="">
         <div className="mt-0 max-h-[32rem] overflow-y-auto">
           {contentTab === 'pages' && (
-            <TopPagesChart 
-              data={topPages} 
-              isLoading={pagesLoading} 
-              onViewMore={() => onViewMore?.('pages')} 
+            <TopPagesChart
+              data={topPages}
+              isLoading={pagesLoading}
+              onViewMore={() => onViewMore?.('pages')}
             />
           )}
           {contentTab === 'sources' && (
-            <TopSourcesChart 
-              data={topReferrers} 
-              isLoading={referrersLoading} 
-              onViewMore={() => onViewMore?.('sources')} 
+            <TopSourcesChart
+              data={topReferrers}
+              isLoading={referrersLoading}
+              onViewMore={() => onViewMore?.('sources')}
             />
           )}
           {contentTab === 'referrers' && (
