@@ -454,6 +454,9 @@
             window.seentics.track(settings.eventName);
           }
           break;
+        case ACTIONS.WEBHOOK:
+          this._executeWebhook(settings);
+          break;
       }
     },
 
@@ -535,6 +538,30 @@
       banner.appendChild(closeBtn);
       
       document.body.appendChild(banner);
+    },
+
+    _executeWebhook(settings) {
+      if (!settings.webhookUrl) return;
+      
+      const payload = {
+        siteId: this.siteId,
+        visitorId: this.visitorId,
+        sessionId: this.sessionId,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        ...(settings.webhookData || {})
+      };
+      
+      fetch(settings.webhookUrl, {
+        method: settings.webhookMethod || 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(settings.webhookHeaders || {})
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).catch(error => console.warn('[Seentics] Webhook failed:', error));
     },
 
     _trackEvent(workflow, node, eventType, options = {}) {

@@ -196,10 +196,7 @@ const NodeSettingsForm: React.FC<{
           if (node.data.title === 'Funnel') {
             const defaults = {
               eventType: 'dropoff' as const,
-              stepIndex: 0,
-              timeThreshold: 0,
-              minValue: 0,
-              maxValue: null
+              funnelId: ''
             };
             
             const hasDefaults = Object.keys(defaults).every(key => 
@@ -429,9 +426,6 @@ const NodeSettingsForm: React.FC<{
                 <SelectContent>
                   <SelectItem value="dropoff">Dropoff</SelectItem>
                   <SelectItem value="conversion">Conversion</SelectItem>
-                  <SelectItem value="milestone">Milestone</SelectItem>
-                  <SelectItem value="abandonment">Abandonment</SelectItem>
-                  <SelectItem value="step_completion">Step Completion</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -439,72 +433,6 @@ const NodeSettingsForm: React.FC<{
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="stepIndex" className="text-sm font-medium">Step Index (optional)</Label>
-              <Input
-                id="stepIndex"
-                type="number"
-                placeholder="e.g., 2"
-                value={settings.stepIndex || ''}
-                onChange={(e) => handleSettingChange('stepIndex', parseInt(e.target.value, 10))}
-              />
-              <p className="text-xs text-muted-foreground">
-                Specific step to monitor (leave blank for any step). Step 1 is the first step.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="timeThreshold" className="text-sm font-medium">Time Threshold (minutes)</Label>
-              <Input
-                id="timeThreshold"
-                type="number"
-                placeholder="e.g., 5"
-                value={settings.timeThreshold || ''}
-                onChange={(e) => handleSettingChange('timeThreshold', parseInt(e.target.value, 10))}
-              />
-              <p className="text-xs text-muted-foreground">
-                Minimum time spent before triggering (0 = no time requirement).
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="userSegment" className="text-sm font-medium">User Segment (optional)</Label>
-              <Input
-                id="userSegment"
-                placeholder="e.g., premium-users, new-visitors"
-                value={settings.userSegment || ''}
-                onChange={(e) => handleSettingChange('userSegment', e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Target specific user segments (comma-separated for multiple).
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="minValue" className="text-sm font-medium">Min Value</Label>
-                <Input
-                  id="minValue"
-                  type="number"
-                  placeholder="0"
-                  value={settings.minValue || ''}
-                  onChange={(e) => handleSettingChange('minValue', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxValue" className="text-sm font-medium">Max Value</Label>
-                <Input
-                  id="maxValue"
-                  type="number"
-                  placeholder="No limit"
-                  value={settings.maxValue || ''}
-                  onChange={(e) => handleSettingChange('maxValue', e.target.value ? parseFloat(e.target.value) : null)}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Set value range constraints for the funnel event (e.g., cart value, time spent).
-            </p>
             
             <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-700 rounded-lg">
               <div className="flex items-start gap-2">
@@ -514,8 +442,7 @@ const NodeSettingsForm: React.FC<{
                   <p>This workflow will ONLY trigger when the specified funnel event occurs. It will not respond to other page interactions or events.</p>
                   <p className="mt-1 text-slate-700 dark:text-slate-300">
                     <strong>Event:</strong> {settings.eventType} | 
-                    <strong>Funnel:</strong> {funnels.find(f => f.id === settings.funnelId)?.name || 'Unknown'} | 
-                    <strong>Step:</strong> {settings.stepIndex || 'Any'}
+                    <strong>Funnel:</strong> {funnels.find(f => f.id === settings.funnelId)?.name || 'Unknown'}
                   </p>
                 </div>
               </div>

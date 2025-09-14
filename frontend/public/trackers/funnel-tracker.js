@@ -244,32 +244,52 @@
             return;
           }
           
-          if (DEBUG) console.log(`🔍 Seentics: Checking funnel ${funnelId} with ${funnelState.steps.length} steps`);
+          // Skip checking if user is not currently in this funnel (currentStep = 0)
+          // Only check funnels that are either starting fresh or user is actively progressing through
+          const isInActiveFunnel = funnelState.currentStep > 0;
+          const canStartFunnel = funnelState.currentStep === 0;
+          
+          if (DEBUG) console.log(`🔍 Seentics: Checking funnel ${funnelId} - currentStep: ${funnelState.currentStep}, isActive: ${isInActiveFunnel}`);
           
           let foundMatch = false;
           
           funnelState.steps.forEach((step, index) => {
-            if (DEBUG) console.log(`🔍 Seentics: Checking step ${index + 1}: ${step.name} (${step.type}) - ${step.condition?.page || step.condition?.event || 'N/A'}`);
+            const stepNumber = index + 1;
             
             if (step.type === 'page' && step.condition?.page) {
               const matches = matchesPageCondition(currentUrl, step.condition.page);
-              if (DEBUG) console.log(`🔍 Seentics: Page condition check: "${currentUrl}" vs "${step.condition.page}" = ${matches}`);
               
               if (matches) {
-                console.log(`🎯 Seentics: Page match for funnel ${funnelId}, step ${index + 1}: ${step.name}`);
-                updateFunnelProgress(funnelId, index + 1, step);
-                foundMatch = true;
-                anyFunnelMatched = true;
+                // Only process if this is step 1 (can start funnel) or user is actively in funnel
+                if (stepNumber === 1 || isInActiveFunnel) {
+                  if (DEBUG) console.log(`🎯 Seentics: Page match for funnel ${funnelId}, step ${stepNumber}: ${step.name}`);
+                  updateFunnelProgress(funnelId, stepNumber, step);
+                  foundMatch = true;
+                  anyFunnelMatched = true;
+                } else {
+                  if (DEBUG) console.log(`🔍 Seentics: Ignoring step ${stepNumber} match - user not in active funnel`);
+                }
               }
             }
           });
           
-          // Only handle dropoff if user was actively in this funnel and moved to a non-funnel page
-          // AND if they've been in the funnel for more than just the initial page load
-          if (!foundMatch && funnelState.currentStep > 0 && funnelState.startedAt && 
-              (new Date() - new Date(funnelState.startedAt)) > 5000) { // 5 second minimum engagement
-            if (DEBUG) console.log(`🔍 Seentics: User dropped off from funnel ${funnelId} after meaningful engagement`);
-            queueDropoffEvent(funnelId, funnelState);
+          // Handle dropoff only if user was actively in this funnel
+          if (!foundMatch && isInActiveFunnel) {
+            if (funnelState.startedAt && (new Date() - new Date(funnelState.startedAt)) > 5000) {
+              // 5 second minimum engagement before considering it a dropoff
+              if (DEBUG) console.log(`🔍 Seentics: User dropped off from funnel ${funnelId} after meaningful engagement`);
+              queueDropoffEvent(funnelId, funnelState);
+            } else {
+              if (DEBUG) console.log(`🔍 Seentics: User left funnel ${funnelId} too quickly, not counting as dropoff`);
+            }
+            
+            // Reset funnel state when user visits non-funnel pages
+            funnelState.currentStep = 0;
+            funnelState.completedSteps = [];
+            funnelState.startedAt = null;
+            funnelState.converted = false;
+            activeFunnels.set(funnelId, funnelState);
+            saveFunnelState();
           }
         });
         
@@ -283,7 +303,8 @@
         const dropoffEvent = createFunnelEvent(funnelId, funnelState, {
           step_name: funnelState.steps[funnelState.currentStep - 1]?.name || 'Unknown',
           step_type: funnelState.steps[funnelState.currentStep - 1]?.type || 'page',
-          dropoff_reason: "navigated_to_unexpected_page"
+          dropoff_reason: "navigated_to_unexpected_page",
+          event_type: "dropoff"
         });
         
         funnelEventQueue.push(dropoffEvent);
@@ -328,25 +349,40 @@
       
       function updateFunnelProgress(funnelId, stepNumber, step, additionalData = {}) {
         const funnelState = activeFunnels.get(funnelId);
-        if (!funnelState || stepNumber <= funnelState.currentStep) return;
+        if (!funnelState) return;
         
-        // Update state
-        funnelState.currentStep = stepNumber;
-        funnelState.completedSteps.push(stepNumber - 1);
+        // Enforce sequential progression: only allow next step or restart from step 1
+        const expectedNextStep = funnelState.currentStep + 1;
         
-        if (stepNumber === 1 && !funnelState.startedAt) {
+        if (stepNumber === 1) {
+          // Allow restarting funnel from step 1
+          if (DEBUG) console.log(`🔍 Seentics: Starting/restarting funnel ${funnelId} from step 1`);
+          funnelState.currentStep = 1;
+          funnelState.completedSteps = [0]; // Step 1 completed (0-indexed)
           funnelState.startedAt = new Date().toISOString();
+          funnelState.converted = false;
+        } else if (stepNumber === expectedNextStep) {
+          // Allow only the next sequential step
+          if (DEBUG) console.log(`🔍 Seentics: Sequential progress in funnel ${funnelId}: step ${stepNumber}`);
+          funnelState.currentStep = stepNumber;
+          funnelState.completedSteps.push(stepNumber - 1);
+          
+          // Check if funnel is completed
+          if (stepNumber === funnelState.steps.length) {
+            funnelState.converted = true;
+            console.log(`🔍 Seentics: Funnel ${funnelId} completed sequentially!`);
+          }
+        } else {
+          // Invalid step progression - user skipped steps or went backwards
+          if (DEBUG) console.log(`🔍 Seentics: Invalid step progression for funnel ${funnelId}: current=${funnelState.currentStep}, attempted=${stepNumber}. Ignoring.`);
+          return;
         }
         
         funnelState.lastActivity = new Date();
-        
-        if (stepNumber === funnelState.steps.length) {
-          funnelState.converted = true;
-          console.log(`🔍 Seentics: Funnel ${funnelId} completed!`);
-        }
-        
         activeFunnels.set(funnelId, funnelState);
         saveFunnelState();
+        
+        // Only send API calls for actual funnel progression
         queueFunnelEvent(funnelId, funnelState, stepNumber, additionalData);
       }
       
@@ -374,7 +410,8 @@
           started_at: funnelState.startedAt,
           last_activity: funnelState.lastActivity,
           converted: funnelState.converted,
-          properties
+          event_type: properties.event_type, // Extract event_type to root level for workflow tracker
+          ...properties
         };
       }
       
@@ -462,6 +499,7 @@
           step_name: funnelState.steps[funnelState.currentStep - 1]?.name || `Step ${funnelState.currentStep}`,
           step_type: funnelState.steps[funnelState.currentStep - 1]?.type || 'page',
           conversion_value: conversionValue,
+          event_type: "conversion",
           ...additionalData
         });
         
