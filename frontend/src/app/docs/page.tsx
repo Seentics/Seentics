@@ -17,29 +17,53 @@ const docsSections = [
     title: 'Installation',
   },
   {
+    id: 'funnels',
+    title: 'Funnels',
+    subsections: [
+      { id: 'funnel-creation', title: 'Creating Funnels' },
+      { id: 'funnel-tracking', title: 'Funnel Tracking' },
+      { id: 'funnel-analytics', title: 'Analytics & Insights' },
+    ]
+  },
+  {
     id: 'workflow-concepts',
-    title: 'Workflow Concepts',
+    title: 'Workflows',
     subsections: [
         { id: 'triggers', title: 'Triggers' },
         { id: 'conditions', title: 'Conditions' },
         { id: 'actions', title: 'Actions' },
+        { id: 'funnel-triggers', title: 'Funnel Triggers' },
+    ]
+  },
+  {
+    id: 'analytics',
+    title: 'Analytics',
+    subsections: [
+      { id: 'visitor-tracking', title: 'Visitor Tracking' },
+      { id: 'custom-events', title: 'Custom Events' },
+      { id: 'real-time-data', title: 'Real-time Data' },
     ]
   },
   {
     id: 'customization',
-    title: 'Customization & API',
+    title: 'API & Customization',
     subsections: [
       { id: 'identifying-users', title: 'Identifying Users' },
-      { id: 'custom-events', title: 'Tracking Custom Events' },
+      { id: 'tracking-events', title: 'Tracking Events' },
         { id: 'custom-ui', title: 'Custom UI (Modals & Banners)' },
-        { id: 'localstorage', title: 'Using localStorage in Actions' },
-      { id: 'webhooks', title: 'Using Webhooks' },
-      { id: 'dynamic-data', title: 'Using Dynamic Data' },
+        { id: 'localstorage', title: 'Using localStorage' },
+      { id: 'webhooks', title: 'Webhooks' },
+      { id: 'api-reference', title: 'API Reference' },
     ],
   },
   {
-    id: 'subscriptions',
-    title: 'Subscription & Billing',
+    id: 'privacy',
+    title: 'Privacy & Compliance',
+    subsections: [
+      { id: 'gdpr', title: 'GDPR Compliance' },
+      { id: 'data-retention', title: 'Data Retention' },
+      { id: 'cookie-consent', title: 'Cookie Consent' },
+    ]
   },
 ];
 
@@ -89,10 +113,33 @@ export default function DocsPage() {
         <main className="relative py-6 lg:py-8">
           <div className="prose prose-lg dark:prose-invert max-w-none space-y-12">
             <section id="introduction">
-                <h1 className="font-headline scroll-m-20 text-4xl font-bold tracking-tight">Introduction</h1>
+                <h1 className="font-headline scroll-m-20 text-4xl font-bold tracking-tight">Seentics Documentation</h1>
                 <p className="leading-7">
-                    Welcome to Seentics! Our mission is to empower you to create intelligent, automated workflows that respond to user behavior on your website in real-time. This guide will walk you through everything from installation to building complex workflows and integrating with your own tools.
+                    Welcome to Seentics - a comprehensive analytics and workflow automation platform. Track visitor behavior, create conversion funnels, and automate responses with intelligent workflows. This guide covers everything from basic setup to advanced integrations.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold">Analytics</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Real-time visitor tracking, custom events, and performance insights</p>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Filter className="h-5 w-5 text-green-600" />
+                      <h3 className="font-semibold">Funnels</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Sequential conversion tracking with dropoff analysis</p>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Workflow className="h-5 w-5 text-purple-600" />
+                      <h3 className="font-semibold">Workflows</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Automated responses to user behavior and funnel events</p>
+                  </Card>
+                </div>
             </section>
 
              <section id="installation">
@@ -107,11 +154,21 @@ export default function DocsPage() {
                 </ol>
                 <Card>
                     <CardContent className="p-4">
-                        <pre className="bg-muted p-4 rounded-md text-sm">
-                            <code className="text-sm">
-                                {`<script async src="${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/tracker.js" data-site-id="YOUR_SITE_ID_HERE"></script>`}
-                            </code>
-                        </pre>
+                        <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`<!-- Add this before closing </head> tag -->
+<script>
+  (function() {
+    var script = document.createElement('script');
+    script.src = '${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/trackers/funnel-tracker.js';
+    script.async = true;
+    script.onload = function() {
+      window.seentics.init({
+        websiteId: 'YOUR_WEBSITE_ID',
+        apiUrl: '${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api'
+      });
+    };
+    document.head.appendChild(script);
+  })();
+</script>`}</code></pre>
                     </CardContent>
                 </Card>
                  <p className="mt-4">
@@ -119,17 +176,58 @@ export default function DocsPage() {
                 </p>
             </section>
 
+            <section id="funnels">
+                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Funnels</h2>
+                <p>Funnels help you track user journeys through specific conversion paths on your website. Monitor where users drop off and optimize your conversion rates.</p>
+                
+                <div id="funnel-creation" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Creating Funnels</h3>
+                    <p>Create multi-step funnels to track user progression through your conversion process:</p>
+                    <ol className="list-decimal pl-6">
+                        <li>Go to your website's Funnels page</li>
+                        <li>Click "Create Funnel" and give it a descriptive name</li>
+                        <li>Add steps by defining page URLs or custom events</li>
+                        <li>Set up step conditions (exact match, contains, starts with)</li>
+                        <li>Activate the funnel to start tracking</li>
+                    </ol>
+                </div>
+
+                <div id="funnel-tracking" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Funnel Tracking</h3>
+                    <p>Seentics automatically tracks funnel progression with sequential validation:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Sequential progression</strong>: Users must complete steps in order</li>
+                        <li><strong>Dropoff detection</strong>: Tracks when users leave the funnel</li>
+                        <li><strong>Conversion tracking</strong>: Measures completion rates for each step</li>
+                        <li><strong>Real-time monitoring</strong>: See funnel performance as it happens</li>
+                    </ul>
+                </div>
+
+                <div id="funnel-analytics" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Analytics & Insights</h3>
+                    <p>Get detailed insights into funnel performance:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Step-by-step breakdown</strong>: See completion rates for each step</li>
+                        <li><strong>Daily performance</strong>: Track conversion trends over time</li>
+                        <li><strong>Dropoff analysis</strong>: Identify where users are getting stuck</li>
+                        <li><strong>Conversion optimization</strong>: Use data to improve your funnels</li>
+                    </ul>
+                </div>
+            </section>
+
              <section id="workflow-concepts">
-                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Workflow Concepts</h2>
-                <p>Workflows are the heart of Seentics. They are composed of three fundamental building blocks: Triggers, Conditions, and Actions. Understanding how these interact is key to mastering the platform.</p>
+                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Workflows</h2>
+                <p>Workflows automate responses to user behavior. They consist of Triggers, Conditions, and Actions that work together to create intelligent automations.</p>
                 
                 <div id="triggers" className="scroll-m-20">
                     <h3 className="font-headline text-2xl font-semibold tracking-tight">Triggers: The "When"</h3>
-                    <p>Triggers are the events that initiate a workflow. They are the "when" something should happen. A workflow can have multiple triggers; it will start if any one of them occurs.</p>
+                    <p>Triggers are the events that initiate a workflow. They are the "when" something should happen.</p>
                     <ul className="list-disc pl-6">
-                        <li><strong>Page View</strong>: Fires as soon as a user lands on a page.</li>
-                        <li><strong>Time Spent</strong>: Fires after a user has been on a page for a specified number of seconds.</li>
-                        <li><strong>Exit Intent</strong>: Fires when a user's mouse moves towards the top of the browser window, indicating they are about to leave.</li>
+                        <li><strong>Page View</strong>: Fires when a user lands on a page</li>
+                        <li><strong>Element Click</strong>: Fires when a user clicks a specific element</li>
+                        <li><strong>Time Spent</strong>: Fires after a user has been on a page for specified seconds</li>
+                        <li><strong>Exit Intent</strong>: Fires when mouse moves toward browser top (leaving)</li>
+                        <li><strong>Funnel</strong>: Fires on funnel events (dropoff or conversion)</li>
                     </ul>
                 </div>
 
@@ -146,67 +244,99 @@ export default function DocsPage() {
 
                  <div id="actions" className="scroll-m-20">
                     <h3 className="font-headline text-2xl font-semibold tracking-tight">Actions: The "What"</h3>
-                    <p>Actions are the final step. They define what the workflow actually does when the trigger fires and all conditions are met.</p>
+                    <p>Actions define what happens when triggers fire and conditions are met.</p>
                      <ul className="list-disc pl-6">
-                        <li><strong>Show Modal</strong>: Displays a popup modal with a title and content.</li>
-                        <li><strong>Show Banner</strong>: Displays a dismissible banner at the top of the page.</li>
-                        <li><strong>Add/Remove Tag (Server-Side)</strong>: Securely adds or removes a tag from a visitor's profile in your database.</li>
-                        <li><strong>Send Email (Server-Side)</strong>: Sends an email from your server. This is secure and reliable. It can be sent to the visitor or to a custom address for notifications.</li>
-                        <li><strong>Webhook (Server-Side)</strong>: Sends data to an external URL, allowing you to integrate with other services.</li>
+                        <li><strong>Show Modal</strong>: Display popup modal with custom content</li>
+                        <li><strong>Show Banner</strong>: Display banner at top or bottom of page</li>
+                        <li><strong>Track Event</strong>: Send custom event to analytics</li>
+                        <li><strong>Webhook</strong>: Send data to external URL for integrations</li>
+                        <li><strong>Redirect URL</strong>: Navigate user to different page</li>
+                    </ul>
+                </div>
+
+                <div id="funnel-triggers" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Funnel Triggers</h3>
+                    <p>Funnel triggers allow workflows to respond to specific funnel events:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Dropoff</strong>: Triggers when a user leaves a funnel without completing it</li>
+                        <li><strong>Conversion</strong>: Triggers when a user successfully completes a funnel</li>
+                    </ul>
+                    <p>Use funnel triggers to create targeted responses like exit-intent offers for dropoffs or thank-you messages for conversions.</p>
+                </div>
+            </section>
+
+            <section id="analytics">
+                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Analytics</h2>
+                
+                <div id="visitor-tracking" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Visitor Tracking</h3>
+                    <p>Seentics automatically tracks visitor behavior once the tracking script is installed:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Page views</strong>: Every page visit with URL and timestamp</li>
+                        <li><strong>Session tracking</strong>: Groups page views into user sessions</li>
+                        <li><strong>Device detection</strong>: Mobile, tablet, or desktop classification</li>
+                        <li><strong>Traffic sources</strong>: Referrer and UTM parameter tracking</li>
+                        <li><strong>Geographic data</strong>: Country and region information</li>
+                    </ul>
+                </div>
+
+                <div id="custom-events" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Custom Events</h3>
+                    <p>Track specific user actions beyond page views:</p>
+                    <Card>
+                        <CardContent className="p-4">
+                            <pre><code className="text-sm">window.seentics.track('button_click');</code></pre>
+                        </CardContent>
+                    </Card>
+                    <p>Common event examples:</p>
+                    <ul className="list-disc pl-6">
+                        <li><code>form_submit</code> - Form submissions</li>
+                        <li><code>video_play</code> - Video interactions</li>
+                        <li><code>download_start</code> - File downloads</li>
+                        <li><code>signup_complete</code> - User registrations</li>
+                    </ul>
+                </div>
+
+                <div id="real-time-data" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Real-time Data</h3>
+                    <p>View analytics data as it happens:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Live visitor count</strong>: See current active users</li>
+                        <li><strong>Real-time events</strong>: Track events as they occur</li>
+                        <li><strong>Funnel progression</strong>: Monitor conversions in real-time</li>
+                        <li><strong>Workflow triggers</strong>: See automations as they execute</li>
                     </ul>
                 </div>
             </section>
 
             <section id="customization">
-                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Customization & API</h2>
-                 <div id="identifying-users" className="scroll-m-20">
+                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">API & Customization</h2>
+                
+                <div id="identifying-users" className="scroll-m-20">
                     <h3 className="font-headline text-2xl font-semibold tracking-tight">Identifying Users</h3>
-                    <p>
-                        To truly personalize workflows, you need to tell Seentics who your users are. By default, visitors are anonymous. The most reliable method is to call a JavaScript function from your website's code, typically after a user logs in or signs up.
-                    </p>
-                     <p>This function call holds the user's data in memory for the current page view only and <strong>does not store it in `localStorage`</strong>, ensuring better security.</p>
-                     <Card>
+                    <p>Associate visitor data with known users for personalized experiences:</p>
+                    <Card>
                         <CardContent className="p-4">
-                            <pre><code className="text-sm">window.seentics.identify('YOUR_USER_ID', {'{ email: "user@example.com", name: "Jane Doe" }'});</code></pre>
+                            <pre><code className="text-sm">window.seentics.identify('user_123', {'{'}
+  email: 'user@example.com',
+  name: 'John Doe',
+  plan: 'premium'
+{'}'});</code></pre>
                         </CardContent>
                     </Card>
-                    <p className="mt-4">
-                       The first argument is the user's unique ID from your database. The second is an object of attributes. This identified information will be automatically used by server-side actions like "Send Email" (to set the recipient) and included in "Webhook" payloads.
-                    </p>
+                    <p>This data is used in workflows and webhook payloads for personalization.</p>
                 </div>
-                 <div id="custom-events" className="scroll-m-20 mt-8">
-                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Tracking Custom Events</h3>
-                    <p>
-                       You can track any action that isn't a standard page view or click. This is perfect for things like form submissions, video plays, or other unique interactions. To do this, you track a custom event from your site's code.
-                    </p>
-                     <Card>
-                        <CardContent className="p-4">
-                            <pre><code className="text-sm">window.seentics.track('your_custom_event_name');</code></pre>
-                        </CardContent>
-                    </Card>
-                    <h4>Example: Tracking a custom "video-played" event</h4>
-                    <pre><code className="text-sm">{`
-// Get your video element
-const videoPlayer = document.getElementById('product-demo-video');
 
-// Add an event listener
-videoPlayer.addEventListener('play', function() {
-  // Send the event to Seentics when the video starts playing
-  window.seentics.track('video-played');
-});
-                    `}</code></pre>
-                     <h4 className="mt-4">Tracking Pre-configured Conversion Events</h4>
-                     <p>
-                        To make things even easier, you can use our pre-configured event names to automatically track primary conversion goals. Using the <code>conversion:</code> prefix will count the event towards your main dashboard metrics.
-                    </p>
-                     <Card>
+                <div id="tracking-events" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Tracking Events</h3>
+                    <p>Send custom events with additional data:</p>
+                    <Card>
                         <CardContent className="p-4">
-                            <ul className="list-disc pl-5 my-0">
-                                <li><strong>User Signed Up:</strong> <code>seentics.track('conversion:signup');</code></li>
-                                <li><strong>Made Purchase:</strong> <code>seentics.track('conversion:purchase');</code></li>
-                                <li><strong>Newsletter Signup:</strong> <code>seentics.track('conversion:newsletter-signup');</code></li>
-                                <li><strong>Contact Form Submitted:</strong> <code>seentics.track('conversion:contact-submit');</code></li>
-                            </ul>
+                            <pre><code className="text-sm">window.seentics.track('purchase', {'{'}
+  value: 99.99,
+  currency: 'USD',
+  product_id: 'prod_123'
+{'}'});</code></pre>
                         </CardContent>
                     </Card>
                 </div>
@@ -233,7 +363,7 @@ videoPlayer.addEventListener('play', function() {
                       <CardContent className="p-4 space-y-3">
                         <div>
                           <div className="text-sm font-semibold">Custom HTML</div>
-                          <pre className="bg-muted p-3 rounded-md text-sm overflow-auto"><code>{`<div class="banner">
+                          <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`<div class="banner">
   <div class="banner-content">
     <h1>Create Something <span class="highlight">Amazing</span></h1>
     <p class="subtitle">Transform your ideas into reality</p>
@@ -243,14 +373,46 @@ videoPlayer.addEventListener('play', function() {
                         </div>
                         <div>
                           <div className="text-sm font-semibold">Custom CSS</div>
-                          <pre className="bg-muted p-3 rounded-md text-sm overflow-auto"><code>{`html, body { margin: 0; padding: 0; }
-.banner { width: 100vw; min-height: 40vh; display: grid; place-items: center; background: linear-gradient(135deg,#667eea,#764ba2); }
-.banner-content { max-width: none; padding: 0 1rem; text-align: center; color: #fff; }
-.highlight { color: #ffd93d; }`}</code></pre>
+                          <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`html, body { margin: 0; padding: 0; }
+.banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 20px;
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+}
+.banner-content h1 {
+  font-size: 2.5rem;
+  margin: 0 0 10px 0;
+  font-weight: bold;
+}
+.highlight {
+  color: #ffd700;
+}
+.subtitle {
+  font-size: 1.2rem;
+  margin: 0 0 30px 0;
+  opacity: 0.9;
+}
+#primaryBtn {
+  background: #ffd700;
+  color: #333;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+#primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+}`}</code></pre>
                         </div>
                         <div>
                           <div className="text-sm font-semibold">Custom JS</div>
-                          <pre className="bg-muted p-3 rounded-md text-sm overflow-auto"><code>{`document.getElementById('primaryBtn')?.addEventListener('click', () => {
+                          <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`document.getElementById('primaryBtn')?.addEventListener('click', () => {
   window.parent?.postMessage({ type: 'banner_cta_click' }, '*');
 });`}</code></pre>
                         </div>
@@ -272,12 +434,12 @@ videoPlayer.addEventListener('play', function() {
                      <CardContent className="p-4 space-y-3">
                        <div>
                          <div className="text-sm font-semibold">Save values in your app</div>
-                         <pre className="bg-muted p-3 rounded-md text-sm overflow-auto"><code>{`localStorage.setItem('cartId', 'CART_12345');
+                         <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`localStorage.setItem('cartId', 'CART_12345');
 localStorage.setItem('userPlan', 'pro');`}</code></pre>
                        </div>
                        <div>
                          <div className="text-sm font-semibold">Reference in Actions</div>
-                         <pre className="bg-muted p-3 rounded-md text-sm overflow-auto"><code>{`Subject:  "Order {{cartId}} is pending"
+                         <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`Subject:  "Order {{cartId}} is pending"
 Webhook JSON: { "plan": "{{userPlan}}" }`}</code></pre>
                        </div>
                        <p className="text-sm text-muted-foreground">You can also use identified user fields: <code>{`{{identifiedUser.id}}`}</code>, <code>{`{{identifiedUser.attributes.email}}`}</code> when calling <code>seentics.identify()</code>.</p>
@@ -286,32 +448,85 @@ Webhook JSON: { "plan": "{{userPlan}}" }`}</code></pre>
                    <p className="text-sm text-muted-foreground mt-2">Implementation verified: client collects keys in <code>workflow-tracker.js</code>, server receives them in the execution payload, and actions resolve placeholders using <code>localStorageData</code> and <code>identifiedUser</code>.</p>
                  </section>
 
-                 <div id="webhooks" className="scroll-m-20 mt-8">
-                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Using Webhooks</h3>
-                    <p>
-                        The "Webhook" action is the primary tool for sending data from your workflows to other services (like Zapier, Make, or your own backend). When a workflow executes a Webhook action, Seentics will send a `POST` request to the URL you specify with a JSON payload containing all available data about the user and event.
-                    </p>
-                    <p>
-                        To send tag or other event information to your backend, you should chain a "Webhook" action after the "Add/Remove Tag" action in your workflow.
-                    </p>
+                <div id="webhooks" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Webhooks</h3>
+                    <p>Send workflow data to external services using webhook actions:</p>
+                    <Card>
+                        <CardContent className="p-4">
+                            <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-sm overflow-auto"><code className="text-slate-800 dark:text-slate-200">{`{
+  "event": "webhook_triggered",
+  "workflow_id": "workflow_123",
+  "trigger_type": "funnel",
+  "visitor": {
+    "id": "visitor_456",
+    "session_id": "session_789",
+    "user_agent": "Mozilla/5.0...",
+    "ip_address": "192.168.1.1",
+    "referrer": "https://google.com",
+    "identified_user": {
+      "id": "user_123",
+      "email": "user@example.com",
+      "plan": "premium"
+    }
+  },
+  "trigger_data": {
+    "funnel_id": "funnel_abc",
+    "event_type": "conversion",
+    "step_name": "Purchase Complete"
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}`}</code></pre>
+                        </CardContent>
+                    </Card>
                 </div>
-                <div id="dynamic-data" className="scroll-m-20 mt-8">
-                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Using Dynamic Data</h3>
-                    <p>
-                        Server-side actions like "Send Email" and "Webhook" can be personalized with data from the user's browser `localStorage`. This is useful for including dynamic information like a cart ID, a username, or other details your application stores locally.
-                    </p>
-                    <p>In the settings for a server action, you can map a `localStorage` key to a `payloadKey`. You can then use this `payloadKey` in your action's text fields (like an email subject) using placeholders, like <code>{"{{payloadKey}}"}</code>. This will be replaced with the actual value from the user's `localStorage` at the time of execution.</p>
+
+                <div id="api-reference" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">API Reference</h3>
+                    <p>Available JavaScript methods on your website:</p>
+                    <ul className="list-disc pl-6">
+                        <li><code>window.seentics.track(eventName, data)</code> - Track custom events</li>
+                        <li><code>window.seentics.identify(userId, attributes)</code> - Identify users</li>
+                        <li><code>window.seentics.funnelTracker.trackFunnelStep(funnelId, stepNumber)</code> - Manual funnel tracking</li>
+                        <li><code>window.seentics.funnelTracker.trackFunnelConversion(funnelId, value)</code> - Track conversions</li>
+                    </ul>
                 </div>
             </section>
-            
-            <section id="subscriptions">
-                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Subscription & Billing</h2>
-                <p>
-                    Seentics's billing is handled via Lemon Squeezy. The application is fully set up to handle subscription states based on data in your Firestore database. To make this fully functional, you need to set up a webhook in your Lemon Squeezy account to send subscription events to your application.
-                </p>
-                <p>
-                    A complete, step-by-step guide on how to create the webhook handler and what data structure to use is available in the <code>LEMON_SQUEEZY.md</code> file in the project root. This guide contains the exact code needed for the webhook API route.
-                </p>
+
+            <section id="privacy">
+                <h2 className="font-headline scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight">Privacy & Compliance</h2>
+                
+                <div id="gdpr" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">GDPR Compliance</h3>
+                    <p>Seentics includes built-in GDPR compliance features:</p>
+                    <ul className="list-disc pl-6">
+                        <li><strong>Data export</strong>: Users can request their data in JSON format</li>
+                        <li><strong>Data deletion</strong>: Complete removal of user data on request</li>
+                        <li><strong>Consent management</strong>: Cookie consent integration</li>
+                        <li><strong>Privacy controls</strong>: Granular data collection settings</li>
+                    </ul>
+                </div>
+
+                <div id="data-retention" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Data Retention</h3>
+                    <p>Configure how long visitor data is stored:</p>
+                    <ul className="list-disc pl-6">
+                        <li>Default retention: 2 years for analytics data</li>
+                        <li>Custom retention periods available</li>
+                        <li>Automatic data cleanup and archiving</li>
+                        <li>Export before deletion options</li>
+                    </ul>
+                </div>
+
+                <div id="cookie-consent" className="scroll-m-20">
+                    <h3 className="font-headline text-2xl font-semibold tracking-tight">Cookie Consent</h3>
+                    <p>Seentics respects user privacy preferences:</p>
+                    <ul className="list-disc pl-6">
+                        <li>No tracking without consent</li>
+                        <li>Minimal essential cookies only</li>
+                        <li>Easy consent withdrawal</li>
+                        <li>Transparent data usage</li>
+                    </ul>
+                </div>
             </section>
 
           </div>
