@@ -97,13 +97,33 @@ Seentics follows a **microservices architecture** with clear separation of conce
 
 ## 🚀 **Quick Start**
 
-### **Prerequisites**
+### **⚡ One-Command Setup (Recommended)**
+```bash
+# Clone and start everything in one go
+git clone https://github.com/seentics/seentics.git && cd seentics && cp .env.example .env && docker compose up -d
+```
+
+Then access the application at:
+- **Frontend**: [http://localhost:3000](http://localhost:3000) *(start separately - see below)*
+- **API Gateway**: [http://localhost:8080](http://localhost:8080)
+
+### **Frontend Setup** (Additional step)
+```bash
+# In a new terminal
+cd frontend && npm install && npm run dev
+```
+
+---
+
+### **Manual Setup (Alternative)**
+
+#### **Prerequisites**
 - **Node.js** 18+ 
 - **Go** 1.21+
 - **Docker** & Docker Compose
 - **Git**
 
-### **1. Clone the Repository**
+#### **1. Clone the Repository**
 ```bash
 git clone https://github.com/seentics/seentics.git
 cd seentics
