@@ -13,7 +13,8 @@ import {
   Zap,
   MousePointer,
   Globe,
-  Database
+  Database,
+  Bell
 } from 'lucide-react';
 
 interface NodeType {
@@ -58,6 +59,13 @@ const nodeTypes: NodeType[] = [
     label: 'Delay',
     icon: Clock,
     description: 'Wait for a specified time',
+    category: 'action'
+  },
+  {
+    type: 'show_notification',
+    label: 'Show Notification',
+    icon: Bell,
+    description: 'Display a toast notification to the user',
     category: 'action'
   },
   {
