@@ -1,6 +1,6 @@
 # Seentics - Intelligent Website Automation Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL](https://img.shields.io/badge/License-AGPL-yellow.svg)](https://opensource.org/licenses/AGPL-3.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![Contributors](https://img.shields.io/badge/Contributors-0-brightgreen.svg)](https://github.com/seentics/seentics/graphs/contributors)
 

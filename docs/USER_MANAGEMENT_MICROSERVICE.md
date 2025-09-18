@@ -9,8 +9,7 @@ The User Management service is a Node.js-based microservice that provides:
 - **User Authentication**: Registration, login, OAuth integration
 - **Profile Management**: User profiles, preferences, settings
 - **Website Management**: Multi-website support per user
-- **Subscription Billing**: Lemon Squeezy integration
-- **Session Management**: JWT-based authentication
+
 
 ## 🔧 Technical Stack
 
@@ -19,7 +18,6 @@ The User Management service is a Node.js-based microservice that provides:
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT with refresh tokens
 - **OAuth**: Google and GitHub integration
-- **Billing**: Lemon Squeezy webhooks
 - **Validation**: Joi schema validation
 - **Encryption**: Bcrypt for passwords
 
