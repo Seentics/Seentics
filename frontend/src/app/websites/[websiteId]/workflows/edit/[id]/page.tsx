@@ -64,9 +64,9 @@ import {
   Code,
   Lightbulb,
   Info,
-  Bot,
   ArrowLeft,
 } from "lucide-react";
+import { Logo } from '@/components/ui/logo';
 import { NodePalette } from "@/components/flow/node-palette";
 import { addWorkflow, getWorkflow, updateWorkflow } from "@/lib/workflow-api";
 import { getWorkflowTemplateById } from "@/lib/workflow-templates";
@@ -818,7 +818,7 @@ function WorkflowBuilder() {
       <header className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-3">
           <Link href="/" className="shrink-0 rounded-md bg-primary/10 p-1.5">
-            <span className="font-bold text-primary"><Bot className="h-4 w-4" /></span>
+            <Logo size="md" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold leading-tight">

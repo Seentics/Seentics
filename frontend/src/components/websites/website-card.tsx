@@ -125,7 +125,11 @@ export function WebsiteCard({ website, stats, onDelete, onShowTrackingCode }: We
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
-                  onClick={() => onDelete(website.id, website.name)} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete(website.id, website.name);
+                  }} 
                   className="bg-destructive hover:bg-destructive/90"
                 >
                   Delete

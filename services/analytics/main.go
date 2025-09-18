@@ -259,6 +259,7 @@ func setupRouter(
 		{
 			privacy.GET("/export/:user_id", privacyHandler.ExportUserAnalytics)
 			privacy.DELETE("/delete/:user_id", privacyHandler.DeleteUserAnalytics)
+			privacy.DELETE("/delete/website/:website_id", privacyHandler.DeleteWebsiteAnalytics)
 			privacy.PUT("/anonymize/:user_id", privacyHandler.AnonymizeUserAnalytics)
 			privacy.GET("/retention-policies", privacyHandler.GetDataRetentionPolicies)
 			privacy.POST("/cleanup", privacyHandler.RunDataRetentionCleanup)

@@ -16,7 +16,6 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import {
-  Bot,
   Workflow,
   LayoutDashboard,
   Settings,
@@ -28,6 +27,7 @@ import {
   Filter,
   Target,
 } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/useAuthStore';
 import { useRouter } from 'next/navigation';
@@ -187,11 +187,8 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         <Sidebar collapsible="icon" variant="sidebar">
           <SidebarRail />
           <SidebarHeader>
-            <Link href="/websites" className="flex items-center gap-2">
-              <Bot className="size-8 text-primary" />
-              <h1 className="font-headline text-2xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                Seentics
-              </h1>
+            <Link href="/websites" className="flex items-center">
+              <Logo size="lg" showText={true} textClassName="font-headline text-2xl font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
             </Link>
           </SidebarHeader>
           <SidebarContent className="flex-grow">

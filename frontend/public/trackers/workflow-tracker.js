@@ -458,6 +458,9 @@
             window.seentics.track(settings.eventName);
           }
           break;
+        case ACTIONS.WEBHOOK:
+          this._executeWebhook(settings);
+          break;
       }
     },
 

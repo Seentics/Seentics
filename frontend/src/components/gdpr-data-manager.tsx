@@ -29,7 +29,7 @@ import { privacyAPI } from '@/lib/privacy-api';
 interface DataRequest {
   id: string;
   type: 'export' | 'deletion' | 'correction';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   createdAt: Date;
   completedAt?: Date;
   description?: string;
@@ -88,77 +88,46 @@ export default function GDPRDataManager({ userId, userEmail }: GDPRDataManagerPr
   };
 
   const handleDataExport = async () => {
-    // Check for existing pending export request
-    if (hasPendingRequest('export')) {
-      toast({
-        title: "Request Already Exists",
-        description: "You already have an export request in progress. Please wait for it to complete.",
-        variant: "destructive"
-      });
-      return;
-    }
     setIsProcessing(true);
     try {
-      // Create privacy request for data export
-      const response = await privacyAPI.createPrivacyRequest({
-        type: 'export',
-        requestedData: {
-          profile: true,
-          analytics: true,
-          workflows: true,
-          subscriptions: true
-        }
-      });
+      // Direct export - get data immediately
+      const response = await privacyAPI.exportUserData();
+      
+      if (response.success) {
+        // Create downloadable file
+        const dataStr = JSON.stringify(response.data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `seentics-data-export-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
-      // Add to requests history
-      const newRequest: DataRequest = {
-        id: response.data.request.id,
-        type: 'export',
-        status: response.data.request.status,
-        createdAt: new Date(response.data.request.createdAt),
-        completedAt: response.data.request.completedAt ? new Date(response.data.request.completedAt) : undefined
-      };
-      setDataRequests(prev => [newRequest, ...prev]);
-
-      toast({
-        title: "Export Request Submitted",
-        description: "Your data export request has been submitted. You'll receive a download link when it's ready.",
-      });
+        toast({
+          title: "Data Exported",
+          description: "Your data has been exported and downloaded successfully.",
+        });
+      }
 
       setShowExportDialog(false);
     } catch (error: any) {
-      console.error('Export request error:', error);
-      
-      // Handle specific error cases
-      if (error.message?.includes('already have') || error.message?.includes('in progress')) {
-        toast({
-          title: "Request Already Exists",
-          description: "You already have an export request in progress. Please wait for it to complete.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Export Failed",
-          description: error.message || "There was an error submitting your export request. Please try again.",
-          variant: "destructive"
-        });
-      }
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: error.message || "There was an error exporting your data. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleDataDeletion = async () => {
-    // Check for existing pending deletion request
-    if (hasPendingRequest('deletion')) {
-      toast({
-        title: "Request Already Exists",
-        description: "You already have a deletion request in progress. Please wait for it to complete.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!deletionReason.trim()) {
       toast({
         title: "Reason Required",
@@ -168,10 +137,10 @@ export default function GDPRDataManager({ userId, userEmail }: GDPRDataManagerPr
       return;
     }
 
-    if (deletionReason.trim().length < 10) {
+    if (deletionReason.trim().length < 1) {
       toast({
-        title: "Reason Too Short",
-        description: "Please provide a more detailed reason (at least 10 characters).",
+        title: "Reason Required",
+        description: "Please provide a reason for data deletion.",
         variant: "destructive"
       });
       return;
@@ -179,46 +148,28 @@ export default function GDPRDataManager({ userId, userEmail }: GDPRDataManagerPr
 
     setIsProcessing(true);
     try {
-      // Create privacy request for data deletion
-      const response = await privacyAPI.createPrivacyRequest({
-        type: 'deletion',
-        reason: deletionReason
-      });
+      // Direct deletion using the delete endpoint
+      const response = await privacyAPI.processDataDeletion(deletionReason);
       
-      // Add to requests history
-      const newRequest: DataRequest = {
-        id: response.data.request.id,
-        type: 'deletion',
-        status: response.data.request.status,
-        createdAt: new Date(response.data.request.createdAt),
-        description: deletionReason
-      };
-      setDataRequests(prev => [newRequest, ...prev]);
+      if (response.success) {
+        toast({
+          title: "Account Deleted",
+          description: "Your account and all associated data have been permanently deleted.",
+        });
 
-      toast({
-        title: "Deletion Request Submitted",
-        description: "Your data deletion request has been submitted. We'll process it within 30 days as required by GDPR.",
-      });
+        // Redirect to home page or logout
+        window.location.href = '/';
+      }
 
       setShowDeletionDialog(false);
       setDeletionReason('');
     } catch (error: any) {
-      console.error('Deletion request error:', error);
-      
-      // Handle specific error cases
-      if (error.message?.includes('already have') || error.message?.includes('in progress')) {
-        toast({
-          title: "Request Already Exists",
-          description: "You already have a deletion request in progress. Please wait for it to complete.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Request Failed",
-          description: error.message || "There was an error submitting your deletion request. Please try again.",
-          variant: "destructive"
-        });
-      }
+      console.error('Deletion error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "There was an error deleting your data. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -422,7 +373,7 @@ export default function GDPRDataManager({ userId, userEmail }: GDPRDataManagerPr
                         rows={3}
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Minimum 10 characters required ({deletionReason.length}/10)
+                        Reason required ({deletionReason.length} characters)
                       </p>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
@@ -440,10 +391,10 @@ export default function GDPRDataManager({ userId, userEmail }: GDPRDataManagerPr
                       </Button>
                       <Button 
                         onClick={handleDataDeletion} 
-                        disabled={isProcessing || !deletionReason.trim() || deletionReason.trim().length < 10}
+                        disabled={isProcessing || !deletionReason.trim()}
                         variant="destructive"
                       >
-                        {isProcessing ? 'Processing...' : 'Submit Request'}
+                        {isProcessing ? 'Processing...' : 'Delete All Data'}
                       </Button>
                     </div>
                   </div>

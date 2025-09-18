@@ -37,42 +37,10 @@ export function useAuthGuard() {
 
   // Refresh token function
   const refreshToken = useCallback(async () => {
-    if (!refresh_token) {
-      logout();
-      router.push('/signin');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await api.post('/user/auth/refresh', {
-        refresh_token,
-      });
-
-      const { accessToken, refreshToken } = response.data;
-      
-      setTokens({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      toast({
-        title: "Session Refreshed",
-        description: "Your session has been refreshed successfully.",
-      });
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      logout();
-      router.push('/signin');
-      toast({
-        title: "Session Expired",
-        description: "Please sign in again to continue.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [refresh_token, setTokens, logout, router, toast, setLoading]);
+    // Token refresh functionality removed - no longer needed
+    logout();
+    router.push('/signin');
+  }, [logout, router]);
 
   // Auto-refresh token before it expires
   useEffect(() => {

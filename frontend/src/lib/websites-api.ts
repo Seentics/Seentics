@@ -55,20 +55,39 @@ export async function addWebsite(website: { name: string; url: string }, userId:
   console.log('Inside add website')
   try {
     const response: any = await api.post('/user/websites', { ...website, userId });
-    const websiteData = response?.data?.website || response?.data || response;
+    console.log('Full API response:', response);
+    console.log('Response data:', response?.data);
+    
+    // Try different possible response structures
+    const websiteData = response?.data?.data?.website || response?.data?.website || response?.data?.data || response?.data || response;
+    console.log('Parsed website data:', websiteData);
+    
+    if (!websiteData || (!websiteData._id && !websiteData.id)) {
+      throw new Error('Invalid website data received from server');
+    }
+    
     return {
-      id: websiteData._id,
-      siteId: websiteData._id,
+      id: websiteData._id || websiteData.id,
+      siteId: websiteData._id || websiteData.id || websiteData.siteId,
       name: websiteData.name,
       url: websiteData.url,
       userId: websiteData.userId,
       createdAt: websiteData.createdAt,
       updatedAt: websiteData.updatedAt,
-      isVerified: websiteData.isVerified,
-      isActive: websiteData.isActive,
-      verificationToken: websiteData.verificationToken,
-      settings: websiteData.settings,
-      stats: websiteData.stats
+      isVerified: websiteData.isVerified || false,
+      isActive: websiteData.isActive || true,
+      verificationToken: websiteData.verificationToken || '',
+      settings: websiteData.settings || {
+        allowedOrigins: [],
+        trackingEnabled: true,
+        dataRetentionDays: 365
+      },
+      stats: websiteData.stats || {
+        totalPageviews: 0,
+        uniqueVisitors: 0,
+        averageSessionDuration: 0,
+        bounceRate: 0
+      }
     };
   } catch (error) {
     console.error('Error adding website: ', error);

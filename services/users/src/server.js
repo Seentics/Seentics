@@ -64,6 +64,9 @@ app.use('/api/v1/user/websites', websiteRoutes);
 app.use('/api/v1/user/privacy', privacyRoutes);
 app.use('/api/v1/user/validation', validationRoutes);
 
+// Internal API routes for microservice communication
+app.use('/api/internal', userRoutes);
+
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);

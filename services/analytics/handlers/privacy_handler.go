@@ -52,31 +52,51 @@ func (h *PrivacyHandler) ExportUserAnalytics(c *gin.Context) {
 	})
 }
 
-// DeleteUserAnalytics deletes all analytics data for a specific user
+// DeleteUserAnalytics handles the deletion of all analytics data for a specific user
 func (h *PrivacyHandler) DeleteUserAnalytics(c *gin.Context) {
 	userID := c.Param("user_id")
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "User ID is required",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 		return
 	}
 
-	err := h.privacyService.DeleteUserAnalytics(userID)
+	h.logger.Info().Str("user_id", userID).Msg("Starting user analytics data deletion")
+
+	err := h.privacyService.DeleteUserData(userID)
 	if err != nil {
-		h.logger.Error().Err(err).Str("user_id", userID).Msg("Failed to delete analytics data")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Failed to delete analytics data",
-			"error":   err.Error(),
-		})
+		h.logger.Error().Err(err).Str("user_id", userID).Msg("Failed to delete user analytics data")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user data"})
 		return
 	}
 
+	h.logger.Info().Str("user_id", userID).Msg("User analytics data deleted successfully")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "Analytics data deleted successfully",
+		"message": "User analytics data deleted successfully",
+	})
+}
+
+// DeleteWebsiteAnalytics handles the deletion of all analytics data for a specific website
+func (h *PrivacyHandler) DeleteWebsiteAnalytics(c *gin.Context) {
+	websiteID := c.Param("website_id")
+	if websiteID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Website ID is required"})
+		return
+	}
+
+	h.logger.Info().Str("website_id", websiteID).Msg("Starting website analytics data deletion")
+
+	err := h.privacyService.DeleteWebsiteData(websiteID)
+	if err != nil {
+		h.logger.Error().Err(err).Str("website_id", websiteID).Msg("Failed to delete website analytics data")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete website data"})
+		return
+	}
+
+	h.logger.Info().Str("website_id", websiteID).Msg("Website analytics data deleted successfully")
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Website analytics data deleted successfully",
 	})
 }
 

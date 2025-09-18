@@ -112,17 +112,26 @@ export default function WebsitesPage() {
 
     try {
       const newWebsite = await addWebsite(website, user!.id);
+      console.log('New website created:', newWebsite);
+      
       await fetchWebsites(); // Refresh websites list
       
       // Show tracking modal for the newly created website
       if (newWebsite && newWebsite.id) {
+        console.log('Setting up tracking modal for website:', newWebsite.id);
         setNewlyCreatedSiteId(newWebsite.id);
         setSelectedSiteIdForModal(newWebsite.id);
-        setTrackingModalOpen(true);
+        
+        // Use setTimeout to ensure state updates are processed
+        setTimeout(() => {
+          setTrackingModalOpen(true);
+          console.log('Tracking modal should now be open');
+        }, 100);
       }
       
       return newWebsite;
     } catch (error: any) {
+      console.error('Error creating website:', error);
       showToast({ 
         title: 'Error', 
         description: error.message || 'Failed to create the website.', 

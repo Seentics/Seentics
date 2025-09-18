@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { initiateGitHubOAuth, initiateGoogleOAuth } from '@/lib/oauth';
-import { AlertCircle, ArrowLeft, Bot, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import api from '@/lib/api';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -56,28 +58,22 @@ export default function SignInPage() {
       setError(null);
       setIsLoading(true);
 
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          password: formData.password,
-        }),
+      const response = await api.post('/user/auth/login', {
+        email: formData.email.trim(),
+        password: formData.password,
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Sign in failed');
-      }
-
-      if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-      }
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
+      // Store tokens in localStorage for auth state management
+      if (data.data?.tokens) {
+        localStorage.setItem('auth-storage', JSON.stringify({
+          state: {
+            access_token: data.data.tokens.accessToken,
+            refresh_token: data.data.tokens.refreshToken,
+            user: data.data.user
+          }
+        }));
       }
 
       toast({
@@ -86,7 +82,7 @@ export default function SignInPage() {
         variant: "default",
       });
 
-      router.push('/dashboard');
+      router.push('/websites');
 
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -154,9 +150,7 @@ export default function SignInPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-slate-900 dark:bg-white rounded-2xl">
-              <Bot className="h-8 w-8 text-white dark:text-slate-900" />
-            </div>
+            <Logo size="xl" className="w-14 h-14 rounded-2xl" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h1>
           <p className="text-slate-600 dark:text-slate-400">Sign in to your account</p>

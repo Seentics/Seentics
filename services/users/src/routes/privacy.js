@@ -7,9 +7,9 @@ const router = express.Router();
 
 // Validation middleware
 const createPrivacyRequestValidation = [
-  body('type').isIn(['export', 'deletion', 'correction', 'portability']).withMessage('Invalid request type'),
-  body('reason').optional().isString().isLength({ min: 10 }).withMessage('Reason must be at least 10 characters'),
-  body('details').optional().isString().isLength({ min: 10 }).withMessage('Details must be at least 10 characters'),
+  body('type').isIn(['export', 'deletion', 'correction', 'portability', 'data_export', 'data_deletion', 'data_portability', 'opt_out']).withMessage('Invalid request type'),
+  body('reason').optional().isString().isLength({ min: 1 }).withMessage('Reason must be provided'),
+  body('details').optional().isString().isLength({ min: 1 }).withMessage('Details must be provided'),
   body('requestedData').optional().isObject().withMessage('Requested data must be an object')
 ];
 
@@ -23,7 +23,8 @@ const updatePrivacySettingsValidation = [
 ];
 
 const dataDeletionValidation = [
-  body('reason').isString().isLength({ min: 10 }).withMessage('Reason must be at least 10 characters')
+  body('reason').optional().isString().isLength({ min: 1 }).withMessage('Reason must be provided'),
+  body('confirmPassword').optional().isString().withMessage('Password confirmation must be a string')
 ];
 
 // Privacy settings routes
@@ -31,20 +32,15 @@ router.get('/settings', authenticate, privacyController.getPrivacySettings);
 router.put('/settings', authenticate, updatePrivacySettingsValidation, privacyController.updatePrivacySettings);
 
 // Privacy requests routes
-router.post('/requests', authenticate, createPrivacyRequestValidation, (req, res) => {
-  res.json({ success: true, message: 'Privacy request endpoint - temporarily disabled' });
-});
+router.post('/requests', authenticate, createPrivacyRequestValidation, privacyController.submitPrivacyRequest);
 router.get('/requests', authenticate, privacyController.getPrivacyRequests);
 
 // Data export routes
-router.get('/download/:filename', authenticate, (req, res) => {
-  res.json({ success: true, message: 'Download endpoint - temporarily disabled' });
-});
+router.get('/export', authenticate, privacyController.exportUserData);
+router.get('/download', authenticate, privacyController.downloadPrivacyData);
 
 // Data deletion routes
-router.post('/delete', authenticate, dataDeletionValidation, (req, res) => {
-  res.json({ success: true, message: 'Delete endpoint - temporarily disabled' });
-});
+router.post('/delete', authenticate, dataDeletionValidation, privacyController.deleteUserData);
 
 // Compliance status
 router.get('/compliance', authenticate, (req, res) => {

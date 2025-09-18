@@ -57,6 +57,34 @@ func (s *PrivacyService) ExportUserAnalytics(userID string) (map[string]interfac
 	return exportData, nil
 }
 
+// DeleteUserData deletes all analytics data for a specific user
+func (s *PrivacyService) DeleteUserData(userID string) error {
+	s.logger.Info().Str("user_id", userID).Msg("Starting user analytics data deletion")
+
+	err := s.privacyRepo.DeleteUserData(userID)
+	if err != nil {
+		s.logger.Error().Err(err).Str("user_id", userID).Msg("Failed to delete user analytics data")
+		return err
+	}
+
+	s.logger.Info().Str("user_id", userID).Msg("User analytics data deletion completed")
+	return nil
+}
+
+// DeleteWebsiteData deletes all analytics data for a specific website
+func (s *PrivacyService) DeleteWebsiteData(websiteID string) error {
+	s.logger.Info().Str("website_id", websiteID).Msg("Starting website analytics data deletion")
+
+	err := s.privacyRepo.DeleteWebsiteData(websiteID)
+	if err != nil {
+		s.logger.Error().Err(err).Str("website_id", websiteID).Msg("Failed to delete website analytics data")
+		return err
+	}
+
+	s.logger.Info().Str("website_id", websiteID).Msg("Website analytics data deletion completed")
+	return nil
+}
+
 // DeleteUserAnalytics deletes all analytics data for a specific user
 func (s *PrivacyService) DeleteUserAnalytics(userID string) error {
 	s.logger.Info().Str("user_id", userID).Msg("Starting analytics data deletion")

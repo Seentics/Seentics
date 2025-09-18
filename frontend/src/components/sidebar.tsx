@@ -5,15 +5,16 @@ import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   X,
-  Home, 
-  BarChart3, 
+  LayoutDashboard,
   Workflow, 
   ChevronDown,
   LogOut,
-  Bot,
   Shield,
-  Target
+  Target,
+  Home,
+  BarChart3
 } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 import { useLayoutStore } from '@/stores/useLayoutStore'
 
 
@@ -83,7 +84,12 @@ export default function Sidebar() {
 
   const isActive = (href: string) => {
     const fullHref = `/websites/${websiteId}${href === '' ? '' : `/${href}`}`
-    return pathname === fullHref
+    // For exact match on dashboard (empty href)
+    if (href === '') {
+      return pathname === fullHref
+    }
+    // For other items, check if pathname starts with the href (includes nested pages)
+    return pathname.startsWith(fullHref)
   }
   
   const getBasePath = () => {
@@ -158,9 +164,7 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="flex items-center h-16 px-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
-                <Bot className="size-6 text-white dark:text-slate-900" />
-              </div>
+              <Logo size="xl" />
               {isSidebarOpen && (
                 <div className="flex items-center gap-2">
                   <span className="ml-3 text-xl font-bold text-slate-900 dark:text-white">
@@ -209,9 +213,7 @@ export default function Sidebar() {
             {/* Mobile menu content */}
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
               <div className="flex items-center flex-shrink-0 px-4">
-                <div className="w-10 h-10 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
-                  <Bot className="h-6 w-6 text-white dark:text-slate-900" />
-                </div>
+                <Logo size="xl" />
                 <div className="flex items-center gap-2">
                   <span className="ml-3 text-xl font-bold text-slate-900 dark:text-white">
                     Seentics
