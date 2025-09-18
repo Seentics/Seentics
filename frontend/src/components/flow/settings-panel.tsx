@@ -1,15 +1,14 @@
 
-import React from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,18 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { X, Code, PlusCircle, Trash2, Info, AlertCircle, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { getFunnels } from '@/lib/analytics-api';
+import { motion } from 'framer-motion';
+import { AlertCircle, CheckCircle, Code, Info, PlusCircle, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import type { Node } from 'reactflow';
-import type { CustomNodeData, NodeSettings } from './custom-node';
+import { Alert, AlertDescription } from '../ui/alert';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
-import { Alert, AlertDescription } from '../ui/alert';
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { getFunnels } from '@/lib/analytics-api';
+import type { CustomNodeData, NodeSettings } from './custom-node';
 
 interface SettingsPanelProps {
   node: Node<CustomNodeData>;
@@ -37,65 +35,65 @@ interface SettingsPanelProps {
 }
 
 const LocalStorageForm: React.FC<{
-    settings: NodeSettings;
-    onSettingsChange: (newSettings: NodeSettings) => void;
+  settings: NodeSettings;
+  onSettingsChange: (newSettings: NodeSettings) => void;
 }> = ({ settings, onSettingsChange }) => {
-    const localStorageData = settings.localStorageData || [];
+  const localStorageData = settings.localStorageData || [];
 
-    const handleLocalStorageKeyChange = (index: number, value: string) => {
-        const newData = [...localStorageData];
-        newData[index] = { ...newData[index], localStorageKey: value, payloadKey: value };
-        onSettingsChange({ ...settings, localStorageData: newData });
-    };
+  const handleLocalStorageKeyChange = (index: number, value: string) => {
+    const newData = [...localStorageData];
+    newData[index] = { ...newData[index], localStorageKey: value, payloadKey: value };
+    onSettingsChange({ ...settings, localStorageData: newData });
+  };
 
-    const addLocalStorageDataItem = () => {
-        onSettingsChange({ ...settings, localStorageData: [...localStorageData, { localStorageKey: '', payloadKey: '' }] });
-    };
+  const addLocalStorageDataItem = () => {
+    onSettingsChange({ ...settings, localStorageData: [...localStorageData, { localStorageKey: '', payloadKey: '' }] });
+  };
 
-    const removeLocalStorageDataItem = (index: number) => {
-        const newData = localStorageData.filter((_, i) => i !== index);
-        onSettingsChange({ ...settings, localStorageData: newData });
-    };
+  const removeLocalStorageDataItem = (index: number) => {
+    const newData = localStorageData.filter((_, i) => i !== index);
+    onSettingsChange({ ...settings, localStorageData: newData });
+  };
 
-    return (
-        <div className="space-y-4">
-            <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-slate-500" />
-                <Label className="text-sm font-medium">Include Data from localStorage</Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-                Add keys from your site's localStorage to use in placeholders. For example, if you add the key "cartId", you can use <code className="bg-muted px-1 rounded">&#123;&#123;cartId&#125;&#125;</code> in your text.
-            </p>
-            <div className="space-y-3">
-                {localStorageData.map((item, index) => (
-                    <motion.div 
-                        key={index} 
-                        className="flex items-center gap-2"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                    >
-                        <Input 
-                            placeholder="localStorage Key (e.g. cartId)" 
-                            value={item.localStorageKey} 
-                            onChange={(e) => handleLocalStorageKeyChange(index, e.target.value)} 
-                        />
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="shrink-0 text-destructive hover:text-destructive" 
-                            onClick={() => removeLocalStorageDataItem(index)}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </motion.div>
-                ))}
-            </div>
-            <Button variant="outline" size="sm" onClick={addLocalStorageDataItem} className="w-full">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Key
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Info className="h-4 w-4 text-slate-500" />
+        <Label className="text-sm font-medium">Include Data from localStorage</Label>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Add keys from your site's localStorage to use in placeholders. For example, if you add the key "cartId", you can use <code className="bg-muted px-1 rounded">&#123;&#123;cartId&#125;&#125;</code> in your text.
+      </p>
+      <div className="space-y-3">
+        {localStorageData.map((item, index) => (
+          <motion.div
+            key={index}
+            className="flex items-center gap-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <Input
+              placeholder="localStorage Key (e.g. cartId)"
+              value={item.localStorageKey}
+              onChange={(e) => handleLocalStorageKeyChange(index, e.target.value)}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-destructive hover:text-destructive"
+              onClick={() => removeLocalStorageDataItem(index)}
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
-        </div>
-    );
+          </motion.div>
+        ))}
+      </div>
+      <Button variant="outline" size="sm" onClick={addLocalStorageDataItem} className="w-full">
+        <PlusCircle className="mr-2 h-4 w-4" /> Add Key
+      </Button>
+    </div>
+  );
 };
 
 const NodeSettingsForm: React.FC<{
@@ -115,7 +113,7 @@ const NodeSettingsForm: React.FC<{
         const pathParts = window.location.pathname.split('/');
         const websiteIdIndex = pathParts.findIndex(part => part === 'websites') + 1;
         const websiteId = pathParts[websiteIdIndex];
-        
+
         if (websiteId && websiteId !== '[websiteId]') {
           const funnelsData = await getFunnels(websiteId);
           setFunnels(funnelsData);
@@ -135,30 +133,31 @@ const NodeSettingsForm: React.FC<{
   const handleSettingChange = (key: keyof NodeSettings, value: any) => {
     // Ensure displayMode is always set for modal/banner actions
     let newSettings = { ...settings, [key]: value };
-    
+
     // If this is a modal or banner action and displayMode is not set, default to 'simple'
-    if ((node.data.title === 'Show Modal' || node.data.title === 'Show Banner') && 
-        !newSettings.displayMode && key !== 'displayMode') {
+    if ((node.data.title === 'Show Modal' || node.data.title === 'Show Banner') &&
+      !newSettings.displayMode && key !== 'displayMode') {
       newSettings.displayMode = 'simple';
     }
-    
+
     onSettingsChange(newSettings);
   };
 
   // Reusable Frequency Control Component for ALL Action Nodes
   const FrequencyControlSection = () => {
     // Only show frequency control for action nodes (not trigger/condition nodes)
-    const isActionNode = ['Show Modal', 'Show Banner', 'Insert Section', 'Redirect URL', 
-                         'Send Email', 'Add/Remove Tag', 'Webhook', 'Track Event', 'Wait'].includes(node.data.title || '');
-    
+    const isActionNode = ['Show Modal', 'Show Banner', 'Show Notification', 'Insert Section', 'Redirect URL',
+      'Send Email', 'Add/Remove Tag', 'Webhook', 'Track Event', 'Wait'].includes(node.data.title || '');
+
     if (!isActionNode) return null;
-    
+
     return (
       <>
         <div className="space-y-2">
           <Label className="text-sm font-medium">Action Frequency</Label>
           <Select
             value={settings.frequency || 'once_per_session'}
+            defaultValue='once_per_session'
             onValueChange={(value) => handleSettingChange('frequency', value)}
           >
             <SelectTrigger>
@@ -180,13 +179,13 @@ const NodeSettingsForm: React.FC<{
       </>
     );
   };
-  
+
   const displayMode = settings.displayMode || 'simple';
 
   // Ensure displayMode is always set for modal/banner actions
   useEffect(() => {
-    if ((node.data.title === 'Show Modal' || node.data.title === 'Show Banner') && 
-        !settings.displayMode) {
+    if ((node.data.title === 'Show Modal' || node.data.title === 'Show Banner') &&
+      !settings.displayMode) {
       onSettingsChange({ ...settings, displayMode: 'simple' });
     }
   }, [node.data.title, settings.displayMode]); // Remove onSettingsChange and settings from dependencies
@@ -213,7 +212,7 @@ const NodeSettingsForm: React.FC<{
 
   const renderFormFields = () => {
     switch (node.data.title) {
-      
+
       // Triggers
       case 'Page View':
         return (
@@ -251,7 +250,7 @@ const NodeSettingsForm: React.FC<{
           </div>
         );
       case 'Element Click':
-         return (
+        return (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="selector" className="text-sm font-medium">CSS Selector</Label>
@@ -282,7 +281,7 @@ const NodeSettingsForm: React.FC<{
                       }
                       const url = `/preview/${workflowId}?highlightSelector=${encodeURIComponent(selector)}`;
                       window.open(url, '_blank', 'noopener,noreferrer');
-                    } catch {}
+                    } catch { }
                   }}
                 >
                   Test in Preview
@@ -310,7 +309,7 @@ const NodeSettingsForm: React.FC<{
           </div>
         );
       case 'Custom Event':
-         return (
+        return (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="customEventName" className="text-sm font-medium">Event Name</Label>
@@ -351,7 +350,7 @@ const NodeSettingsForm: React.FC<{
                 <span className="text-sm text-muted-foreground">Loading available funnels...</span>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="funnelId" className="text-sm font-medium">Funnel</Label>
               <Select
@@ -365,9 +364,9 @@ const NodeSettingsForm: React.FC<{
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    isLoadingFunnels ? "Loading funnels..." : 
-                    funnels.length === 0 ? "No funnels available" : 
-                    "Select a funnel"
+                    isLoadingFunnels ? "Loading funnels..." :
+                      funnels.length === 0 ? "No funnels available" :
+                        "Select a funnel"
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -385,19 +384,19 @@ const NodeSettingsForm: React.FC<{
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {isLoadingFunnels 
-                  ? "Loading available funnels..." 
-                  : funnels.length === 0 
+                {isLoadingFunnels
+                  ? "Loading available funnels..."
+                  : funnels.length === 0
                     ? "No funnels found. Create a funnel first in the Funnels section."
                     : "Select which funnel this trigger should monitor. This trigger will ONLY fire when the specified funnel event occurs."
                 }
               </p>
-              
+
               {funnels.length === 0 && !isLoadingFunnels && (
                 <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-200">
                   <p className="font-medium mb-1">No Funnels Available</p>
                   <p>You need to create a funnel first before you can use a funnel trigger. Go to the Funnels section to create one.</p>
-                  <button 
+                  <button
                     onClick={() => {
                       const pathParts = window.location.pathname.split('/');
                       const websiteIdIndex = pathParts.findIndex(part => part === 'websites') + 1;
@@ -413,7 +412,7 @@ const NodeSettingsForm: React.FC<{
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="eventType" className="text-sm font-medium">Event Type</Label>
               <Select
@@ -449,7 +448,7 @@ const NodeSettingsForm: React.FC<{
             </div>
           </div>
         );
-        
+
 
       // Conditions
       case 'Device Type':
@@ -475,12 +474,12 @@ const NodeSettingsForm: React.FC<{
                 Only execute this workflow for visitors on the selected device type. Uses user agent detection.
               </p>
             </div>
-            
+
             {/* Advanced Device Options */}
             {settings.deviceType && settings.deviceType !== 'Any' && (
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
                 <Label className="text-sm font-medium">Advanced Options</Label>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">Screen Size Constraints (Optional)</Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -507,7 +506,7 @@ const NodeSettingsForm: React.FC<{
                     Optional: Add screen size constraints for more precise targeting.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">Touch Support</Label>
                   <Select
@@ -531,7 +530,7 @@ const NodeSettingsForm: React.FC<{
             )}
           </div>
         );
-       case 'Browser':
+      case 'Browser':
         return (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -648,7 +647,7 @@ const NodeSettingsForm: React.FC<{
             </div>
           </div>
         );
-       case 'Tag':
+      case 'Tag':
         return (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -719,18 +718,18 @@ const NodeSettingsForm: React.FC<{
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">A %</Label>
-                <Input type="number" value={settings.variantAPercent ?? 50} onChange={(e) => handleSettingChange('variantAPercent', Math.max(0, Math.min(100, parseInt(e.target.value,10)||0)))} />
+                <Input type="number" value={settings.variantAPercent ?? 50} onChange={(e) => handleSettingChange('variantAPercent', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} />
                 <Input placeholder="Label A" value={settings.variantALabel || 'A'} onChange={(e) => handleSettingChange('variantALabel', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">B %</Label>
-                <Input type="number" value={settings.variantBPercent ?? 50} onChange={(e) => handleSettingChange('variantBPercent', Math.max(0, Math.min(100, parseInt(e.target.value,10)||0)))} />
+                <Input type="number" value={settings.variantBPercent ?? 50} onChange={(e) => handleSettingChange('variantBPercent', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} />
                 <Input placeholder="Label B" value={settings.variantBLabel || 'B'} onChange={(e) => handleSettingChange('variantBLabel', e.target.value)} />
               </div>
-              { (settings.variantsCount || 2) === 3 && (
+              {(settings.variantsCount || 2) === 3 && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">C %</Label>
-                  <Input type="number" value={settings.variantCPercent ?? 0} onChange={(e) => handleSettingChange('variantCPercent', Math.max(0, Math.min(100, parseInt(e.target.value,10)||0)))} />
+                  <Input type="number" value={settings.variantCPercent ?? 0} onChange={(e) => handleSettingChange('variantCPercent', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} />
                   <Input placeholder="Label C" value={settings.variantCLabel || 'C'} onChange={(e) => handleSettingChange('variantCLabel', e.target.value)} />
                 </div>
               )}
@@ -800,16 +799,16 @@ const NodeSettingsForm: React.FC<{
             )}
           </div>
         );
-      
+
 
       // Actions
       case 'Show Modal':
       case 'Show Banner':
-          const isModal = node.data.title === 'Show Modal';
-          return (
+        const isModal = node.data.title === 'Show Modal';
+        return (
           <div className="space-y-6">
-             <FrequencyControlSection />
-             <div className="space-y-2">
+            <FrequencyControlSection />
+            <div className="space-y-2">
               <Label className="text-sm font-medium">Mode</Label>
               <RadioGroup
                 value={displayMode}
@@ -833,75 +832,75 @@ const NodeSettingsForm: React.FC<{
             </div>
             <Separator />
             {displayMode === 'simple' ? (
-                <motion.div 
-                  className="space-y-4"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                    {isModal && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="modalTitle" className="text-sm font-medium">Modal Title</Label>
-                                <Input id="modalTitle" placeholder="Enter modal title" value={settings.modalTitle || ''} onChange={(e) => handleSettingChange('modalTitle', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="modalContent" className="text-sm font-medium">Modal Content</Label>
-                                <Textarea id="modalContent" placeholder="Enter modal content" value={settings.modalContent || ''} onChange={(e) => handleSettingChange('modalContent', e.target.value)} />
-                            </div>
-                        </>
-                    )}
-                    {!isModal && (
-                        <>
-                             <div className="space-y-2">
-                                <Label className="text-sm font-medium">Position</Label>
-                                <RadioGroup value={settings.bannerPosition || 'top'} onValueChange={(value) => handleSettingChange('bannerPosition', value)} className="flex space-x-4" >
-                                    <div className="flex items-center space-x-2"> <RadioGroupItem value="top" id="top" /> <Label htmlFor="top" className="text-sm">Top</Label> </div>
-                                    <div className="flex items-center space-x-2"> <RadioGroupItem value="bottom" id="bottom" /> <Label htmlFor="bottom" className="text-sm">Bottom</Label> </div>
-                                </RadioGroup>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="bannerContent" className="text-sm font-medium">Banner Content</Label>
-                                <Textarea id="bannerContent" placeholder="Get 10% off your next purchase!" value={settings.bannerContent || ''} onChange={(e) => handleSettingChange('bannerContent', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="bannerCtaText" className="text-sm font-medium">Button Text (Optional)</Label>
-                                <Input id="bannerCtaText" placeholder="e.g. Shop Now" value={settings.bannerCtaText || ''} onChange={(e) => handleSettingChange('bannerCtaText', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="bannerCtaUrl" className="text-sm font-medium">Button URL (Optional)</Label>
-                                <Input id="bannerCtaUrl" placeholder="https://example.com/shop" value={settings.bannerCtaUrl || ''} onChange={(e) => handleSettingChange('bannerCtaUrl', e.target.value)} />
-                            </div>
-                        </>
-                    )}
-                </motion.div>
+              <motion.div
+                className="space-y-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isModal && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="modalTitle" className="text-sm font-medium">Modal Title</Label>
+                      <Input id="modalTitle" placeholder="Enter modal title" value={settings.modalTitle || ''} onChange={(e) => handleSettingChange('modalTitle', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="modalContent" className="text-sm font-medium">Modal Content</Label>
+                      <Textarea id="modalContent" placeholder="Enter modal content" value={settings.modalContent || ''} onChange={(e) => handleSettingChange('modalContent', e.target.value)} />
+                    </div>
+                  </>
+                )}
+                {!isModal && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Position</Label>
+                      <RadioGroup value={settings.bannerPosition || 'top'} onValueChange={(value) => handleSettingChange('bannerPosition', value)} className="flex space-x-4" >
+                        <div className="flex items-center space-x-2"> <RadioGroupItem value="top" id="top" /> <Label htmlFor="top" className="text-sm">Top</Label> </div>
+                        <div className="flex items-center space-x-2"> <RadioGroupItem value="bottom" id="bottom" /> <Label htmlFor="bottom" className="text-sm">Bottom</Label> </div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bannerContent" className="text-sm font-medium">Banner Content</Label>
+                      <Textarea id="bannerContent" placeholder="Get 10% off your next purchase!" value={settings.bannerContent || ''} onChange={(e) => handleSettingChange('bannerContent', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bannerCtaText" className="text-sm font-medium">Button Text (Optional)</Label>
+                      <Input id="bannerCtaText" placeholder="e.g. Shop Now" value={settings.bannerCtaText || ''} onChange={(e) => handleSettingChange('bannerCtaText', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bannerCtaUrl" className="text-sm font-medium">Button URL (Optional)</Label>
+                      <Input id="bannerCtaUrl" placeholder="https://example.com/shop" value={settings.bannerCtaUrl || ''} onChange={(e) => handleSettingChange('bannerCtaUrl', e.target.value)} />
+                    </div>
+                  </>
+                )}
+              </motion.div>
             ) : (
-                 <motion.div 
-                   className="space-y-4"
-                   initial={{ opacity: 0, y: 10 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ duration: 0.2 }}
-                 >
-                    <Alert>
-                      <Code className="h-4 w-4" />
-                      <AlertDescription>
-                        You are in custom code mode. Use HTML, CSS, and JavaScript to create your own custom content.
-                      </AlertDescription>
-                    </Alert>
-                    <div className="space-y-2">
-                        <Label htmlFor="customHtml" className="text-sm font-medium">HTML</Label>
-                        <Textarea id="customHtml" placeholder="<div>Your HTML here</div>" value={settings.customHtml || ''} onChange={(e) => handleSettingChange('customHtml', e.target.value)} rows={6} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="customCss" className="text-sm font-medium">CSS (Optional)</Label>
-                        <Textarea id="customCss" placeholder="div { color: red; }" value={settings.customCss || ''} onChange={(e) => handleSettingChange('customCss', e.target.value)} rows={4} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="customJs" className="text-sm font-medium">JavaScript (Optional)</Label>
-                        <Textarea id="customJs" placeholder="console.log('Modal shown');" value={settings.customJs || ''} onChange={(e) => handleSettingChange('customJs', e.target.value)} rows={4} />
-                         <p className="text-xs text-muted-foreground">The element containing your HTML will be available as <code className="bg-muted px-1 rounded">this.element</code>.</p>
-                    </div>
-                </motion.div>
+              <motion.div
+                className="space-y-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Alert>
+                  <Code className="h-4 w-4" />
+                  <AlertDescription>
+                    You are in custom code mode. Use HTML, CSS, and JavaScript to create your own custom content.
+                  </AlertDescription>
+                </Alert>
+                <div className="space-y-2">
+                  <Label htmlFor="customHtml" className="text-sm font-medium">HTML</Label>
+                  <Textarea id="customHtml" placeholder="<div>Your HTML here</div>" value={settings.customHtml || ''} onChange={(e) => handleSettingChange('customHtml', e.target.value)} rows={6} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customCss" className="text-sm font-medium">CSS (Optional)</Label>
+                  <Textarea id="customCss" placeholder="div { color: red; }" value={settings.customCss || ''} onChange={(e) => handleSettingChange('customCss', e.target.value)} rows={4} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customJs" className="text-sm font-medium">JavaScript (Optional)</Label>
+                  <Textarea id="customJs" placeholder="console.log('Modal shown');" value={settings.customJs || ''} onChange={(e) => handleSettingChange('customJs', e.target.value)} rows={4} />
+                  <p className="text-xs text-muted-foreground">The element containing your HTML will be available as <code className="bg-muted px-1 rounded">this.element</code>.</p>
+                </div>
+              </motion.div>
             )}
           </div>
         );
@@ -936,14 +935,14 @@ const NodeSettingsForm: React.FC<{
                       }
                       const url = `/preview/${workflowId}?highlightSelector=${encodeURIComponent(selector)}`;
                       window.open(url, '_blank', 'noopener,noreferrer');
-                    } catch {}
+                    } catch { }
                   }}
                 >
                   Test in Preview
                 </Button>
               </div>
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label className="text-sm font-medium">Position</Label>
               <Select
                 value={settings.insertPosition}
@@ -995,11 +994,11 @@ const NodeSettingsForm: React.FC<{
           <div className="space-y-4">
             <FrequencyControlSection />
             <Tabs defaultValue={settings.emailSendType || 'visitor'} onValueChange={(value) => handleSettingChange('emailSendType', value)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="visitor">To Visitor</TabsTrigger>
                 <TabsTrigger value="custom">To Custom Address</TabsTrigger>
-            </TabsList>
-            <TabsContent value="visitor" className="space-y-4 pt-4">
+              </TabsList>
+              <TabsContent value="visitor" className="space-y-4 pt-4">
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
@@ -1007,41 +1006,41 @@ const NodeSettingsForm: React.FC<{
                   </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
-                    <Label htmlFor="emailSubject" className="text-sm font-medium">Subject</Label>
-                    <Input id="emailSubject" value={settings.emailSubject || ''} placeholder="e.g. Regarding your cart..." onChange={(e) => handleSettingChange('emailSubject', e.target.value)} />
+                  <Label htmlFor="emailSubject" className="text-sm font-medium">Subject</Label>
+                  <Input id="emailSubject" value={settings.emailSubject || ''} placeholder="e.g. Regarding your cart..." onChange={(e) => handleSettingChange('emailSubject', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="emailBody" className="text-sm font-medium">Body</Label>
-                    <Textarea id="emailBody" value={settings.emailBody || ''} placeholder="Use placeholders like {{cartId}}." onChange={(e) => handleSettingChange('emailBody', e.target.value)} />
+                  <Label htmlFor="emailBody" className="text-sm font-medium">Body</Label>
+                  <Textarea id="emailBody" value={settings.emailBody || ''} placeholder="Use placeholders like {{cartId}}." onChange={(e) => handleSettingChange('emailBody', e.target.value)} />
                 </div>
-                 <Separator className="my-4" />
+                <Separator className="my-4" />
                 <LocalStorageForm settings={settings} onSettingsChange={onSettingsChange} />
-            </TabsContent>
-            <TabsContent value="custom" className="space-y-4 pt-4">
-                 <Alert>
-                   <Info className="h-4 w-4" />
-                   <AlertDescription>
-                     Sends an email to an address you define (e.g., your team for notifications).
-                   </AlertDescription>
-                 </Alert>
+              </TabsContent>
+              <TabsContent value="custom" className="space-y-4 pt-4">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Sends an email to an address you define (e.g., your team for notifications).
+                  </AlertDescription>
+                </Alert>
                 <div className="space-y-2">
-                    <Label htmlFor="emailTo" className="text-sm font-medium">Recipient Email</Label>
-                    <Input id="emailTo" value={settings.emailTo || ''} onChange={(e) => handleSettingChange('emailTo', e.target.value)} placeholder="e.g. team@example.com" />
+                  <Label htmlFor="emailTo" className="text-sm font-medium">Recipient Email</Label>
+                  <Input id="emailTo" value={settings.emailTo || ''} onChange={(e) => handleSettingChange('emailTo', e.target.value)} placeholder="e.g. team@example.com" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="emailSubjectCustom" className="text-sm font-medium">Subject</Label>
-                    <Input id="emailSubjectCustom" value={settings.emailSubject || ''} placeholder="e.g. New Hot Lead: {{identifiedUser.attributes.email}}" onChange={(e) => handleSettingChange('emailSubject', e.target.value)} />
+                  <Label htmlFor="emailSubjectCustom" className="text-sm font-medium">Subject</Label>
+                  <Input id="emailSubjectCustom" value={settings.emailSubject || ''} placeholder="e.g. New Hot Lead: {{identifiedUser.attributes.email}}" onChange={(e) => handleSettingChange('emailSubject', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="emailBodyCustom" className="text-sm font-medium">Body</Label>
-                    <Textarea id="emailBodyCustom" value={settings.emailBody || ''} placeholder="Visitor with email {{identifiedUser.attributes.email}} triggered this." onChange={(e) => handleSettingChange('emailBody', e.target.value)} />
+                  <Label htmlFor="emailBodyCustom" className="text-sm font-medium">Body</Label>
+                  <Textarea id="emailBodyCustom" value={settings.emailBody || ''} placeholder="Visitor with email {{identifiedUser.attributes.email}} triggered this." onChange={(e) => handleSettingChange('emailBody', e.target.value)} />
                 </div>
-                 <Separator className="my-4" />
+                <Separator className="my-4" />
                 <LocalStorageForm settings={settings} onSettingsChange={onSettingsChange} />
-             </TabsContent>
+              </TabsContent>
             </Tabs>
           </div>
-         );
+        );
       case 'Add/Remove Tag':
         return (
           <div className="space-y-4">
@@ -1079,107 +1078,192 @@ const NodeSettingsForm: React.FC<{
         );
       case 'Webhook':
         return (
-            <div className="space-y-4">
-                <FrequencyControlSection />
-                <div className="space-y-2">
-                    <Label htmlFor="webhookUrl" className="text-sm font-medium">Webhook URL</Label>
-                    <Input 
-                        id="webhookUrl" 
-                        placeholder="https://api.example.com/hook" 
-                        value={settings.webhookUrl || ''} 
-                        onChange={(e) => handleSettingChange('webhookUrl', e.target.value)} 
-                    />
-                    <p className="text-xs text-muted-foreground">The URL where we'll send the webhook request.</p>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="webhookMethod" className="text-sm font-medium">HTTP Method</Label>
-                    <Select 
-                        value={settings.webhookMethod || 'POST'} 
-                        onValueChange={(value) => handleSettingChange('webhookMethod', value)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="GET">GET</SelectItem>
-                            <SelectItem value="POST">POST</SelectItem>
-                            <SelectItem value="PUT">PUT</SelectItem>
-                            <SelectItem value="DELETE">DELETE</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">HTTP method for the webhook request.</p>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="webhookHeaders" className="text-sm font-medium">Custom Headers</Label>
-                    <Textarea 
-                        id="webhookHeaders" 
-                        placeholder='{"Authorization": "Bearer token", "X-Custom-Header": "value"}' 
-                        value={settings.webhookHeaders ? JSON.stringify(settings.webhookHeaders, null, 2) : ''} 
-                        onChange={(e) => {
-                            try {
-                                const headers = e.target.value ? JSON.parse(e.target.value) : {};
-                                handleSettingChange('webhookHeaders', headers);
-                            } catch (error) {
-                                // Keep the raw value for editing
-                                handleSettingChange('webhookHeaders', e.target.value);
-                            }
-                        }}
-                        className="font-mono text-sm"
-                        rows={3}
-                    />
-                    <p className="text-xs text-muted-foreground">JSON object with custom headers (optional).</p>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="webhookBody" className="text-sm font-medium">Custom Payload</Label>
-                    <Textarea 
-                        id="webhookBody" 
-                        placeholder='{"customField": "value", "userEmail": "{{user.email}}", "timestamp": "{{timestamp}}"}' 
-                        value={settings.webhookBody || ''} 
-                        onChange={(e) => handleSettingChange('webhookBody', e.target.value)}
-                        className="font-mono text-sm"
-                        rows={4}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                        Custom JSON payload. Use variables like {'{{user.email}}'}, {'{{visitorId}}'}, {'{{timestamp}}'} for dynamic data.
-                    </p>
-                </div>
-
-                <Separator className="my-4" />
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">Default Data</Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                        These fields are automatically included in every webhook:
-                    </p>
-                    <div className="bg-muted/50 p-3 rounded-md text-xs font-mono">
-                        <div>• visitorId: Unique visitor identifier</div>
-                        <div>• identifiedUser: User data if identified</div>
-                        <div>• localStorageData: Mapped localStorage data</div>
-                        <div>• timestamp: ISO timestamp</div>
-                    </div>
-                </div>
-
-                <Separator className="my-4" />
-                <LocalStorageForm settings={settings} onSettingsChange={onSettingsChange} />
+          <div className="space-y-4">
+            <FrequencyControlSection />
+            <div className="space-y-2">
+              <Label htmlFor="webhookUrl" className="text-sm font-medium">Webhook URL</Label>
+              <Input
+                id="webhookUrl"
+                placeholder="https://api.example.com/hook"
+                value={settings.webhookUrl || ''}
+                onChange={(e) => handleSettingChange('webhookUrl', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">The URL where we'll send the webhook request.</p>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="webhookMethod" className="text-sm font-medium">HTTP Method</Label>
+              <Select
+                value={settings.webhookMethod || 'POST'}
+                onValueChange={(value) => handleSettingChange('webhookMethod', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GET">GET</SelectItem>
+                  <SelectItem value="POST">POST</SelectItem>
+                  <SelectItem value="PUT">PUT</SelectItem>
+                  <SelectItem value="DELETE">DELETE</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">HTTP method for the webhook request.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="webhookHeaders" className="text-sm font-medium">Custom Headers</Label>
+              <Textarea
+                id="webhookHeaders"
+                placeholder='{"Authorization": "Bearer token", "X-Custom-Header": "value"}'
+                value={settings.webhookHeaders ? JSON.stringify(settings.webhookHeaders, null, 2) : ''}
+                onChange={(e) => {
+                  try {
+                    const headers = e.target.value ? JSON.parse(e.target.value) : {};
+                    handleSettingChange('webhookHeaders', headers);
+                  } catch (error) {
+                    // Keep the raw value for editing
+                    handleSettingChange('webhookHeaders', e.target.value);
+                  }
+                }}
+                className="font-mono text-sm"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">JSON object with custom headers (optional).</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="webhookBody" className="text-sm font-medium">Custom Payload</Label>
+              <Textarea
+                id="webhookBody"
+                placeholder='{"customField": "value", "userEmail": "{{user.email}}", "timestamp": "{{timestamp}}"}'
+                value={settings.webhookBody || ''}
+                onChange={(e) => handleSettingChange('webhookBody', e.target.value)}
+                className="font-mono text-sm"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Custom JSON payload. Use variables like {'{{user.email}}'}, {'{{visitorId}}'}, {'{{timestamp}}'} for dynamic data.
+              </p>
+            </div>
+
+            <Separator className="my-4" />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Default Data</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                These fields are automatically included in every webhook:
+              </p>
+              <div className="bg-muted/50 p-3 rounded-md text-xs font-mono">
+                <div>• visitorId: Unique visitor identifier</div>
+                <div>• identifiedUser: User data if identified</div>
+                <div>• localStorageData: Mapped localStorage data</div>
+                <div>• timestamp: ISO timestamp</div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+            <LocalStorageForm settings={settings} onSettingsChange={onSettingsChange} />
+          </div>
+        );
+      case 'Show Notification':
+        return (
+          <div className="space-y-4">
+            <FrequencyControlSection />
+            <div className="space-y-2">
+              <Label htmlFor="message" className="text-sm font-medium">Message</Label>
+              <Textarea
+                id="message"
+                placeholder="Your notification message here..."
+                value={settings.message || ''}
+                onChange={(e) => handleSettingChange('message', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">The text content of the notification.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Position</Label>
+              <Select
+                value={settings.position || 'top-right'}
+                onValueChange={(value) => handleSettingChange('position', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top-left">Top Left</SelectItem>
+                  <SelectItem value="top-right">Top Right</SelectItem>
+                  <SelectItem value="top-center">Top Center</SelectItem>
+                  <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                  <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                  <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Where the notification should appear on screen.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Type</Label>
+              <Select
+                value={settings.type || 'info'}
+                onValueChange={(value) => handleSettingChange('type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      Info
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="success">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Success
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="warning">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      Warning
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="error">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      Error
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Visual style and color of the notification.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration" className="text-sm font-medium">Duration (milliseconds)</Label>
+              <Input
+                id="duration"
+                type="number"
+                placeholder="5000"
+                value={settings.duration || ''}
+                onChange={(e) => handleSettingChange('duration', parseInt(e.target.value, 10) || 5000)}
+              />
+              <p className="text-xs text-muted-foreground">How long the notification stays visible (0 = manual dismiss only).</p>
+            </div>
+          </div>
         );
       case 'Track Event':
         return (
-            <div className="space-y-4">
-                <FrequencyControlSection />
-                <div className="space-y-2">
-                    <Label htmlFor="eventName" className="text-sm font-medium">Event Name</Label>
-                    <Input
-                        id="eventName"
-                        placeholder="e.g., newsletter-signup"
-                        value={settings.eventName || ''}
-                        onChange={(e) => handleSettingChange('eventName', e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">This name will appear in your analytics dashboard.</p>
-                </div>
+          <div className="space-y-4">
+            <FrequencyControlSection />
+            <div className="space-y-2">
+              <Label htmlFor="eventName" className="text-sm font-medium">Event Name</Label>
+              <Input
+                id="eventName"
+                placeholder="e.g., newsletter-signup"
+                value={settings.eventName || ''}
+                onChange={(e) => handleSettingChange('eventName', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">This name will appear in your analytics dashboard.</p>
             </div>
+          </div>
         );
       case 'Wait':
         return (
@@ -1217,7 +1301,7 @@ export function SettingsPanel({
   const handleSettingsUpdate = (newSettings: NodeSettings) => {
     onSettingsChange(id, newSettings);
   };
-  
+
   return (
     <Card className="h-full flex flex-col bg-gradient-to-br from-background to-muted/20 shadow-sm border overflow-hidden">
       <CardHeader className="flex-row items-center justify-between pb-4">

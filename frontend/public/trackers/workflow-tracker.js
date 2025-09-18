@@ -13,6 +13,7 @@
   const ACTIONS = {
     SHOW_MODAL: 'Show Modal',
     SHOW_BANNER: 'Show Banner', 
+    SHOW_NOTIFICATION: 'Show Notification',
     TRACK_EVENT: 'Track Event',
     WEBHOOK: 'Webhook',
     REDIRECT_URL: 'Redirect URL'
@@ -446,6 +447,9 @@
         case ACTIONS.SHOW_BANNER:
           this._showBanner(settings);
           break;
+        case ACTIONS.SHOW_NOTIFICATION:
+          this._showNotification(settings);
+          break;
         case ACTIONS.REDIRECT_URL:
           if (settings.redirectUrl) window.location.href = settings.redirectUrl;
           break;
@@ -540,28 +544,137 @@
       document.body.appendChild(banner);
     },
 
-    _executeWebhook(settings) {
-      if (!settings.webhookUrl) return;
+    _showNotification(settings) {
+      if (!settings.message) return;
       
-      const payload = {
-        siteId: this.siteId,
-        visitorId: this.visitorId,
-        sessionId: this.sessionId,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        ...(settings.webhookData || {})
-      };
+      const notification = document.createElement('div');
+      notification.className = 'seentics-notification';
       
-      fetch(settings.webhookUrl, {
-        method: settings.webhookMethod || 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(settings.webhookHeaders || {})
-        },
-        body: JSON.stringify(payload),
-        keepalive: true
-      }).catch(error => console.warn('[Seentics] Webhook failed:', error));
+      // Position settings
+      const position = settings.position || 'top-right';
+      let positionStyle = '';
+      
+      switch (position) {
+        case 'top-left':
+          positionStyle = 'top:20px;left:20px;';
+          break;
+        case 'top-right':
+          positionStyle = 'top:20px;right:20px;';
+          break;
+        case 'top-center':
+          positionStyle = 'top:20px;left:50%;transform:translateX(-50%);';
+          break;
+        case 'bottom-left':
+          positionStyle = 'bottom:20px;left:20px;';
+          break;
+        case 'bottom-right':
+          positionStyle = 'bottom:20px;right:20px;';
+          break;
+        case 'bottom-center':
+          positionStyle = 'bottom:20px;left:50%;transform:translateX(-50%);';
+          break;
+        default:
+          positionStyle = 'top:20px;right:20px;';
+      }
+      
+      // Notification type styling
+      const type = settings.type || 'info';
+      let typeStyle = '';
+      
+      switch (type) {
+        case 'success':
+          typeStyle = 'background:#10b981;color:white;';
+          break;
+        case 'error':
+          typeStyle = 'background:#ef4444;color:white;';
+          break;
+        case 'warning':
+          typeStyle = 'background:#f59e0b;color:white;';
+          break;
+        case 'info':
+        default:
+          typeStyle = 'background:#3b82f6;color:white;';
+      }
+      
+      notification.style.cssText = `
+        position:fixed;
+        ${positionStyle}
+        ${typeStyle}
+        padding:12px 16px;
+        border-radius:8px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.15);
+        z-index:999999;
+        max-width:350px;
+        min-width:250px;
+        font-family:system-ui,-apple-system,sans-serif;
+        font-size:14px;
+        line-height:1.4;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        animation:seenticsSlideIn 0.3s ease-out;
+      `;
+      
+      // Add animation keyframes if not already present
+      if (!document.querySelector('#seentics-notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'seentics-notification-styles';
+        style.textContent = `
+          @keyframes seenticsSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px) ${position.includes('center') ? 'translateX(-50%)' : ''};
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) ${position.includes('center') ? 'translateX(-50%)' : ''};
+            }
+          }
+          @keyframes seenticsSlideOut {
+            from {
+              opacity: 1;
+              transform: translateY(0) ${position.includes('center') ? 'translateX(-50%)' : ''};
+            }
+            to {
+              opacity: 0;
+              transform: translateY(-10px) ${position.includes('center') ? 'translateX(-50%)' : ''};
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      // Message content
+      const content = document.createElement('span');
+      content.textContent = settings.message;
+      content.style.cssText = 'flex:1;margin-right:8px;';
+      notification.appendChild(content);
+      
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '×';
+      closeBtn.style.cssText = 'border:none;background:none;color:inherit;font-size:18px;cursor:pointer;padding:0;margin-left:8px;opacity:0.8;';
+      closeBtn.onclick = () => this._removeNotification(notification);
+      notification.appendChild(closeBtn);
+      
+      document.body.appendChild(notification);
+      
+      // Auto-dismiss after duration (default 5 seconds)
+      const duration = settings.duration || 5000;
+      if (duration > 0) {
+        setTimeout(() => this._removeNotification(notification), duration);
+      }
+    },
+
+    _removeNotification(notification) {
+      if (!notification || !notification.parentNode) return;
+      
+      notification.style.animation = 'seenticsSlideOut 0.3s ease-in';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
     },
 
     _trackEvent(workflow, node, eventType, options = {}) {

@@ -1,6 +1,6 @@
 # Seentics - Open Source Analytics & Automation Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL](https://img.shields.io/badge/License-AGPL-yellow.svg)](https://opensource.org/licenses/AGPL-3.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![MVP Ready](https://img.shields.io/badge/Status-MVP%20Ready-brightgreen.svg)](https://github.com/seentics/seentics)
 [![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-blue.svg)](https://docs.docker.com/compose/)
@@ -115,13 +115,33 @@ Seentics follows a **microservices architecture** with clear separation of conce
 
 ## 🚀 **Quick Start**
 
-### **Prerequisites**
+### **⚡ One-Command Setup (Recommended)**
+```bash
+# Clone and start everything in one go
+git clone https://github.com/seentics/seentics.git && cd seentics && cp .env.example .env && docker compose up -d
+```
+
+Then access the application at:
+- **Frontend**: [http://localhost:3000](http://localhost:3000) *(start separately - see below)*
+- **API Gateway**: [http://localhost:8080](http://localhost:8080)
+
+### **Frontend Setup** (Additional step)
+```bash
+# In a new terminal
+cd frontend && npm install && npm run dev
+```
+
+---
+
+### **Manual Setup (Alternative)**
+
+#### **Prerequisites**
 - **Node.js** 18+ 
 - **Go** 1.21+
 - **Docker** & Docker Compose
 - **Git**
 
-### **1. Clone the Repository**
+#### **1. Clone the Repository**
 ```bash
 git clone https://github.com/seentics/seentics.git
 cd seentics

@@ -54,6 +54,12 @@ export type NodeSettings = {
   webhookHeaders?: { [key: string]: string };
   webhookBody?: string;
   insertPosition?: 'before' | 'after' | 'prepend' | 'append';
+  
+  // Notification Settings
+  message?: string;
+  position?: 'top-left' | 'top-right' | 'top-center' | 'bottom-left' | 'bottom-right' | 'bottom-center';
+  type?: 'info' | 'success' | 'warning' | 'error';
+  duration?: number;
 
   // This will store mappings from localStorage keys to payload keys
   localStorageData?: { localStorageKey: string; payloadKey: string }[];
