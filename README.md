@@ -7,9 +7,15 @@
 
 **🚀 Production-ready open-source platform** combining real-time analytics, visual workflow automation, and intelligent user behavior tracking. Built with modern microservices architecture for high performance and scalability.
 
+##📌 Note
+
+This is a minimal working version of Seentics OSS. It is not yet fully optimized — there are several areas where performance, efficiency, and scalability can be improved. We welcome contributions from the open-source community to help make Seentics a world-class platform.
+
+👉 If you need the best performance, resilience, and fully optimized features, please use our hosted cloud version at seentics.com
+.
 ## ✨ **What Makes Seentics Special**
 
-- **🎯 Visual Workflow Builder**: Drag-and-drop automation with 50+ triggers, conditions, and actions
+- **🎯 Visual Workflow Builder**: Drag-and-drop automation with 10+ triggers, conditions, and actions
 - **📊 Real-Time Analytics**: High-performance event processing (10,000+ events/sec) with TimescaleDB
 - **🔄 Intelligent Automation**: React to user behavior instantly with client and server-side actions
 - **🏗️ Microservices Architecture**: Scalable, maintainable, and production-ready
