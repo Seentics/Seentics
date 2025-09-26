@@ -7,8 +7,13 @@
 
 **🚀 Production-ready open-source platform** combining real-time analytics, visual workflow automation, and intelligent user behavior tracking. Built with modern microservices architecture for high performance and scalability.
 
-📌 Note
-This is a minimal working version of Seentics OSS. It is not yet fully optimized — there are several areas where performance, efficiency, and scalability can be improved. We welcome contributions from the open-source community to help make Seentics a world-class platform.
+> ⚠️ **Important Note**  
+> This is a **minimal working version** of Seentics OSS.  
+> While fully functional, it is **not yet optimized for maximum performance and scalability**.  
+> We welcome contributions from the open-source community to make Seentics world-class.  
+>  
+> 👉 For the **best performance, resilience, and enterprise-grade features**, try our hosted cloud version at [seentics.com](https://seentics.com).
+
 
 👉 If you need the best performance, resilience, and fully optimized features, please use our hosted cloud version at seentics.com
 .
