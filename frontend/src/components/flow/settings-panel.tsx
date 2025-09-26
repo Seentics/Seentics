@@ -151,13 +151,19 @@ const NodeSettingsForm: React.FC<{
 
     if (!isActionNode) return null;
 
+    // Ensure frequency is set to default if not already set
+    React.useEffect(() => {
+      if (!settings.frequency) {
+        handleSettingChange('frequency', 'once_per_session');
+      }
+    }, [settings.frequency]);
+
     return (
       <>
         <div className="space-y-2">
           <Label className="text-sm font-medium">Action Frequency</Label>
           <Select
             value={settings.frequency || 'once_per_session'}
-            defaultValue='once_per_session'
             onValueChange={(value) => handleSettingChange('frequency', value)}
           >
             <SelectTrigger>
