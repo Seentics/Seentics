@@ -15,8 +15,6 @@
 > 👉 For the **best performance, resilience, and enterprise-grade features**, try our hosted cloud version at [seentics.com](https://seentics.com).
 
 
-👉 If you need the best performance, resilience, and fully optimized features, please use our hosted cloud version at seentics.com
-.
 ## ✨ **What Makes Seentics Special**
 
 - **🎯 Visual Workflow Builder**: Drag-and-drop automation with 10+ triggers, conditions, and actions
