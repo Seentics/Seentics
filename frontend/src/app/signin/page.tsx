@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import api from '@/lib/api';
+import { useAuth } from '@/stores/useAuthStore';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,8 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { setAuth } = useAuth();
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -65,16 +68,17 @@ export default function SignInPage() {
 
       const data = response.data;
 
-      // Store tokens in localStorage for auth state management
-      if (data.data?.tokens) {
-        localStorage.setItem('auth-storage', JSON.stringify({
-          state: {
-            access_token: data.data.tokens.accessToken,
-            refresh_token: data.data.tokens.refreshToken,
-            user: data.data.user
-          }
-        }));
+   // Store tokens and update auth state
+      if (data.data?.tokens && data.data?.user) {
+        // Update Zustand store immediately
+        setAuth({
+          user: data.data.user,
+          access_token: data.data.tokens.accessToken,
+          refresh_token: data.data.tokens.refreshToken,
+          rememberMe: false
+        });
       }
+
 
       toast({
         title: "Welcome back!",

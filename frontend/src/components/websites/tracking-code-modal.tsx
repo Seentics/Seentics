@@ -30,7 +30,7 @@ export function TrackingCodeModal({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setTrackingCode(`<script async src="${window.location.origin}/tracker.js" data-site-id="${siteId}"></script>`);
+      setTrackingCode(`<script async src="${window.location.origin}/trackers/tracker.js" data-site-id="${siteId}"></script>`);
     }
   }, [siteId]);
 
